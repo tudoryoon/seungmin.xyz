@@ -8,14 +8,20 @@ let month = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let records = [];
 let editing = null;
 let kind = 'event';
+let busy = false;
+let loadVersion = 0;
+function readLocal() {
 try {
   const saved = JSON.parse(localStorage.getItem(KEY) || '[]');
   if (!Array.isArray(saved) || saved.some(r => !r || typeof r.id !== 'string' || !['event','workout'].includes(r.kind) || typeof r.date !== 'string' || typeof r.title !== 'string')) throw new Error('Invalid data');
-  records = saved;
+  return saved;
 } catch {
   $('message').textContent = '저장된 기록을 읽지 못했습니다. 기존 데이터를 보호하기 위해 저장을 중지했습니다.';
-  records = null;
+  return null;
 }
+}
+records = readLocal();
+const cloud = window.journalCloud;
 const allRecords = () => records || [];
 $('workout-month').value = today.slice(0,7);
 document.querySelectorAll('[data-tab]').forEach(button => button.addEventListener('click', () => {
@@ -26,11 +32,67 @@ document.querySelectorAll('[data-tab]').forEach(button => button.addEventListene
     $(tab.dataset.tab).hidden = !active;
   });
 }));
-function persist(next) {
+async function persist(next, record = null) {
   if (records === null) return false;
+  const version = cloud?.version;
+  if (cloud?.user) {
+    try {
+      if (record) await cloud.save(record);
+      else await cloud.remove(editing);
+      if (version !== cloud.version) return false;
+      records = next;
+      $('storage-status').textContent = `${cloud.user.email} · 온라인 저장됨`;
+      return true;
+    } catch(error) { $('form-error').textContent = window.cloudError(error); return false; }
+  }
   try { localStorage.setItem(KEY, JSON.stringify(next)); records = next; return true; }
   catch { $('form-error').textContent = '저장 공간을 사용할 수 없습니다. 기록을 저장하지 못했습니다.'; return false; }
 }
+async function loadAccount() {
+  const request = ++loadVersion;
+  const version = cloud?.version;
+  $('editor').close();
+  records = null; render();
+  const online = Boolean(cloud?.user);
+  $('open-auth').hidden = online;
+  $('sign-out').hidden = !online;
+  $('refresh-records').hidden = !online;
+  $('import-bar').hidden = true;
+  $('message').textContent = '';
+  $('storage-status').textContent = online ? `${cloud.user.email} · 기록 불러오는 중…` : '이 브라우저에 저장 · 로그인하면 온라인 저장';
+  if (!online) {records = readLocal();render();return;}
+  try {
+    const fetched = await cloud.list();
+    if (request !== loadVersion || version !== cloud.version) return;
+    records = fetched;
+    $('storage-status').textContent = `${cloud.user.email} · 온라인 저장`;
+    let local = [];
+    try { local = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch {}
+    $('import-bar').hidden = !Array.isArray(local) || !local.length;
+  } catch(error) {
+    if (request !== loadVersion || version !== cloud.version) return;
+    $('message').textContent = window.cloudError(error);
+    $('storage-status').textContent = `${cloud.user.email} · 온라인 기록 불러오기 실패`;
+  }
+  render();
+}
+window.addEventListener('journal-account', loadAccount);
+$('refresh-records').addEventListener('click', () => {if (!busy) loadAccount();});
+$('import-local').addEventListener('click', async () => {
+  if (!cloud?.user || records === null || busy) return;
+  const local = readLocal();
+  if (!local?.length) return;
+  if (!confirm(`${cloud.user.email} 계정으로 브라우저 기록 ${local.length}개를 복사할까요?`)) return;
+  busy = true; $('import-local').disabled = true;
+  const version = cloud.version;
+  try {
+    await cloud.import(local);
+    if (version !== cloud.version) return;
+    await loadAccount();
+    if (records !== null) $('message').textContent = '가져오기를 완료했습니다. 브라우저 원본은 유지됩니다.';
+  } catch(error) {if (version === cloud.version) $('message').textContent = window.cloudError(error);}
+  finally {busy = false;$('import-local').disabled = false;}
+});
 function make(tag, text, className) {
   const el = document.createElement(tag);
   if (text !== undefined) el.textContent = text;
@@ -70,17 +132,17 @@ function render() {
   }
   $('selected-date').textContent = `${Number(selected.slice(5,7))}월 ${Number(selected.slice(8))}일`;
   const events = allRecords().filter(r => r.kind === 'event' && r.date === selected).sort((a,b) => (a.start || '').localeCompare(b.start || ''));
-  $('event-list').replaceChildren(...(events.length ? events.map(recordRow) : [make('p','등록된 일정이 없습니다.','empty')]));
+  $('event-list').replaceChildren(...(events.length ? events.map(recordRow) : [make('p',records === null ? '기록을 아직 불러오지 못했습니다.' : '등록된 일정이 없습니다.','empty')]));
   const workouts = allRecords().filter(r => r.kind === 'workout' && r.date.startsWith($('workout-month').value)).sort((a,b) => b.date.localeCompare(a.date));
   $('workout-summary').textContent = `${workouts.length}회 · 총 ${workouts.reduce((sum,r) => sum+Number(r.duration),0)}분`;
-  $('workout-list').replaceChildren(...(workouts.length ? workouts.map(recordRow) : [make('p','이번 달 운동 기록이 없습니다.','empty')]));
+  $('workout-list').replaceChildren(...(workouts.length ? workouts.map(recordRow) : [make('p',records === null ? '기록을 아직 불러오지 못했습니다.' : '이번 달 운동 기록이 없습니다.','empty')]));
 }
 function toggleTime() {
   for (const id of ['start-time','end-time']) $(id).disabled = $('all-day').checked;
   $('start-time').required = kind === 'event' && !$('all-day').checked;
 }
 function openEditor(type, record = null) {
-  if (records === null) return;
+  if (records === null || busy || (cloud && !cloud.ready)) return;
   editing = record?.id || null; kind = type;
   $('record-form').reset(); $('form-error').textContent = '';
   $('editor-title').textContent = `${type === 'event' ? '일정' : '운동 기록'} ${record ? '수정' : '추가'}`;
@@ -100,8 +162,9 @@ $('all-day').addEventListener('change', toggleTime);
 $('add-event').addEventListener('click', () => openEditor('event'));
 $('add-workout').addEventListener('click', () => openEditor('workout'));
 $('close-editor').addEventListener('click', () => $('editor').close());
-$('record-form').addEventListener('submit', event => {
+$('record-form').addEventListener('submit', async event => {
   event.preventDefault();
+  if (busy) return;
   const title = $('record-title').value.trim();
   if (!title) { $('form-error').textContent = '이름을 입력해 주세요.'; return; }
   if (kind === 'event' && !$('all-day').checked && $('end-time').value && $('end-time').value <= $('start-time').value) {
@@ -111,17 +174,24 @@ $('record-form').addEventListener('submit', event => {
   if (kind === 'event') Object.assign(record, {allDay:$('all-day').checked,start:$('all-day').checked?'':$('start-time').value,end:$('all-day').checked?'':$('end-time').value});
   else Object.assign(record, {type:$('workout-type').value,duration:Number($('duration').value)});
   const next = allRecords().filter(r => r.id !== editing).concat(record);
-  if (!persist(next)) return;
+  busy = true; event.submitter.disabled = true;
+  const saved = await persist(next, record);
+  busy = false; event.submitter.disabled = false;
+  if (!saved) return;
   if (kind === 'event') { selected = record.date; const [y,m] = selected.split('-').map(Number); month = new Date(y,m-1,1); }
   else $('workout-month').value = record.date.slice(0,7);
   $('editor').close(); render();
 });
-$('delete-record').addEventListener('click', () => {
+$('delete-record').addEventListener('click', async () => {
+  if (busy) return;
   if (!confirm('이 기록을 삭제할까요?')) return;
-  if (persist(allRecords().filter(r => r.id !== editing))) { $('editor').close(); render(); }
+  busy = true; $('delete-record').disabled = true;
+  if (await persist(allRecords().filter(r => r.id !== editing))) { $('editor').close(); render(); }
+  busy = false; $('delete-record').disabled = false;
 });
 $('previous').addEventListener('click', () => {month = new Date(month.getFullYear(),month.getMonth()-1,1);render();});
 $('next').addEventListener('click', () => {month = new Date(month.getFullYear(),month.getMonth()+1,1);render();});
 $('today').addEventListener('click', () => {selected=today;month=new Date(new Date().getFullYear(),new Date().getMonth(),1);render();});
 $('workout-month').addEventListener('change', () => {if (!$('workout-month').value) $('workout-month').value=today.slice(0,7);render();});
 render();
+if (!cloud || cloud.ready) loadAccount();

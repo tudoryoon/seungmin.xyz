@@ -14,7 +14,8 @@
       <button class="tab" data-tab="workout" aria-pressed="false">운동 일지</button>
       <button class="tab" data-tab="connections" aria-pressed="false">연동</button>
     </nav>
-    <p class="storage-note">이 브라우저에 저장 · 다른 기기와 동기화되지 않음</p>
+    <div class="account-bar"><p class="storage-note" id="storage-status">로그인 확인 중…</p><div class="actions"><button id="open-auth">로그인 / 가입</button><button id="refresh-records" hidden>새로고침</button><button id="sign-out" hidden>로그아웃</button></div></div>
+    <div class="import-bar" id="import-bar" hidden><span>이 브라우저에 남아 있는 기록</span><button id="import-local">내 계정으로 가져오기</button></div>
     <p id="message" role="status"></p>
     <section id="calendar" class="view">
       <div class="section-head"><div><p class="eyebrow">CALENDAR</p><h1>일정</h1></div><button class="primary" id="add-event">일정 추가</button></div>
@@ -50,6 +51,17 @@
       <div class="dialog-actions"><button type="button" id="delete-record" class="danger" hidden>삭제</button><button type="submit" class="primary">저장</button></div>
     </form>
   </dialog>
+  <dialog id="auth-dialog"><form id="auth-form">
+    <div class="dialog-head"><h2>내 기록 로그인</h2><button type="button" id="close-auth" aria-label="로그인 창 닫기">×</button></div>
+    <label>이메일<input id="auth-email" type="email" required autocomplete="email"></label>
+    <label>비밀번호<input id="auth-password" type="password" required minlength="8" autocomplete="current-password"></label>
+    <p id="auth-message" role="status"></p>
+    <div class="dialog-actions"><button type="submit" name="action" value="signup">회원가입</button><button class="primary" type="submit" name="action" value="login">로그인</button></div>
+    <button type="button" id="forgot-password">비밀번호 재설정 메일</button>
+  </form></dialog>
+  <dialog id="password-dialog"><form id="password-form"><h2>새 비밀번호</h2><label>비밀번호<input id="new-password" type="password" required minlength="8" autocomplete="new-password"></label><p id="password-message" role="status"></p><button class="primary" type="submit">비밀번호 저장</button></form></dialog>
+  <script src="vendor/supabase.js" defer></script>
+  <script src="cloud.js" defer></script>
   <script src="journal.js" defer></script>
 </body>
 </html>
