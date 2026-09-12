@@ -26,14 +26,16 @@ const allRecords = () => records || [];
 $('workout-month').value = today.slice(0,7);
 function selectView() {
   const requested = location.hash.slice(1);
-  const view = ['calendar','workout','projects','connections'].includes(requested) ? requested : 'calendar';
-  document.querySelectorAll('[data-tab]').forEach(tab => {
-    const active = tab.dataset.tab === view;
-    tab.classList.toggle('active', active);
-    tab.setAttribute('aria-pressed', String(active));
-    $(tab.dataset.tab).hidden = !active;
-  });
-  document.title = ({calendar:'일정관리',workout:'운동계획',projects:'프로젝트',connections:'캘린더 연동'})[view];
+  const view = requested === 'projects' ? 'library' : ['calendar','workout','library','connections'].includes(requested) ? requested : 'calendar';
+  if (requested === 'projects') history.replaceState(null, '', location.pathname + location.search + '#library');
+  document.querySelectorAll('.view').forEach(section => { section.hidden = section.id !== view; });
+  document.body.dataset.view = view;
+  const settings = document.querySelector('.settings-tab');
+  settings.hidden = !['calendar','connections'].includes(view);
+  settings.setAttribute('aria-pressed', String(view === 'connections'));
+  document.title = ({calendar:'일정관리',workout:'운동계획',library:'자료 정리',connections:'캘린더 연동'})[view];
+  if (view === 'library') { loadVersion++; $('import-bar').hidden = true; $('message').textContent = ''; }
+  window.dispatchEvent(new CustomEvent('journal-view', {detail:view}));
 }
 document.querySelectorAll('[data-tab]').forEach(button => button.addEventListener('click', () => {
   location.hash = button.dataset.tab;
@@ -69,6 +71,11 @@ async function loadAccount() {
   $('import-bar').hidden = true;
   $('message').textContent = '';
   $('storage-status').textContent = online ? `${cloud.user.email} · 기록 불러오는 중…` : '이 브라우저에 저장 · 로그인하면 온라인 저장';
+  if (document.body.dataset.view === 'library') {
+    records = []; render();
+    $('storage-status').textContent = online ? `${cloud.user.email} · 온라인 저장` : '로그인 확인 중…';
+    return;
+  }
   if (!online) {records = readLocal();render();return;}
   try {
     const fetched = await cloud.list();
@@ -86,7 +93,13 @@ async function loadAccount() {
   render();
 }
 window.addEventListener('journal-account', loadAccount);
-$('refresh-records').addEventListener('click', () => {if (!busy) loadAccount();});
+$('refresh-records').addEventListener('click', () => {
+  if (document.body.dataset.view === 'library') window.dispatchEvent(new Event('library-refresh'));
+  else if (!busy) loadAccount();
+});
+window.addEventListener('journal-view', event => {
+  if (event.detail !== 'library' && cloud?.ready && !busy) loadAccount();
+});
 $('import-local').addEventListener('click', async () => {
   if (!cloud?.user || records === null || busy) return;
   const local = readLocal();

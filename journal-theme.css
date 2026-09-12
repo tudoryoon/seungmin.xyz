@@ -11,6 +11,3 @@ button:hover{background:#29403f}.primary{background:#b7ebd5;color:#13332c;border
 .map-return svg{width:18px;height:18px}
 .settings-tab{display:grid;place-items:center;width:42px;height:42px;padding:0;background:transparent}
 .settings-tab svg{width:18px;height:18px}
-.project-placeholder{min-height:260px;display:flex;flex-direction:column;gap:18px;align-items:center;justify-content:center;border-top:1px solid #34464b;color:#a9bdc0}
-.project-placeholder svg{width:32px;height:32px;color:#c6b387}
-.project-placeholder p{margin:0;font-size:14px}

@@ -10,6 +10,8 @@ The GitHub login to the Supabase dashboard is separate from website authenticati
 The publishable key in cloud.js is intentionally public. Never put secret or service-role keys into website code.
 Google and Naver calendar integrations are not enabled.
 
+For the personal library, also run `library.sql`. This adds a separate private file bucket and owner-only resource table without altering journal records. Keep the bucket private. The browser uses only the existing publishable key and the signed-in user's session; no admin key is needed. Files in the trash remain stored and can be restored.
+
 The table uses explicit grants and owner-only RLS for every operation. SQL is repeatable without deleting records.
 Cloud saves modify individual rows rather than replacing all records. If a request fails, the editor remains open.
 Signed-out use continues to store records locally. Online records are cleared from the displayed list on sign-out.

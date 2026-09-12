@@ -34,7 +34,7 @@ async function setup(viewport) {
     if(path.endsWith('/token')) result = session;
     else if(path.endsWith('/user')) result = user;
     else if(path.endsWith('/logout')) {status=204;result=null;}
-    else if(path.includes('/journal_records')) result = [];
+    else if(path.includes('/journal_records') || path.includes('/library_items')) result = [];
     await route.fulfill({status,contentType:'application/json',body:status===204?'':JSON.stringify(result)});
   });
   await page.goto(base + '/index.html#map');
@@ -51,7 +51,7 @@ async function checkLayout(page, name) {
   await page.locator('.dungeon-art img').evaluate(async image => { await image.decode(); await new Promise(requestAnimationFrame); });
   const viewport=page.viewportSize();
   assert.equal(await page.locator('body').innerText().then(text=>/seungmin\.xyz/i.test(text)),false,'no visible domain or logo');
-  assert.equal(await page.locator('.world').evaluate(element=>getComputedStyle(element).visibility),'visible','space continues behind dungeon');
+  assert.equal(await page.locator('.world').evaluate(element=>getComputedStyle(element).visibility),'hidden','map terrain replaces the cosmic canvas');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   const nodes=page.locator('[data-location]');
   assert.equal(await nodes.count(),3);
@@ -75,13 +75,31 @@ async function checkLayout(page, name) {
   const stats = await sharp(screenshot).extract({left:Math.round(viewport.width*.44),top:Math.round(viewport.height*.18),width:Math.round(viewport.width*.12),height:Math.round(viewport.height*.12)}).stats();
   assert.ok(stats.channels.slice(0,3).some(channel=>channel.stdev>5),'map terrain is visibly rendered: '+name);
 }
+async function walkTo(page, name) {
+  const target=await page.locator(`[data-location=${name}]`).boundingBox();
+  for(const [axis,value] of [['x',target.x+target.width/2],['y',target.y+target.height*.4]]) {
+    const actor=await page.locator('#map-actor').boundingBox();
+    const start=axis==='x'?actor.x+actor.width/2:actor.y+actor.height*.85;
+    const positive=value>start;
+    const key=axis==='x'?(positive?'ArrowRight':'ArrowLeft'):(positive?'ArrowDown':'ArrowUp');
+    await page.keyboard.down(key);
+    await page.waitForFunction(({axis,value,positive})=>{
+      const box=document.querySelector('#map-actor').getBoundingClientRect();
+      const current=axis==='x'?box.x+box.width/2:box.y+box.height*.85;
+      return positive?current>=value:current<=value;
+    },{axis,value,positive});
+    await page.keyboard.up(key);
+  }
+  assert.equal(await page.locator('.dungeon-node.nearby').getAttribute('data-location'),name);
+  await page.keyboard.press('Enter');
+}
 try {
   const page=await setup({width:1440,height:900});
   await checkLayout(page,'desktop');
-  const actorStart=await page.locator('#map-actor').boundingBox();
-  await page.locator('[data-location=calendar]').click();
-  await page.waitForFunction(x=>document.querySelector('#map-actor').getBoundingClientRect().x<x-8,actorStart.x);
-  assert.equal(await page.locator('#map').getAttribute('aria-busy'),'true');
+  const marker=await page.locator('[data-location=calendar]').boundingBox();
+  await page.mouse.click(marker.x+marker.width/2,marker.y+marker.height/2);
+  assert.equal(await page.locator('#map').isVisible(),true,'clicking a dungeon cannot enter');
+  await walkTo(page,'calendar');
   await page.locator('#calendar').waitFor({state:'visible'});
   assert.equal(new URL(page.url()).hash,'#calendar');
   await page.locator('.map-return').click();await page.locator('#map').waitFor({state:'visible'});
@@ -90,26 +108,29 @@ try {
   const paused = await page.locator('#portal').screenshot();
   await page.waitForTimeout(300);
   assert.equal(Buffer.compare(await page.locator('#portal').screenshot(),paused)===0,true,'motion toggle freezes the shared scene');
-  await page.locator('[data-location=workout]').focus();await page.keyboard.press('Enter');
+  await walkTo(page,'workout');
   await page.locator('#workout').waitFor({state:'visible'});
-  assert.equal(await page.locator('[data-tab=workout]').getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('body').getAttribute('data-view'),'workout');
+  assert.equal(await page.locator('nav[aria-label="기록 메뉴"]').count(),0);
   await page.locator('#add-workout').click();await page.locator('#editor').waitFor({state:'visible'});
   await page.locator('#close-editor').click();
   await page.locator('.map-return').click();await page.locator('#map').waitFor({state:'visible'});
-  await page.locator('[data-location=projects]').click();await page.locator('#projects').waitFor({state:'visible'});
-  assert.equal(await page.locator('#projects').getByText('준비 중',{exact:true}).count(),1);
-  await page.screenshot({path:'/tmp/dungeon-projects.png'});
-  await page.locator('[data-tab=calendar]').click();await page.locator('#calendar').waitFor({state:'visible'});
-  await page.goBack();await page.locator('#projects').waitFor({state:'visible'});
-  await page.reload();await page.locator('#projects').waitFor({state:'visible'});
+  await walkTo(page,'library');await page.locator('#library').waitFor({state:'visible'});
+  assert.equal(await page.locator('#library').getByRole('heading',{name:'자료 정리'}).count(),1);
+  assert.equal(await page.locator('#calendar').isVisible(),false);
+  assert.equal(await page.locator('.settings-tab').isVisible(),false);
+  await page.reload();await page.locator('#library').waitFor({state:'visible'});
+  await page.goto(base+'/test.html#projects');await page.locator('#library').waitFor({state:'visible'});
+  assert.equal(new URL(page.url()).hash,'#library');
   await page.locator('.map-return').click();await page.locator('#map').waitFor({state:'visible'});
   await page.locator('#map-character').click();await page.locator('#complete').waitFor({state:'visible'});
   await page.locator('#open-map').click();await page.locator('#map').waitFor({state:'visible'});
   await page.locator('#motion').check();
-  await page.locator('[data-location=workout]').click();
+  await page.keyboard.down('ArrowRight');
   await page.locator('#logout').click();await page.locator('#auth').waitFor({state:'visible'});
+  await page.keyboard.up('ArrowRight');
   await page.waitForTimeout(750);
-  assert.ok(page.url().includes('index.html'),'logout cancels pending navigation');
+  assert.ok(page.url().includes('index.html'),'logout stops map movement');
   assert.equal(await page.locator('#map-name').textContent(),'');
   const mobile=await setup({width:390,height:844});
   await checkLayout(mobile,'mobile');
@@ -119,9 +140,9 @@ try {
   ]) {await mobile.setViewportSize(viewport);await mobile.waitForTimeout(200);await checkLayout(mobile,name);}
   await mobile.setViewportSize({width:390,height:844});
   await mobile.locator('#motion').uncheck();
-  await mobile.locator('[data-location=projects]').click();await mobile.locator('#projects').waitFor({state:'visible'});
+  await walkTo(mobile,'library');await mobile.locator('#library').waitFor({state:'visible'});
   await mobile.locator('.map-return').click();await mobile.locator('#map').waitFor({state:'visible'});
   assert.deepEqual(errors,[]);
   assert.deepEqual(failed,[]);
-  console.log('PASS: 3 map destinations, desktop/mobile/tablet layouts, saved avatar, walking transition, reduced motion, keyboard navigation, deep links, back/refresh, character access, and logout cancellation.');
+  console.log('PASS: 3 map destinations, desktop/mobile/tablet layouts, saved avatar, movement-only entrance, reduced motion, keyboard navigation, deep links, back/refresh, character access, and logout cancellation.');
 } finally {await browser.close();await new Promise(resolve=>server.close(resolve));}

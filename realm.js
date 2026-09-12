@@ -1,13 +1,13 @@
-import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js?v=20260912-2';
-import { validProfile } from './profile.js?v=20260912-2';
-import { createDungeon } from './dungeon.js?v=20260912-2';
+import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js?v=20260912-3';
+import { validProfile } from './profile.js?v=20260912-3';
+import { createDungeon } from './dungeon.js?v=20260912-3';
 
 const $ = id => document.getElementById(id);
 const client = window.realmClient;
 window.lucide?.createIcons();
 let user = null, stage = 'entry', authMode = 'login', epoch = 0, entered = false, flipped = false;
 let draft = null, preview = parseAvatar(DEFAULT_PROMPT), frame = 0;
-const dungeon = createDungeon($('map'), () => motion, () => stage === 'map' && !!user);
+const dungeon = createDungeon($('map'), () => stage === 'map' && !!user && !$('logout').disabled);
 let portal = { setMotion() {}, setStage() {}, async travel() {} };
 const reducedQuery = matchMedia('(prefers-reduced-motion: reduce)');
 let motionPreference = null;
@@ -32,7 +32,7 @@ $('motion').addEventListener('change', event => {
 });
 reducedQuery.addEventListener('change', () => { if (motionPreference === null) setMotion(!reducedQuery.matches); });
 // Rendering is optional: a failed GPU or module must never block account access.
-import('./portal.js?v=20260912-2').then(({ createPortal }) => {
+import('./portal.js?v=20260912-3').then(({ createPortal }) => {
   portal = createPortal($('portal'), motion);
   portal.setStage(stage);
 }).catch(() => {
@@ -286,7 +286,7 @@ function showMap() {
 function renderAvatar() {
   if (stage === 'avatar') paintAvatar($('avatar-canvas'), preview, frame, flipped);
   if (stage === 'complete') paintAvatar($('saved-avatar'), preview, frame);
-  if (stage === 'map') paintAvatar($('map-avatar'), preview, frame);
+  if (stage === 'map') paintAvatar($('map-avatar'), preview, $('map-actor').dataset.walking === 'true' ? frame * 2 : frame);
 }
 setInterval(() => {
   if (document.hidden || !motion || !['avatar','complete','map'].includes(stage)) return;

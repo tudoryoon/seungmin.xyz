@@ -8,9 +8,9 @@
   <title>입장</title>
   <link rel="icon" href="data:,">
   <link rel="preload" as="image" href="assets/realm-gate.webp">
-  <link rel="stylesheet" href="styles.css?v=20260912-2">
-  <link rel="stylesheet" href="dungeon.css?v=20260912-2">
-  <link rel="stylesheet" href="continuity.css?v=20260912-2">
+  <link rel="stylesheet" href="styles.css?v=20260912-3">
+  <link rel="stylesheet" href="dungeon.css?v=20260912-3">
+  <link rel="stylesheet" href="continuity.css?v=20260912-3">
 </head>
 <body data-stage="entry">
   <div class="world" aria-hidden="true"><div class="landscape"></div><canvas id="portal"></canvas><div class="world-shade"></div></div>
@@ -90,18 +90,19 @@
       </picture>
       <div class="map-shade" aria-hidden="true"></div>
       <h1 id="map-title" tabindex="-1">지도</h1>
-      <nav class="dungeon-locations" aria-label="지도 메뉴">
-        <a class="dungeon-node node-calendar" href="test.html#calendar" data-location="calendar">
-          <span class="node-pin"><i data-lucide="calendar-days"></i></span><span class="node-label">일정관리<i data-lucide="arrow-up-right"></i></span>
-        </a>
-        <a class="dungeon-node node-workout" href="test.html#workout" data-location="workout">
-          <span class="node-pin"><i data-lucide="dumbbell"></i></span><span class="node-label">운동계획<i data-lucide="arrow-up-right"></i></span>
-        </a>
-        <a class="dungeon-node node-projects" href="test.html#projects" data-location="projects">
-          <span class="node-pin"><i data-lucide="folder-kanban"></i></span><span class="node-label">프로젝트<i data-lucide="arrow-up-right"></i></span>
-        </a>
-      </nav>
+      <div class="dungeon-locations" role="group" aria-label="던전 위치">
+        <div class="dungeon-node node-calendar" data-destination="test.html#calendar" data-location="calendar">
+          <span class="node-pin"><i data-lucide="calendar-days"></i></span><span class="node-label">일정관리</span>
+        </div>
+        <div class="dungeon-node node-workout" data-destination="test.html#workout" data-location="workout">
+          <span class="node-pin"><i data-lucide="dumbbell"></i></span><span class="node-label">운동계획</span>
+        </div>
+        <div class="dungeon-node node-library" data-destination="test.html#library" data-location="library">
+          <span class="node-pin"><i data-lucide="library"></i></span><span class="node-label">자료 정리</span>
+        </div>
+      </div>
       <div class="map-actor" id="map-actor"><canvas id="map-avatar" width="160" height="176" role="img" aria-label="내 캐릭터"></canvas><span class="actor-shadow" aria-hidden="true"></span></div>
+      <div class="map-controls"><div class="direction-pad" aria-label="캐릭터 이동"><button data-move="ArrowUp" aria-label="위로 이동" title="위로 이동"><i data-lucide="chevron-up"></i></button><button data-move="ArrowLeft" aria-label="왼쪽으로 이동" title="왼쪽으로 이동"><i data-lucide="chevron-left"></i></button><button data-move="ArrowDown" aria-label="아래로 이동" title="아래로 이동"><i data-lucide="chevron-down"></i></button><button data-move="ArrowRight" aria-label="오른쪽으로 이동" title="오른쪽으로 이동"><i data-lucide="chevron-right"></i></button></div><button id="nearby-enter" hidden><i data-lucide="door-open"></i>입장</button></div>
       <button type="button" class="map-character" id="map-character" title="캐릭터 보기" aria-label="캐릭터 보기"><i data-lucide="user-round"></i><span id="map-name"></span><span class="map-level">LV. 1</span><i data-lucide="chevron-right"></i></button>
     </section>
   </main>
@@ -109,8 +110,8 @@
   <p id="global-message" class="global-message" role="status"></p>
   <noscript><p class="noscript">입장하려면 브라우저에서 JavaScript를 켜주세요.</p></noscript>
   <script src="vendor/supabase.js" defer></script>
-  <script src="auth-client.js?v=20260912-2" defer></script>
+  <script src="auth-client.js?v=20260912-3" defer></script>
   <script src="vendor/lucide.js" defer></script>
-  <script type="module" src="realm.js?v=20260912-2"></script>
+  <script type="module" src="realm.js?v=20260912-3"></script>
 </body>
 </html>
