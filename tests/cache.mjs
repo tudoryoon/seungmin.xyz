@@ -8,7 +8,7 @@ import {dailyFixture} from './daily-fixture.mjs';
 const {chromium} = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const root = process.env.TEST_ROOT || fileURLToPath(new URL('../',import.meta.url));
 const repo = process.env.SOURCE_REPO || root;
-const version = '20260912-7';
+const version = '20260912-8';
 const user = {id:'cache-test-user',user_metadata:{
   realm_profile:{version:1,name:'테스트',age:30,gender:'unspecified',mbti:'',blood:''},
   realm_avatar:parseAvatar('청록색 도포를 입은 도사. 지팡이.')
@@ -41,7 +41,6 @@ try {
     const context = await browser.newContext({viewport:{width:1440,height:900},reducedMotion:'reduce'});
     try {
       const page = await context.newPage();
-      await page.addLocatorHandler(page.locator('#daily-dialog'), () => page.locator('#daily-close').click());
       page.on('pageerror',e=>errors.push(e.message));
       const base = 'http://127.0.0.1:'+server.address().port;
       await page.goto(base);
@@ -57,7 +56,7 @@ try {
       await page.locator('#open-map').click();
       assert.equal(await page.locator('#map').isVisible(),true);
       assert.equal(await page.locator('[data-location]').count(),3);
-      for (const file of ['realm.js','realm-route.js','portal.js','avatar.js','profile.js','dungeon.js','roads.js','styles.css','dungeon.css','continuity.css','daily.js','daily.css']) {
+      for (const file of ['realm.js','realm-route.js','portal.js','avatar.js','profile.js','dungeon.js','roads.js','styles.css','dungeon.css','continuity.css','player-level.js']) {
         assert.ok(requested.includes('/'+file+'?v='+version),'new version fetched: '+file);
       }
       assert.equal(await page.evaluate(()=>localStorage.getItem('seungmin-journal-v1')),'{"records":["keep"]}');

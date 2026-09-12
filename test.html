@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>기록</title>
-  <link rel="stylesheet" href="journal.css?v=20260912-7">
-  <link rel="stylesheet" href="journal-theme.css?v=20260912-7">
-  <link rel="stylesheet" href="library.css?v=20260912-7">
-  <link rel="stylesheet" href="daily.css?v=20260912-7">
+  <link rel="stylesheet" href="journal.css?v=20260912-8">
+  <link rel="stylesheet" href="journal-theme.css?v=20260912-8">
+  <link rel="stylesheet" href="library.css?v=20260912-8">
+  <link rel="stylesheet" href="daily.css?v=20260912-8">
 </head>
 <body class="session-checking">
   <header class="topbar"><a class="map-return" href="index.html#map"><i data-lucide="arrow-left"></i>지도</a><button class="settings-tab" data-tab="connections" aria-pressed="false" title="캘린더 연동" aria-label="캘린더 연동"><i data-lucide="settings-2"></i></button></header>
@@ -17,12 +17,15 @@
     <p id="message" role="status"></p>
     <section id="calendar" class="view">
       <div class="section-head"><h1>일정관리</h1><button class="primary" id="add-event">일정 추가</button></div>
+      <div class="calendar-workspace">
       <div class="calendar-layout">
         <div><div class="month-toolbar"><h2 id="month-title"></h2><div class="actions"><button id="previous" aria-label="이전 달" title="이전 달">←</button><button id="today">오늘</button><button id="next" aria-label="다음 달" title="다음 달">→</button></div></div>
           <div class="weekdays" aria-hidden="true"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
           <div id="month-grid" class="month-grid" aria-label="날짜 선택"></div>
         </div>
         <aside class="day-agenda"><h2 id="selected-date"></h2><div id="event-list"></div></aside>
+      </div>
+      <aside id="daily-panel" class="daily-panel" aria-labelledby="daily-title" hidden></aside>
       </div>
     </section>
     <section id="workout" class="view" hidden>
@@ -85,12 +88,12 @@
   </form></dialog>
   <dialog id="password-dialog"><form id="password-form"><h2>새 비밀번호</h2><label>비밀번호<input id="new-password" type="password" required minlength="8" autocomplete="new-password"></label><p id="password-message" role="status"></p><button class="primary" type="submit">비밀번호 저장</button></form></dialog>
   <script src="vendor/supabase.js" defer></script>
-  <script src="auth-client.js?v=20260912-7" defer></script>
-  <script type="module" src="journal-gate.js?v=20260912-7"></script>
-  <script src="cloud.js?v=20260912-7" defer></script>
+  <script src="auth-client.js?v=20260912-8" defer></script>
+  <script type="module" src="journal-gate.js?v=20260912-8"></script>
+  <script src="cloud.js?v=20260912-8" defer></script>
   <script src="vendor/lucide.js" defer></script>
-  <script src="journal.js?v=20260912-7" defer></script>
-  <script type="module" src="library.js?v=20260912-7"></script>
-  <script type="module" src="daily.js?v=20260912-7"></script>
+  <script src="journal.js?v=20260912-8" defer></script>
+  <script type="module" src="library.js?v=20260912-8"></script>
+  <script type="module" src="daily.js?v=20260912-8"></script>
 </body>
 </html>

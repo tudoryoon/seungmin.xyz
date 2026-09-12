@@ -40,7 +40,6 @@ let failUpdate=false,updates=0;
 async function setup(options={}) {
   const context=await browser.newContext({viewport:{width:1440,height:1000},...options});
   const page=await context.newPage();
-  await page.addLocatorHandler(page.locator('#daily-dialog'), () => page.locator('#daily-close').click());
   page.on('pageerror',e=>errors.push(e.message));
   await page.route('https://rciahwtvrsysxqvjjtuu.supabase.co/**',async route=>{
     const req=route.request(),path=new URL(req.url()).pathname;

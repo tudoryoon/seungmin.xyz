@@ -1,0 +1,75 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+const {PGlite}=await import(process.env.PGLITE_MODULE || '@electric-sql/pglite');
+const db=new PGlite();
+const owner='00000000-0000-4000-8000-000000000001',other='00000000-0000-4000-8000-000000000002';
+const a='10000000-0000-4000-8000-000000000001',b='10000000-0000-4000-8000-000000000002';
+try {
+  await db.exec(`create role anon;create role authenticated;create schema auth;
+    create table auth.users(id uuid primary key);
+    create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+    grant usage on schema auth to authenticated;
+    insert into auth.users values('${owner}'),('${other}');
+    create schema test;create table test.clock(value timestamptz);
+    insert into test.clock values('2026-09-12T14:59:30Z');
+    create function test.now() returns timestamptz language sql as $$select value from test.clock$$;`);
+  await db.exec(await readFile(new URL('../supabase/daily.sql',import.meta.url),'utf8'));
+  // Only this isolated PostgreSQL fixture substitutes a controllable clock.
+  const migration=(await readFile(new URL('../supabase/daily-midnight.sql',import.meta.url),'utf8')).replaceAll('clock_timestamp()','test.now()');
+  async function history(day,complete,legacy=false) {
+    await db.query('insert into daily_plans(user_id,day) values($1,$2)',[owner,day]);
+    await db.query('insert into daily_tasks(user_id,day,id,title,position,completed_at) values($1,$2,$3,$4,0,$5)',[owner,day,a,'Past task',complete?day+'T12:00:00+09:00':null]);
+    if(legacy)await db.query('insert into daily_rewards(user_id,day) values($1,$2)',[owner,day]);
+  }
+  await history('2026-09-09',true,true);
+  await db.query("update daily_tasks set completed_at='2026-09-10T00:00:00+09:00' where day='2026-09-09'");
+  await history('2026-09-10',false,true);await history('2026-09-11',true,true);
+  await db.exec(migration);
+  await db.exec(`set role authenticated;set request.jwt.claim.sub='${owner}';`);
+  const state=async()=>(await db.query('select public.daily_plan_state() as data')).rows[0].data;
+  const update=async(s,action,tasks=null,id=null,done=null)=>(await db.query('select public.daily_plan_update($1::date,$2::bigint,$3::text,$4::jsonb,$5::uuid,$6::boolean) as data',[s.day,s.revision,action,tasks&&JSON.stringify(tasks),id,done])).rows[0].data;
+  let s=await state();assert.equal(s.day,'2026-09-12');assert.equal(s.level,2,'only eligible closed legacy days settle');
+  assert.equal(Date.parse(s.ends_at),Date.parse('2026-09-12T15:00:00Z'),'KST midnight is the boundary');
+  await assert.rejects(update(s,'save',[]),/INVALID_TASKS/);
+  s=await update(s,'save',[{id:a,title:'A'},{id:b,title:'B'}]);
+  s=await update(s,'check',null,a,true);s=await update(s,'check',null,b,true);
+  assert.equal(s.level,2);assert.equal(s.awarded,false,'all checked does not award before midnight');
+  s=await update(s,'finish');assert.equal(s.level,2,'old client finish button cannot award early');
+  const stale=s;s=await update(s,'check',null,b,false);
+  assert.equal(s.tasks[1].completed,false,'completed tasks can be unchecked');
+  await assert.rejects(update(stale,'check',null,b,true),/PLAN_CHANGED/);
+  s=await update(s,'check',null,b,true);
+  s=await update(s,'save',[{id:a,title:'A renamed'},{id:b,title:'B'}]);
+  assert.equal(s.tasks[0].completed,false,'all-checked list remains editable');
+  s=await update(s,'check',null,a,true);
+  await db.exec('reset role;');
+  await db.query('insert into daily_rewards(user_id,day) values($1,$2)',[owner,s.day]);
+  await db.exec(`set role authenticated;set request.jwt.claim.sub='${owner}';`);
+  assert.equal((await state()).level,2,'today\'s old instant reward is provisional and excluded');
+  await db.exec(`set request.jwt.claim.sub='${other}';`);
+  assert.equal((await state()).level,1);
+  let t=await update(await state(),'save',[{id:a,title:'Other'}]);
+  t=await update(t,'check',null,a,true);t=await update(t,'check',null,a,false);
+  await db.exec("reset role;update test.clock set value='2026-09-12T15:00:00Z';");
+  await db.exec(`set role authenticated;set request.jwt.claim.sub='${owner}';`);
+  let next=await state();assert.equal(next.day,'2026-09-13');assert.equal(next.level,3);assert.deepEqual(next.tasks,[]);
+  assert.equal((await state()).level,3,'refresh cannot duplicate midnight settlement');
+  await assert.rejects(update(s,'check',null,a,false),/DAY_CHANGED/);
+  await db.exec(`set request.jwt.claim.sub='${other}';`);
+  assert.equal((await state()).level,1,'unchecked before midnight earns no level');
+  assert.equal((await db.query('select * from daily_rewards')).rows.length,0,'settlement remains owner-private');
+  for(const q of ['update daily_rewards set settled_at=now()','insert into daily_rewards(user_id,day) values($1,current_date)']) {
+    await assert.rejects(db.query(q,q.includes('$1')?[other]:[]),e=>e.code==='42501');
+  }
+  await db.exec('reset role;');await history('2026-09-13',true);await history('2026-09-14',true);await history('2026-09-15',false);
+  await db.exec("update test.clock set value='2026-09-15T15:00:00Z';");
+  await db.exec(`set role authenticated;set request.jwt.claim.sub='${owner}';`);
+  assert.equal((await state()).level,5,'offline days settle exactly once on return');
+  await db.exec('reset role;');await db.exec(migration);
+  await db.exec(`set role authenticated;set request.jwt.claim.sub='${owner}';`);
+  assert.equal((await state()).level,5,'repeat migration retains settlements');
+  await db.exec('reset role;set role anon;');
+  await assert.rejects(state(),e=>e.code==='42501');
+  await assert.rejects(db.query('select * from daily_rewards'),e=>e.code==='42501');
+} finally {await db.close();}
+console.log('PASS: KST midnight boundary, no instant reward, undo/edit before midnight, legacy correction, stale writes, offline settlements, idempotency and private permissions.');

@@ -26,13 +26,13 @@ The library supports add, search, type filtering, title/notes editing, file open
 
 ## Daily Plans And Levels
 
-Apply `supabase/daily.sql` in the same Supabase project before deploying this feature. It adds three private tables (daily plans, tasks, and reward history), owner-only read policies, and two authenticated RPCs. Clients cannot write the tables directly; each RPC derives the account from `auth.uid()`. Existing journal/library schemas and records are not changed.
+For a new database, apply `supabase/daily.sql`, then `supabase/daily-midnight.sql` in the same Supabase project. For an existing daily-plan installation, apply only the midnight migration. The base migration adds private plans, tasks, and reward history, owner-only read policies, and authenticated RPCs. The midnight migration preserves existing permissions and records. Clients cannot write the tables directly; each RPC derives the account from `auth.uid()`.
 
-After completed onboarding, every page load, refresh, sign-in, or restored back/forward visit opens today's list, including saved and completed lists. Dismissing the dialog suppresses automatic reopening only within that currently loaded page; it does not persist in browser storage. The same control is available on the map and inside all three dungeons. A list has 1-20 self-reported tasks with 160-character titles. Before the daily award, users can add/remove/rename tasks or change their checks. Renaming a checked task resets its completion. Removing unfinished tasks does not itself award a level; an explicit finish action is required if the remaining tasks are all checked.
+Today's list is a persistent, nonmodal sidebar inside schedule management only. It stays visible after saving or checking tasks and has no close button. Desktop uses a sticky sidebar; narrow layouts place it above the calendar. Map, workout, library, and connection views never open a daily popup. `player-level.js` refreshes only the displayed level on realm pages without mounting any task UI. A list has 1-20 self-reported tasks with 160-character titles. All of today's checks can be undone and the list edited, even after everything is checked. Renaming a checked task resets that check.
 
-The last completion check awards one level, once per account per Asia/Seoul calendar day. Completed days are locked. Level equals 1 plus the server reward-history count, never a field in editable Auth metadata. Empty lists cannot award. Row locks, optimistic revisions, and a unique user/day reward key protect against concurrent edits and duplicate awards, including retries after a lost response. Previous days remain stored; missed days do not reduce the level.
+Checking every task shows a pending state, not an instant level increase. After KST midnight, a closed day earns one level only if its nonempty list was fully completed before that day's boundary. Settlement runs on the next authenticated state read, including the active page's midnight refresh; offline days settle on the next visit. No background cron or notification subscription is required. Level is 1 plus finalized rewards, not editable Auth metadata. Existing instant-reward rows are retained but contribute only after eligible closed-day settlement. Previous dates cannot be edited through the RPC. Consistent plan locks, server date rechecks, revisions, and a unique user/day reward key prevent late edits or repeated settlement from awarding extra levels. Incomplete or empty days earn nothing.
 
-Daily data lives online, not in browser storage. Old stored prompt-dismissal flags are ignored. Focus, reconnect, and the server's next-midnight deadline recheck the plan; they do not send reminders. An outdated or uncertain write requires a reload before another write. Unsaved input is retained after errors and requires confirmation before discarding. Account changes clear private UI and ignore late responses. Open dialogs pause map movement. Reminder delivery, reminder preferences, notifications, XP, and calendar synchronization remain out of scope.
+Daily data lives online, not in browser storage. Focus, reconnect, and the server's next-midnight deadline recheck the active calendar plan; they do not send reminders. An outdated or uncertain write requires a reload before another write. Unsaved input is retained across view switches and errors and requires confirmation before discarding. Account changes clear private UI and ignore late responses. Reminder delivery, reminder preferences, notifications, XP, and calendar synchronization remain out of scope.
 
 ## Art
 
@@ -43,7 +43,7 @@ Daily data lives online, not in browser storage. Old stored prompt-dismissal fla
 
 ## Testing
 
-Cloudflare's `_headers` requests `no-cache` revalidation. This works on `pages.dev`, but the custom domain currently rewrites static asset responses to `max-age=14400` and removes `no-cache`. Set its Browser Cache TTL to **Respect Existing Headers** in the dashboard when account access is available. Until then, the release query `v=20260912-7` on app CSS/JS URLs and module imports ensures returning visitors fetch the correct release. Bump it consistently across HTML and imports for every code release; headers alone are not sufficient on this domain. No storage clearing or data migration is needed. See [Pages response headers](https://developers.cloudflare.com/pages/configuration/headers/) and [Browser Cache TTL](https://developers.cloudflare.com/cache/how-to/edge-browser-cache-ttl/set-browser-ttl/).
+Cloudflare's `_headers` requests `no-cache` revalidation. This works on `pages.dev`, but the custom domain currently rewrites static asset responses to `max-age=14400` and removes `no-cache`. Set its Browser Cache TTL to **Respect Existing Headers** in the dashboard when account access is available. Until then, the release query `v=20260912-8` on app CSS/JS URLs and module imports ensures returning visitors fetch the correct release. Bump it consistently across HTML and imports for every code release; headers alone are not sufficient on this domain. No storage clearing or data migration is needed. See [Pages response headers](https://developers.cloudflare.com/pages/configuration/headers/) and [Browser Cache TTL](https://developers.cloudflare.com/cache/how-to/edge-browser-cache-ttl/set-browser-ttl/).
 
 Node plus Playwright and installed Chrome are needed. Set PLAYWRIGHT_MODULE to the absolute Playwright module path when it is not locally installed.
 
@@ -56,12 +56,13 @@ node tests/library.mjs
 node tests/movement.mjs
 node tests/realm-routing.mjs
 node tests/daily-db.mjs
+node tests/daily-midnight.mjs
 node tests/daily-ui.mjs
 BROWSER=webkit node tests/realm.mjs
 BROWSER=webkit node tests/dungeon.mjs
 ```
 
 Auth/API calls are mocked; tests do not log into or modify a real account. Runtime animations support prefers-reduced-motion, an explicit persisted motion toggle, visibility pausing, and a no-WebGL fallback.
-The library, movement, routing, and daily UI unit tests use Happy DOM. Library and daily schema checks run with PGlite, including two-user RLS isolation and idempotent schema application. Daily checks also cover server day boundaries, stale revisions, reward idempotency, direct-write denial, cumulative levels, failed-save draft retention, and logout isolation. Set `DOM_MODULE` and `PGLITE_MODULE` to their module paths if needed.
+The library, movement, routing, and daily UI unit tests use Happy DOM. Library and daily schema checks run with PGlite, including two-user RLS isolation and idempotent schema application. Midnight tests substitute a clock only inside the isolated test database to verify undo before midnight, no early rewards, closed-day settlement, legacy reward correction, offline days, and unchanged access controls. UI tests cover the persistent calendar-only surface, hidden other-dungeon states, failed-save drafts, and logout isolation. Set `DOM_MODULE` and `PGLITE_MODULE` to their module paths if needed.
 
 Experience points, automatic calendar-event completion, and Google Calendar integration are intentionally not implemented yet.

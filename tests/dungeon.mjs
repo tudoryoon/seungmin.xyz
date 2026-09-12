@@ -28,7 +28,6 @@ const session = {access_token:['eyJhbGciOiJIUzI1NiJ9',Buffer.from(JSON.stringify
 async function setup(viewport) {
   const context = await browser.newContext({viewport});
   const page = await context.newPage();
-  await page.addLocatorHandler(page.locator('#daily-dialog'), () => page.locator('#daily-close').click());
   page.on('pageerror',error => errors.push(error.message));
   page.on('response',r => { if(r.url().startsWith(base) && r.status() >= 400) failed.push(r.url()); });
   await context.route('https://rciahwtvrsysxqvjjtuu.supabase.co/**',async route => {
