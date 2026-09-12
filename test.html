@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>기록 | Seungmin</title>
   <link rel="stylesheet" href="journal.css">
+  <link rel="stylesheet" href="journal-theme.css">
 </head>
-<body>
+<body class="session-checking">
   <header class="topbar"><a href="index.html">seungmin.xyz</a><span>나의 기록</span></header>
   <main class="workspace">
     <nav aria-label="기록 메뉴">
@@ -61,6 +62,8 @@
   </form></dialog>
   <dialog id="password-dialog"><form id="password-form"><h2>새 비밀번호</h2><label>비밀번호<input id="new-password" type="password" required minlength="8" autocomplete="new-password"></label><p id="password-message" role="status"></p><button class="primary" type="submit">비밀번호 저장</button></form></dialog>
   <script src="vendor/supabase.js" defer></script>
+  <script src="auth-client.js" defer></script>
+  <script type="module" src="journal-gate.js"></script>
   <script src="cloud.js" defer></script>
   <script src="journal.js" defer></script>
 </body>

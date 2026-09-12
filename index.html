@@ -3,13 +3,92 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Seungmin</title>
+  <meta name="theme-color" content="#080f14">
+  <meta name="description" content="일정과 운동 기록.">
+  <title>Seungmin.xyz</title>
+  <link rel="icon" href="data:,">
+  <link rel="preload" as="image" href="assets/realm-gate.webp">
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body data-stage="entry">
+  <div class="world" aria-hidden="true"><div class="landscape"></div><canvas id="portal"></canvas><div class="world-shade"></div></div>
+  <header class="realm-header">
+    <a class="wordmark" href="./"><span class="brand-mark">S</span><span>seungmin.xyz</span></a>
+    <div class="header-actions">
+      <label class="motion-control" title="배경 움직임"><i data-lucide="orbit"></i><span>움직임</span><input id="motion" type="checkbox" role="switch" checked aria-label="배경 움직임"></label>
+      <button id="logout" class="icon-button" title="로그아웃" aria-label="로그아웃" hidden><i data-lucide="log-out"></i></button>
+    </div>
+  </header>
   <main>
-    <p class="site-name">seungmin.xyz</p>
-    <a class="entry" href="test.html">입장</a>
+    <section id="entry" class="stage entry-stage" aria-labelledby="entry-title">
+      <div class="entry-copy">
+        <h1 id="entry-title">seungmin.xyz</h1>
+        <button id="enter" class="enter-button"><span>입장</span><i data-lucide="arrow-up-right"></i></button>
+      </div>
+    </section>
+    <section id="auth" class="stage form-stage" aria-labelledby="auth-title" hidden>
+      <div class="form-wrap">
+        <h1 id="auth-title" tabindex="-1">로그인</h1>
+        <div class="segmented" role="group" aria-label="계정 작업"><button type="button" data-auth-mode="login" aria-pressed="true">로그인</button><button type="button" data-auth-mode="signup" aria-pressed="false">회원가입</button></div>
+        <form id="auth-form">
+          <label>이메일<input id="email" type="email" autocomplete="email" placeholder="you@example.com" required maxlength="254"></label>
+          <label>비밀번호<span class="password-field"><input id="password" type="password" autocomplete="current-password" placeholder="8자 이상" minlength="8" maxlength="128" required><button class="icon-button" id="show-password" type="button" aria-label="비밀번호 표시" title="비밀번호 표시"><i data-lucide="eye"></i></button></span></label>
+          <p id="auth-message" class="feedback" role="status"></p>
+          <button class="primary wide" id="auth-submit" type="submit"><span>로그인</span><i data-lucide="arrow-right"></i></button>
+          <button type="button" class="text-button reset-password" id="reset-password">비밀번호를 잊었나요?</button>
+        </form>
+      </div>
+    </section>
+    <section id="profile" class="stage form-stage" aria-labelledby="profile-title" hidden>
+      <div class="form-wrap profile-wrap">
+        <h1 id="profile-title" tabindex="-1">프로필</h1>
+        <form id="profile-form">
+          <div class="two-columns"><label>이름<input id="profile-name" autocomplete="nickname" maxlength="24" placeholder="이름 또는 별명" required></label><label>나이<input id="profile-age" type="number" inputmode="numeric" min="1" max="120" step="1" placeholder="만 나이" required></label></div>
+          <label>성별<select id="profile-gender"><option value="unspecified">선택 안 함</option><option value="female">여성</option><option value="male">남성</option><option value="other">기타</option></select></label>
+          <div class="two-columns"><label>MBTI<select id="profile-mbti"><option value="">모름 / 선택 안 함</option><option>INTJ</option><option>INTP</option><option>ENTJ</option><option>ENTP</option><option>INFJ</option><option>INFP</option><option>ENFJ</option><option>ENFP</option><option>ISTJ</option><option>ISFJ</option><option>ESTJ</option><option>ESFJ</option><option>ISTP</option><option>ISFP</option><option>ESTP</option><option>ESFP</option></select></label><label>혈액형<select id="profile-blood"><option value="">모름 / 선택 안 함</option><option>A</option><option>B</option><option>AB</option><option>O</option></select></label></div>
+          <p id="profile-message" class="feedback" role="status"></p>
+          <button class="primary wide" type="submit"><span>다음</span><i data-lucide="arrow-right"></i></button>
+        </form>
+      </div>
+    </section>
+    <section id="avatar" class="stage avatar-stage" aria-labelledby="avatar-title" hidden>
+      <div class="avatar-layout">
+        <div class="character-space">
+          <p class="character-tag"><span class="status-dot"></span><span id="preview-label">미리보기</span></p>
+          <div class="sprite-presentation"><canvas id="avatar-canvas" width="320" height="352" role="img" aria-label="생성한 도트 캐릭터"></canvas><div class="summon-floor" aria-hidden="true"></div></div>
+          <div class="character-caption"><span id="character-class">도사</span><p id="character-name">캐릭터</p><span class="character-level">LV. 1</span></div>
+          <div class="character-tools"><button id="turn-character" class="icon-button" title="방향 바꾸기" aria-label="방향 바꾸기"><i data-lucide="flip-horizontal-2"></i></button><button id="download-character" class="icon-button" title="아바타 PNG 다운로드" aria-label="아바타 PNG 다운로드"><i data-lucide="download"></i></button></div>
+        </div>
+        <div class="avatar-form-wrap">
+          <h1 id="avatar-title" tabindex="-1">캐릭터</h1>
+          <form id="avatar-form">
+            <label for="character-prompt">캐릭터 설명</label>
+            <textarea id="character-prompt" rows="4" maxlength="300" required placeholder="은빛 긴 머리에 청록색 도포를 입은 도사. 손에는 달빛 지팡이."></textarea>
+            <div class="prompt-meta"><span id="prompt-count">0 / 300</span></div>
+            <div class="presets" aria-label="캐릭터 초안"><button type="button" data-preset="은빛 긴 머리에 청록색 도포를 입은 도사. 손에는 달빛 지팡이.">도사</button><button type="button" data-preset="검은 포니테일에 붉은 도포를 입고 검을 든 검객.">검객</button><button type="button" data-preset="금발 짧은 머리에 초록색 옷과 활을 든 궁수.">궁수</button></div>
+            <button class="primary wide" id="generate" type="submit"><i data-lucide="sparkles"></i><span>만들기</span></button>
+          </form>
+          <div id="avatar-result" hidden><p class="result-label">반영된 요소</p><ul id="traits" class="traits"></ul><button class="confirm-button wide" id="save-avatar"><span>저장</span><i data-lucide="check"></i></button></div>
+          <p id="avatar-message" class="feedback" role="status"></p>
+          <button class="text-button back-profile" id="back-profile"><i data-lucide="arrow-left"></i>프로필 수정</button>
+        </div>
+      </div>
+    </section>
+    <section id="complete" class="stage complete-stage" aria-labelledby="complete-title" hidden>
+      <h1 id="complete-title" tabindex="-1">캐릭터</h1>
+      <div class="complete-sprite"><canvas id="saved-avatar" width="320" height="352" role="img" aria-label="저장된 나의 분신"></canvas></div>
+      <p id="saved-name" class="saved-name"></p><p class="saved-class" id="saved-class"></p>
+      <p class="saved-status"><i data-lucide="cloud-check"></i>저장됨</p>
+      <a href="test.html" class="primary complete-link"><span>내 기록</span><i data-lucide="arrow-right"></i></a>
+      <div class="complete-actions"><button class="text-button" id="edit-avatar">캐릭터 수정</button><span>·</span><button class="text-button" id="edit-profile">프로필 수정</button></div>
+    </section>
   </main>
+  <nav class="journey" aria-label="생성 진행 상황" hidden><ol><li data-step="auth"><span>01</span>계정</li><li data-step="profile"><span>02</span>프로필</li><li data-step="avatar"><span>03</span>캐릭터</li></ol></nav>
+  <p id="global-message" class="global-message" role="status"></p>
+  <noscript><p class="noscript">입장하려면 브라우저에서 JavaScript를 켜주세요.</p></noscript>
+  <script src="vendor/supabase.js" defer></script>
+  <script src="auth-client.js" defer></script>
+  <script src="vendor/lucide.js" defer></script>
+  <script type="module" src="realm.js"></script>
 </body>
 </html>

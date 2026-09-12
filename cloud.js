@@ -1,9 +1,6 @@
 'use strict';
 // Publishable browser key only. Authorization is enforced by database RLS.
-const journalClient = window.supabase.createClient(
-  'https://rciahwtvrsysxqvjjtuu.supabase.co',
-  'sb_publishable__pbxu1HGVdOKSR0QEBG4AQ_JXqHbXS5'
-);
+const journalClient = window.realmClient;
 window.journalCloud = {
   client: journalClient,
   user: null,
@@ -53,7 +50,9 @@ journalClient.auth.onAuthStateChange((event, session) => {
   cloud.user = session?.user || null;
   cloud.ready = true;
   if (changed) {cloud.version++; window.dispatchEvent(new Event('journal-account'));}
-  if (event === 'PASSWORD_RECOVERY') setTimeout(() => cloudElement('password-dialog').showModal(),0);
+  if (session && (event === 'PASSWORD_RECOVERY' || new URLSearchParams(location.search).get('recovery') === '1')) {
+    setTimeout(() => cloudElement('password-dialog').showModal(),0);
+  }
 });
 cloudElement('open-auth').addEventListener('click', () => cloudElement('auth-dialog').showModal());
 cloudElement('close-auth').addEventListener('click', () => cloudElement('auth-dialog').close());
@@ -97,6 +96,7 @@ cloudElement('password-form').addEventListener('submit', async event => {
     if (error) throw error;
     cloudElement('new-password').value = ''; cloudElement('password-dialog').close();
     cloudElement('message').textContent = '비밀번호를 변경했습니다.';
+    location.replace('index.html#continue');
   } catch(error) {cloudElement('password-message').textContent = window.cloudError(error);}
   finally {event.submitter.disabled = false;}
 });

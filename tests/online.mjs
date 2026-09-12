@@ -16,7 +16,7 @@ const server = createServer(async (req,res) => {
 await new Promise(resolve => server.listen(0,'127.0.0.1',resolve));
 const browser = await chromium.launch({headless:true,channel:'chrome'});
 const url = `http://127.0.0.1:${server.address().port}/test.html`;
-const user = {id:'00000000-0000-4000-8000-000000000001',email:'test@example.com',aud:'authenticated',role:'authenticated',app_metadata:{provider:'email'},user_metadata:{},created_at:new Date().toISOString()};
+const user = {id:'00000000-0000-4000-8000-000000000001',email:'test@example.com',aud:'authenticated',role:'authenticated',app_metadata:{provider:'email'},user_metadata:{realm_profile:{version:1,name:'Test',age:30,gender:'unspecified',mbti:'',blood:''},realm_avatar:{version:1,prompt:'도사',role:'sage',outfit:'jade',hair:'black',hairstyle:'short',weapon:'staff',hat:false,skin:'light'}},created_at:new Date().toISOString()};
 const token = ['eyJhbGciOiJIUzI1NiJ9',Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600,role:'authenticated'})).toString('base64url'),'signature'].join('.');
 const session = {access_token:token,refresh_token:'refresh-test',token_type:'bearer',expires_in:3600,user};
 let rows = []; let failSave = false;
@@ -49,18 +49,20 @@ async function pageFor() {
     }
     await route.fulfill({status,contentType:'application/json',body:status===204?'':JSON.stringify(result)});
   });
-  await page.goto(url);
-  await page.getByText('이 브라우저에 저장 · 로그인하면 온라인 저장',{exact:true}).waitFor();
+  await page.goto(url.replace('test.html','index.html#auth'));
+  await page.locator('#auth').waitFor({state:'visible'});
   return page;
 }
 async function login(page) {
-  await page.locator('#open-auth').click();await page.locator('#auth-email').fill(user.email);await page.locator('#auth-password').fill('test-password-123');
-  await page.getByRole('button',{name:'로그인',exact:true}).click();
+  await page.locator('#email').fill(user.email);await page.locator('#password').fill('test-password-123');
+  await page.locator('#auth-submit').click();
+  await page.locator('#complete').waitFor({state:'visible'});
+  await page.locator('.complete-link').click();
   await page.getByText(`${user.email} · 온라인 저장`,{exact:true}).waitFor();
 }
 try {
   const page=await pageFor();
-  await page.locator('#add-event').click();await page.locator('#record-title').fill('Local record');await page.getByRole('button',{name:'저장',exact:true}).click();
+  await page.evaluate(() => {const now=new Date();const date=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');localStorage.setItem('seungmin-journal-v1',JSON.stringify([{id:crypto.randomUUID(),kind:'event',date,title:'Local record'}]));});
   await login(page);
   assert.equal(await page.getByRole('heading',{name:'Local record'}).count(),0);
   page.on('dialog',d=>d.accept());
@@ -76,8 +78,8 @@ try {
   await other.getByRole('button',{name:'Cloud record 수정'}).click();await other.locator('#record-title').fill('Changed on phone');await other.getByRole('button',{name:'저장',exact:true}).click();
   await page.locator('#refresh-records').click();await page.getByRole('heading',{name:'Changed on phone',exact:true}).waitFor();
   await page.getByRole('button',{name:'Changed on phone 수정'}).click();await page.locator('#delete-record').click();await page.locator('#editor').waitFor({state:'hidden'});assert.equal(rows.length,1);
-  await page.locator('#sign-out').click();await page.locator('#open-auth').waitFor({state:'visible'});
-  await page.getByRole('heading',{name:'Local record',exact:true}).waitFor();assert.equal(await page.getByRole('heading',{name:'Changed on phone'}).count(),0);
+  await page.locator('#sign-out').click();await page.locator('#auth').waitFor({state:'visible'});
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('seungmin-journal-v1'))[0].title),'Local record');assert.equal(await page.getByRole('heading',{name:'Changed on phone'}).count(),0);
   await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   await page.screenshot({path:'/tmp/seungmin-online-mobile.png',fullPage:true});
   assert.deepEqual(errors,[]);
