@@ -7,7 +7,7 @@ import {parseAvatar} from '../avatar.js';
 const {chromium} = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const root = process.env.TEST_ROOT || fileURLToPath(new URL('../',import.meta.url));
 const repo = process.env.SOURCE_REPO || root;
-const version = '20260912-4';
+const version = '20260912-5';
 const user = {id:'cache-test-user',user_metadata:{
   realm_profile:{version:1,name:'테스트',age:30,gender:'unspecified',mbti:'',blood:''},
   realm_avatar:parseAvatar('청록색 도포를 입은 도사. 지팡이.')
@@ -50,13 +50,12 @@ try {
       deployed = true;
       await page.goto('about:blank');
       await page.goto(base);
-      await page.locator('#enter').click();
       await page.locator('#map').waitFor({state:'visible',timeout:5000});
       await page.locator('#map-character').click();
       await page.locator('#open-map').click();
       assert.equal(await page.locator('#map').isVisible(),true);
       assert.equal(await page.locator('[data-location]').count(),3);
-      for (const file of ['realm.js','portal.js','avatar.js','profile.js','dungeon.js','styles.css','dungeon.css','continuity.css']) {
+      for (const file of ['realm.js','realm-route.js','portal.js','avatar.js','profile.js','dungeon.js','roads.js','styles.css','dungeon.css','continuity.css']) {
         assert.ok(requested.includes('/'+file+'?v='+version),'new version fetched: '+file);
       }
       assert.equal(await page.evaluate(()=>localStorage.getItem('seungmin-journal-v1')),'{"records":["keep"]}');

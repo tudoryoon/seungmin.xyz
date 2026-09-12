@@ -142,8 +142,9 @@ try{
   await page.locator('#map-character').click();
   await page.locator('#complete').waitFor({state:'visible'});
   assert.equal(users.get('a@example.com').user_metadata.realm_avatar.outfit,'red');
-  await page.reload();await page.locator('#enter').click();await page.locator('#map').waitFor({state:'visible'});
-  await page.locator('#map-character').click();await page.locator('#complete').waitFor({state:'visible'});
+  await page.reload();await page.locator('#complete').waitFor({state:'visible'});
+  assert.equal(new URL(page.url()).hash,'#complete');
+  assert.equal(await page.locator('#enter').isVisible(),false);
   assert.equal(await page.locator('#saved-name').textContent(),'승민');
   await page.screenshot({path:'/tmp/realm-complete-desktop.png'});
   const other=await setup({viewport:{width:390,height:844},reducedMotion:'reduce'});

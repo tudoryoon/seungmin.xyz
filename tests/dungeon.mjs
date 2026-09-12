@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { parseAvatar } from '../avatar.js';
+import { ROAD_MAPS } from '../roads.js';
 const playwright = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const engine = process.env.BROWSER || 'chromium';
 const sharp = (await import(process.env.SHARP_MODULE || 'sharp')).default;
@@ -77,10 +78,22 @@ async function checkLayout(page, name) {
 }
 async function walkTo(page, name) {
   const portrait=await page.evaluate(()=>matchMedia('(max-aspect-ratio: 1/1)').matches);
-  const key=({calendar:portrait?'ArrowUp':'ArrowLeft',workout:'ArrowRight',library:'ArrowDown'})[name];
-  await page.keyboard.down(key);
-  await page.waitForFunction(name=>document.querySelector('.dungeon-node.nearby')?.dataset.location===name,name);
-  await page.keyboard.up(key);
+  const map=ROAD_MAPS[portrait?'tall':'wide'];
+  const bounds=await page.locator('#map').boundingBox();
+  for(const [x,y] of map.routes[name].slice(1)) {
+    const target={x:bounds.x+x/map.size[0]*bounds.width,y:bounds.y+y/map.size[1]*bounds.height};
+    let arrived=false;
+    for(let tick=0;tick<180;tick++) {
+      const actor=await page.locator('#map-actor').boundingBox();
+      const dx=target.x-actor.x-actor.width/2,dy=target.y-actor.y-actor.height*.85;
+      if(Math.hypot(dx,dy)<14){arrived=true;break;}
+      const keys=[];if(Math.abs(dx)>7)keys.push(dx>0?'ArrowRight':'ArrowLeft');if(Math.abs(dy)>7)keys.push(dy>0?'ArrowDown':'ArrowUp');
+      for(const key of keys)await page.keyboard.down(key);
+      await page.waitForTimeout(24);
+      for(const key of keys)await page.keyboard.up(key);
+    }
+    assert.ok(arrived,'keyboard reaches waypoint');
+  }
   assert.equal(await page.locator('.dungeon-node.nearby').getAttribute('data-location'),name);
   await page.keyboard.press('Enter');
 }

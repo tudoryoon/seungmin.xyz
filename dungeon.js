@@ -1,22 +1,22 @@
-import {createRoads,roadSpawn,roadPosition,moveOnRoad,nearbyRoad} from './roads.js?v=20260912-4';
+import {createRoads,roadSpawn,moveOnRoad,nearbyRoad} from './roads.js?v=20260912-5';
 export function createDungeon(stage, isActive) {
   const actor = stage.querySelector('#map-actor');
   const portrait = matchMedia('(max-aspect-ratio: 1/1)');
   const links = [...stage.querySelectorAll('[data-location]')];
   const keys = new Set(), arrows = ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
   let navigating = false, raf = 0, lastTime = 0, nearby = null;
-  let roads, position, progress=roadSpawn();
+  let roads, position;
   function measureRoads() {roads=createRoads(portrait.matches,stage.clientWidth||1,stage.clientHeight||1);}
   function updateNearby() {
-    const destination=nearbyRoad(roads,progress);
+    const destination=nearbyRoad(roads,position);
     nearby=links.find(link=>link.dataset.location===destination)||null;
     for (const link of links) link.classList.toggle('nearby',link===nearby);
     const enter = stage.querySelector('#nearby-enter');enter.hidden=!nearby;
     if(nearby)enter.setAttribute('aria-label',nearby.textContent.trim()+' 입장');
   }
-  function place() {position=roadPosition(roads,progress);actor.style.left=position.x+'%';actor.style.top=position.y+'%';updateNearby();}
+  function place() {actor.style.left=position.x+'%';actor.style.top=position.y+'%';updateNearby();}
   function stopKeys() {keys.clear();cancelAnimationFrame(raf);raf=0;lastTime=0;actor.dataset.walking='false';}
-  function reset() {stopKeys();navigating=false;progress=roadSpawn();measureRoads();actor.dataset.facing='right';place();}
+  function reset() {stopKeys();navigating=false;measureRoads();position=roadSpawn(roads);actor.dataset.facing='right';place();}
   function enter() {
     if(!isActive()||navigating)return;
     updateNearby();
@@ -31,7 +31,7 @@ export function createDungeon(stage, isActive) {
     const delta=lastTime?Math.min((time-lastTime)/1000,.05):1/60;lastTime=time;
     const direction={x:Number(keys.has('ArrowRight'))-Number(keys.has('ArrowLeft')),y:Number(keys.has('ArrowDown'))-Number(keys.has('ArrowUp'))};
     const before=position;
-    progress=moveOnRoad(roads,progress,direction,delta);place();
+    position=moveOnRoad(roads,position,direction,delta);place();
     if(Math.abs(position.x-before.x)>.0001)actor.dataset.facing=position.x<before.x?'left':'right';
     actor.dataset.walking=String(Math.hypot(position.x-before.x,position.y-before.y)>.0001);
     if(keys.size)raf=requestAnimationFrame(tick);else stopKeys();

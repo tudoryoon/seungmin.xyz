@@ -8,11 +8,11 @@
   <title>입장</title>
   <link rel="icon" href="data:,">
   <link rel="preload" as="image" href="assets/realm-gate.webp">
-  <link rel="stylesheet" href="styles.css?v=20260912-4">
-  <link rel="stylesheet" href="dungeon.css?v=20260912-4">
-  <link rel="stylesheet" href="continuity.css?v=20260912-4">
+  <link rel="stylesheet" href="styles.css?v=20260912-5">
+  <link rel="stylesheet" href="dungeon.css?v=20260912-5">
+  <link rel="stylesheet" href="continuity.css?v=20260912-5">
 </head>
-<body data-stage="entry">
+<body data-stage="entry" class="session-checking">
   <div class="world" aria-hidden="true"><div class="landscape"></div><canvas id="portal"></canvas><div class="world-shade"></div></div>
   <header class="realm-header">
     <div class="header-actions">
@@ -20,7 +20,8 @@
       <button id="logout" class="icon-button" title="로그아웃" aria-label="로그아웃" hidden><i data-lucide="log-out"></i></button>
     </div>
   </header>
-  <main>
+  <p id="session-status" role="status">불러오는 중…</p>
+  <main aria-busy="true">
     <section id="entry" class="stage entry-stage" aria-labelledby="entry-title">
       <div class="entry-copy">
         <h1 id="entry-title" class="sr-only">입장</h1>
@@ -110,8 +111,8 @@
   <p id="global-message" class="global-message" role="status"></p>
   <noscript><p class="noscript">입장하려면 브라우저에서 JavaScript를 켜주세요.</p></noscript>
   <script src="vendor/supabase.js" defer></script>
-  <script src="auth-client.js?v=20260912-4" defer></script>
+  <script src="auth-client.js?v=20260912-5" defer></script>
   <script src="vendor/lucide.js" defer></script>
-  <script type="module" src="realm.js?v=20260912-4"></script>
+  <script type="module" src="realm.js?v=20260912-5"></script>
 </body>
 </html>

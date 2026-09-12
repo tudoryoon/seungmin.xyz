@@ -18,3 +18,6 @@ body:not([data-stage=entry]) .landscape{opacity:.19;transform:scale(1.15)}body:n
 .prompt-meta{justify-content:flex-end}
 @media(max-width:760px){.entry-copy{padding-bottom:90px}.entry-copy h1{font-size:32px}.form-wrap h1,.avatar-form-wrap h1,.complete-stage h1{font-size:24px}.avatar-layout{gap:32px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}body.reduced-motion *,body.reduced-motion *:before,body.reduced-motion *:after{animation:none!important;transition:none!important}
+.session-checking main { visibility: hidden; }
+#session-status { position: fixed; z-index: 5; inset: 48% 24px auto; text-align: center; color: #cadad4; font-size: 14px; }
+body:not(.session-checking) #session-status { display: none; }

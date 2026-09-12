@@ -1,11 +1,13 @@
-import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js?v=20260912-4';
-import { validProfile } from './profile.js?v=20260912-4';
-import { createDungeon } from './dungeon.js?v=20260912-4';
+import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js?v=20260912-5';
+import { validProfile } from './profile.js?v=20260912-5';
+import { createDungeon } from './dungeon.js?v=20260912-5';
+import { resolveRealmStage } from './realm-route.js?v=20260912-5';
 
 const $ = id => document.getElementById(id);
 const client = window.realmClient;
 window.lucide?.createIcons();
 let user = null, stage = 'entry', authMode = 'login', epoch = 0, entered = false, flipped = false;
+let sessionReady = false, recovery = false;
 let draft = null, preview = parseAvatar(DEFAULT_PROMPT), frame = 0;
 const dungeon = createDungeon($('map'), () => stage === 'map' && !!user && !$('logout').disabled);
 let portal = { setMotion() {}, setStage() {}, async travel() {} };
@@ -32,7 +34,7 @@ $('motion').addEventListener('change', event => {
 });
 reducedQuery.addEventListener('change', () => { if (motionPreference === null) setMotion(!reducedQuery.matches); });
 // Rendering is optional: a failed GPU or module must never block account access.
-import('./portal.js?v=20260912-4').then(({ createPortal }) => {
+import('./portal.js?v=20260912-5').then(({ createPortal }) => {
   portal = createPortal($('portal'), motion);
   portal.setStage(stage);
 }).catch(() => {
@@ -40,10 +42,12 @@ import('./portal.js?v=20260912-4').then(({ createPortal }) => {
   document.body.dataset.renderer = 'fallback';
 });
 
-function show(next) {
+function show(next, {replace=false} = {}) {
   const previous = stage;
   stage = next;
   document.body.dataset.stage = next;
+  const hash=next==='entry'?'':'#'+next;
+  if(location.hash!==hash)history[replace?'replaceState':'pushState'](null,'',location.pathname+location.search+hash);
   document.querySelectorAll('.stage').forEach(section => { section.hidden = section.id !== next; });
   document.querySelector('.journey').hidden = ['entry','complete','map'].includes(next);
   dungeon.reset();
@@ -81,12 +85,12 @@ function prepareAvatar() {
   describeAvatar();
 }
 function routeAccount() {
-  if (!user) { show('auth'); return; }
-  fillProfile();
-  if (!validProfile(user.user_metadata?.realm_profile)) { show('profile'); return; }
-  prepareAvatar();
-  if (validAvatar(user.user_metadata?.realm_avatar)) showMap();
-  else show('avatar');
+  if(recovery)return;
+  const next=resolveRealmStage(user,location.hash,entered);
+  if(user){entered=true;fillProfile();prepareAvatar();}
+  if(next==='map')showMap({replace:true});
+  else if(next==='complete')complete({replace:true});
+  else show(next,{replace:true});
 }
 function clearAccount() {
   $('profile-form').reset();
@@ -106,20 +110,28 @@ client.auth.onAuthStateChange((event, session) => {
   user = session?.user || null;
   $('logout').hidden = !user;
   // Keep the callback synchronous; auth API calls inside it can deadlock.
-  if (event === 'PASSWORD_RECOVERY') location.replace('test.html?recovery=1');
-  if (changed && entered) {
+  if (event === 'PASSWORD_RECOVERY') {recovery=true;location.replace('test.html?recovery=1');return;}
+  if (changed && sessionReady) {
+    entered=true;
     setTimeout(() => routeAccount(), 0);
   }
 });
+const initialEpoch=epoch;
 const ready = client.auth.getSession().then(({ data, error }) => {
   if (error) throw error;
-  user = data.session?.user || null;
+  if(epoch===initialEpoch)user = data.session?.user || null;
   $('logout').hidden = !user;
-}).catch(error => { $('global-message').textContent = window.realmError(error); });
-if (['#continue','#auth','#map'].includes(location.hash)) {
-  entered = true; show('auth'); ready.then(routeAccount);
-  history.replaceState(null, '', location.pathname);
-}
+}).catch(error => {
+  user=null;entered=true;$('logout').hidden=true;
+  $('global-message').textContent = window.realmError(error);
+}).finally(()=>{
+  sessionReady=true;routeAccount();
+  document.body.classList.remove('session-checking');
+  document.querySelector('main').setAttribute('aria-busy','false');
+});
+const restoreRoute=()=>{if(sessionReady)routeAccount();};
+window.addEventListener('hashchange',restoreRoute);
+window.addEventListener('popstate',restoreRoute);
 $('enter').addEventListener('click', async () => {
   $('enter').disabled = true;
   try {
@@ -264,16 +276,16 @@ $('save-avatar').addEventListener('click', async () => {
   } catch (error) { $('avatar-message').textContent = window.realmError(error); }
   finally { disable($('avatar'), false); $('logout').disabled = false; }
 });
-function complete() {
+function complete(options = {}) {
   const stored = user?.user_metadata?.realm_avatar;
   if (!validAvatar(stored)) { show('avatar'); return; }
   preview = stored;
   $('saved-name').textContent = user.user_metadata.realm_profile.name;
   $('saved-class').textContent = 'LV. 1 · ' + avatarTitle(stored);
   $('saved-avatar').setAttribute('aria-label', avatarTraits(stored).join(', ') + ' 저장된 분신');
-  show('complete');
+  show('complete',options);
 }
-function showMap() {
+function showMap(options = {}) {
   const stored = user?.user_metadata?.realm_avatar;
   if (!user) { show('auth'); return; }
   if (!validProfile(user.user_metadata?.realm_profile)) { show('profile'); return; }
@@ -281,7 +293,7 @@ function showMap() {
   preview = stored;
   $('map-name').textContent = user.user_metadata.realm_profile.name;
   $('map-avatar').setAttribute('aria-label', user.user_metadata.realm_profile.name + ' 캐릭터');
-  show('map');
+  show('map',options);
 }
 function renderAvatar() {
   if (stage === 'avatar') paintAvatar($('avatar-canvas'), preview, frame, flipped);
