@@ -30,7 +30,8 @@ try {
         const body = path==='auth-client.js' ? auth : deployed ? await readFile(root+'/'+path)
           : execFileSync('git',['show',revision+':'+path],{cwd:repo,stdio:['ignore','pipe','ignore']});
         const type = path.endsWith('.js')?'text/javascript':path.endsWith('.css')?'text/css':path.endsWith('.webp')?'image/webp':'text/html';
-        res.writeHead(200,{'Content-Type':type,'Cache-Control':deployed||path.endsWith('.html')
+        // Model the custom domain overriding asset headers, even after deployment.
+        res.writeHead(200,{'Content-Type':type,'Cache-Control':path.endsWith('.html')
           ? 'no-cache, max-age=0, must-revalidate':'public, max-age=14400, must-revalidate'});
         res.end(body);
       } catch {res.writeHead(404);res.end();}
