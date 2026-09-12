@@ -1,5 +1,5 @@
-import { validProfile } from './profile.js?v=20260912-8';
-import { validAvatar } from './avatar.js?v=20260912-8';
+import { validProfile } from './profile.js?v=20260912-9';
+import { validAvatar } from './avatar.js?v=20260912-9';
 
 const client = window.realmClient;
 const panel = document.getElementById('daily-panel');
@@ -94,7 +94,7 @@ function accept(next) {
   const increased = state && next.level > state.level;
   const previousLevel = state?.level;
   state = next; dirty = false; blocked = false; failure = '';
-  notice = increased ? `LV. ${state.level} · 레벨 +${next.level - previousLevel}` : state.tasks.length && state.tasks.every(task => task.completed) ? '자정 확정 대기' : '';
+  notice = increased ? `LV. ${state.level} · 레벨 +${next.level - previousLevel}` : '';
   editing = !state.tasks.length;
   if (editing) startEdit(); else draft = [];
   deadline = performance.now() + Math.max(0, Date.parse(state.ends_at) - Date.parse(state.server_now));

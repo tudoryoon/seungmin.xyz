@@ -40,7 +40,8 @@ try {
   $('daily-form').dispatchEvent(new w.Event('submit',{cancelable:true}));await until(()=>saved.tasks.length===2&&!$('daily-edit').disabled);
   assert.equal($('daily-list').querySelector('b'),null);assert.equal($('daily-list').querySelector('span').textContent,'<b>운동</b>');
   $('daily-list').querySelector('input').click();await until(()=>saved.revision===2&&!$('daily-edit').disabled);
-  $('daily-list').lastElementChild.querySelector('input').click();await until(()=>$('daily-status').textContent==='자정 확정 대기');
+  $('daily-list').lastElementChild.querySelector('input').click();await until(()=>saved.revision===3&&!$('daily-edit').disabled);
+  assert.equal($('daily-status').textContent,'','completing every task adds no extra status copy');
   assert.equal(saved.level,1);assert.equal($('daily-panel').hidden,false);assert.equal($('daily-finish'),null);
   assert.ok([...$('daily-list').querySelectorAll('input')].every(n=>!n.disabled),'completed checks remain reversible');
   $('daily-list').lastElementChild.querySelector('input').click();await until(()=>saved.revision===4&&!$('daily-edit').disabled);
@@ -54,7 +55,13 @@ try {
   saved.day='2026-09-13';saved.server_now='2026-09-12T15:00:01Z';saved.ends_at='2026-09-13T15:00:00Z';saved.tasks=[];saved.revision=0;saved.level=2;
   $('refresh-records').click();await until(()=>$('daily-date').textContent.includes('13일')&&!$('daily-save').disabled);
   assert.equal($('daily-panel').hidden,false);assert.equal(w.document.querySelector('[data-player-level]').textContent,'LV. 2');
+  assert.equal($('daily-status').textContent,'LV. 2 · 레벨 +1','actual level gains still announce after midnight');
   app.account(null);await until(()=>$('daily-panel').hidden);assert.equal($('daily-list').children.length,0);
+} finally {await app.w.happyDOM.close();}
+app=await setup({saved:{...seed(),tasks:[{id:'complete',title:'Done',completed:true}]}});try {
+  await until(()=>!app.$('daily-panel').hidden&&!app.$('daily-edit').disabled);
+  assert.equal(app.$('daily-status').textContent,'','a completed plan reloads without pending copy');
+  assert.equal(app.$('daily-list').querySelector('input').checked,true);
 } finally {await app.w.happyDOM.close();}
 for(const view of ['workout','library','connections']) {
   app=await setup({view});try {
