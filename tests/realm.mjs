@@ -76,6 +76,8 @@ try{
   assert.equal(await page.getByText('현실의 나, 또 다른 시작.',{exact:true}).count(),0);
   assert.equal(await page.locator('.entry-subtitle,.entry-footnote,.overline').count(),0);
   await page.waitForFunction(()=>document.querySelector('#portal').width>300);
+  const worldCanvas = await page.$('#portal');
+  assert.equal(await page.locator('body').innerText().then(text=>/seungmin\.xyz/i.test(text)),false);
   await page.screenshot({path:'/tmp/realm-entry-desktop.png'});
   const portalPixels=await pixels(page.locator('#portal'));
   await page.waitForTimeout(450);
@@ -91,6 +93,9 @@ try{
   assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('entering')),true);
   await page.screenshot({path:'/tmp/realm-warp.png'});
   await page.locator('#auth').waitFor({state:'visible'});
+  await page.locator('#auth').evaluate(element=>Promise.all(element.getAnimations().map(animation=>animation.finished)));
+  await page.waitForTimeout(1000);
+  assert.equal(await worldCanvas.evaluate(element=>element===document.querySelector('#portal')),true,'same renderer canvas after entry');
   assert.equal(await page.locator('#profile').isVisible(),false);
   await page.screenshot({path:'/tmp/realm-auth-desktop.png'});
   await page.locator('[data-auth-mode=signup]').click();
@@ -107,6 +112,7 @@ try{
   assert.equal(await page.locator('#profile-name').inputValue(),'승민');assert.equal(updates,0);
   failUpdate=false;await page.locator('#profile-form button[type=submit]').click();
   await page.locator('#avatar').waitFor({state:'visible'});
+  assert.equal(await worldCanvas.evaluate(element=>element===document.querySelector('#portal')),true,'same renderer canvas after profile');
   await page.locator('#motion').uncheck();
   await page.locator('#character-prompt').fill('우주를 떠도는 로봇');await page.locator('#generate').click();
   await page.locator('#avatar-message').filter({hasText:'인식 가능한 요소가 없습니다'}).waitFor();
@@ -131,9 +137,12 @@ try{
   await page.locator('#avatar-message').filter({hasText:'저장하거나 연결하지 못했습니다'}).waitFor();
   assert.equal(await page.locator('#avatar').isVisible(),true);
   failUpdate=false;await page.locator('#save-avatar').click();
+  await page.locator('#map').waitFor({state:'visible'});
+  await page.locator('#map-character').click();
   await page.locator('#complete').waitFor({state:'visible'});
   assert.equal(users.get('a@example.com').user_metadata.realm_avatar.outfit,'red');
-  await page.reload();await page.locator('#enter').click();await page.locator('#complete').waitFor({state:'visible'});
+  await page.reload();await page.locator('#enter').click();await page.locator('#map').waitFor({state:'visible'});
+  await page.locator('#map-character').click();await page.locator('#complete').waitFor({state:'visible'});
   assert.equal(await page.locator('#saved-name').textContent(),'승민');
   await page.screenshot({path:'/tmp/realm-complete-desktop.png'});
   const other=await setup({viewport:{width:390,height:844},reducedMotion:'reduce'});
@@ -148,6 +157,8 @@ try{
   assert.ok(changed(mobilePortal,await pixels(other.page.locator('#portal')))>20,'mobile portal animates');
   await other.page.locator('#motion').uncheck();
   await other.page.locator('#enter').click();await login(other.page);
+  await other.page.locator('#map').waitFor({state:'visible'});
+  await other.page.locator('#map-character').click();
   await other.page.locator('#complete').waitFor({state:'visible'});
   assert.equal(await other.page.locator('#saved-name').textContent(),'승민');
   await other.page.locator('#edit-avatar').click();
@@ -164,7 +175,7 @@ try{
   await other.page.goto(base+'/test.html?recovery=1');await other.page.locator('#password-dialog').waitFor({state:'visible'});
   await other.page.locator('#new-password').fill('a-new-test-password');await other.page.locator('#password-form button[type=submit]').click();
   await other.page.locator('#profile').waitFor({state:'visible'});
-  await page.locator('.complete-link').click();await page.locator('#add-event').waitFor({state:'visible'});
+  await page.locator('.complete-link').click();await page.locator('[data-location=calendar]').click();await page.locator('#add-event').waitFor({state:'visible'});
   await page.screenshot({path:'/tmp/realm-journal-desktop.png'});
   // No GPU: account flow still works.
   const fallback=await setup({viewport:{width:320,height:740},reducedMotion:'reduce'});

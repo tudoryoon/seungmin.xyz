@@ -1,11 +1,13 @@
 import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js';
 import { validProfile } from './profile.js';
+import { createDungeon } from './dungeon.js';
 
 const $ = id => document.getElementById(id);
 const client = window.realmClient;
 window.lucide?.createIcons();
 let user = null, stage = 'entry', authMode = 'login', epoch = 0, entered = false, flipped = false;
 let draft = null, preview = parseAvatar(DEFAULT_PROMPT), frame = 0;
+const dungeon = createDungeon($('map'), () => motion, () => stage === 'map' && !!user);
 let portal = { setMotion() {}, setStage() {}, async travel() {} };
 const reducedQuery = matchMedia('(prefers-reduced-motion: reduce)');
 let motionPreference = null;
@@ -16,7 +18,11 @@ const setMotion = value => {
   $('motion').checked = motion;
   document.body.classList.toggle('reduced-motion', !motion);
   portal.setMotion(motion);
-  if (!motion) { frame = 0; renderAvatar(); }
+  if (!motion) {
+    dungeon.reset();
+    document.querySelectorAll('.stage').forEach(element => element.getAnimations().forEach(animation => animation.finish()));
+    frame = 0; renderAvatar();
+  }
 };
 setMotion(motion);
 $('motion').addEventListener('change', event => {
@@ -32,15 +38,25 @@ import('./portal.js').then(({ createPortal }) => {
 }).catch(() => { $('portal').hidden = true; });
 
 function show(next) {
+  const previous = stage;
   stage = next;
   document.body.dataset.stage = next;
   document.querySelectorAll('.stage').forEach(section => { section.hidden = section.id !== next; });
-  document.querySelector('.journey').hidden = next === 'entry' || next === 'complete';
+  document.querySelector('.journey').hidden = ['entry','complete','map'].includes(next);
+  dungeon.reset();
   document.querySelectorAll('[data-step]').forEach(item => {
     if (item.dataset.step === next) item.setAttribute('aria-current', 'step');
     else item.removeAttribute('aria-current');
   });
   portal.setStage(next);
+  document.title = ({entry:'입장',auth:authMode==='signup'?'회원가입':'로그인',profile:'프로필',avatar:'캐릭터',complete:'캐릭터',map:'지도'})[next];
+  if (motion && previous !== next) {
+    $(next).getAnimations().forEach(animation => animation.cancel());
+    $(next).animate([
+      {opacity:0,transform:next === 'map' ? 'scale(.94)' : 'translateY(12px)'},
+      {opacity:1,transform:next === 'map' ? 'scale(1)' : 'translateY(0)'}
+    ], {duration:650,easing:'cubic-bezier(.22,.61,.36,1)'});
+  }
   window.scrollTo({ top: 0, behavior: 'instant' });
   $(next + '-title')?.focus({ preventScroll: true });
   renderAvatar();
@@ -66,14 +82,16 @@ function routeAccount() {
   fillProfile();
   if (!validProfile(user.user_metadata?.realm_profile)) { show('profile'); return; }
   prepareAvatar();
-  if (validAvatar(user.user_metadata?.realm_avatar)) complete();
+  if (validAvatar(user.user_metadata?.realm_avatar)) showMap();
   else show('avatar');
 }
 function clearAccount() {
   $('profile-form').reset();
   $('auth-form').reset();
   $('avatar-form').reset();
-  ['auth-message','profile-message','avatar-message','global-message','saved-name','saved-class'].forEach(id => { $(id).textContent = ''; });
+  ['auth-message','profile-message','avatar-message','global-message','saved-name','saved-class','map-name'].forEach(id => { $(id).textContent = ''; });
+  dungeon.reset();
+  $('map-avatar').getContext('2d').clearRect(0,0,160,176);
   draft = null; preview = parseAvatar(DEFAULT_PROMPT); flipped = false;
   $('avatar-result').hidden = true;
   $('character-name').textContent = '캐릭터';
@@ -95,7 +113,7 @@ const ready = client.auth.getSession().then(({ data, error }) => {
   user = data.session?.user || null;
   $('logout').hidden = !user;
 }).catch(error => { $('global-message').textContent = window.realmError(error); });
-if (location.hash === '#continue' || location.hash === '#auth') {
+if (['#continue','#auth','#map'].includes(location.hash)) {
   entered = true; show('auth'); ready.then(routeAccount);
   history.replaceState(null, '', location.pathname);
 }
@@ -117,6 +135,7 @@ document.querySelectorAll('[data-auth-mode]').forEach(button => button.addEventL
   document.querySelectorAll('[data-auth-mode]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
   $('auth-submit').querySelector('span').textContent = authMode === 'signup' ? '회원가입' : '로그인';
   $('auth-title').textContent = authMode === 'signup' ? '회원가입' : '로그인';
+  document.title = $('auth-title').textContent;
   $('password').autocomplete = authMode === 'signup' ? 'new-password' : 'current-password';
   $('auth-message').textContent = '';
 }));
@@ -159,6 +178,7 @@ $('reset-password').addEventListener('click', async () => {
   finally { $('reset-password').disabled = false; }
 });
 $('logout').addEventListener('click', async () => {
+  dungeon.reset();
   $('logout').disabled = true;
   try {
     const { error } = await client.auth.signOut({ scope: 'local' });
@@ -237,7 +257,7 @@ $('save-avatar').addEventListener('click', async () => {
   try {
     if (!await saveMetadata({ realm_avatar: snapshot })) return;
     $('avatar-message').textContent = '';
-    complete();
+    showMap();
   } catch (error) { $('avatar-message').textContent = window.realmError(error); }
   finally { disable($('avatar'), false); $('logout').disabled = false; }
 });
@@ -250,12 +270,23 @@ function complete() {
   $('saved-avatar').setAttribute('aria-label', avatarTraits(stored).join(', ') + ' 저장된 분신');
   show('complete');
 }
+function showMap() {
+  const stored = user?.user_metadata?.realm_avatar;
+  if (!user) { show('auth'); return; }
+  if (!validProfile(user.user_metadata?.realm_profile)) { show('profile'); return; }
+  if (!validAvatar(stored)) { show('avatar'); return; }
+  preview = stored;
+  $('map-name').textContent = user.user_metadata.realm_profile.name;
+  $('map-avatar').setAttribute('aria-label', user.user_metadata.realm_profile.name + ' 캐릭터');
+  show('map');
+}
 function renderAvatar() {
   if (stage === 'avatar') paintAvatar($('avatar-canvas'), preview, frame, flipped);
   if (stage === 'complete') paintAvatar($('saved-avatar'), preview, frame);
+  if (stage === 'map') paintAvatar($('map-avatar'), preview, frame);
 }
 setInterval(() => {
-  if (document.hidden || !motion || !['avatar','complete'].includes(stage)) return;
+  if (document.hidden || !motion || !['avatar','complete','map'].includes(stage)) return;
   frame++; renderAvatar();
 }, 280);
 $('turn-character').addEventListener('click', () => { flipped = !flipped; renderAvatar(); });
@@ -272,3 +303,5 @@ const editProfile = () => { fillProfile(); $('profile-message').textContent = ''
 $('back-profile').addEventListener('click', editProfile);
 $('edit-profile').addEventListener('click', editProfile);
 $('edit-avatar').addEventListener('click', () => { prepareAvatar(); show('avatar'); });
+$('open-map').addEventListener('click', showMap);
+$('map-character').addEventListener('click', complete);

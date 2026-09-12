@@ -7,3 +7,10 @@ button:hover{background:#29403f}.primary{background:#b7ebd5;color:#13332c;border
 .tab.active,.day.selected{background:#29463e;color:#d0f5e4}.day.selected{box-shadow:inset 0 0 0 2px #91c5ac}
 .day,.blank,.month-grid{border-color:#34464b}.blank{background:#122127}.day-count,.workout-filter p{color:#b7ebd5}
 .status{background:#354047;color:#d7cfae}.danger,#message,#form-error{color:#e99f92}dialog::backdrop{background:#050c14cc}
+.map-return{display:inline-flex;align-items:center;gap:10px;min-height:44px}
+.map-return svg{width:18px;height:18px}
+.settings-tab{display:grid;place-items:center;width:42px;height:42px;padding:0;background:transparent}
+.settings-tab svg{width:18px;height:18px}
+.project-placeholder{min-height:260px;display:flex;flex-direction:column;gap:18px;align-items:center;justify-content:center;border-top:1px solid #34464b;color:#a9bdc0}
+.project-placeholder svg{width:32px;height:32px;color:#c6b387}
+.project-placeholder p{margin:0;font-size:14px}

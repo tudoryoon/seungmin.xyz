@@ -56,8 +56,8 @@ async function pageFor() {
 async function login(page) {
   await page.locator('#email').fill(user.email);await page.locator('#password').fill('test-password-123');
   await page.locator('#auth-submit').click();
-  await page.locator('#complete').waitFor({state:'visible'});
-  await page.locator('.complete-link').click();
+  await page.locator('#map').waitFor({state:'visible'});
+  await page.locator('[data-location=calendar]').click();
   await page.getByText(`${user.email} · 온라인 저장`,{exact:true}).waitFor();
 }
 try {

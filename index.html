@@ -5,15 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#080f14">
   <meta name="description" content="일정과 운동 기록.">
-  <title>Seungmin.xyz</title>
+  <title>입장</title>
   <link rel="icon" href="data:,">
   <link rel="preload" as="image" href="assets/realm-gate.webp">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="dungeon.css">
+  <link rel="stylesheet" href="continuity.css">
 </head>
 <body data-stage="entry">
   <div class="world" aria-hidden="true"><div class="landscape"></div><canvas id="portal"></canvas><div class="world-shade"></div></div>
   <header class="realm-header">
-    <a class="wordmark" href="./"><span class="brand-mark">S</span><span>seungmin.xyz</span></a>
     <div class="header-actions">
       <label class="motion-control" title="배경 움직임"><i data-lucide="orbit"></i><span>움직임</span><input id="motion" type="checkbox" role="switch" checked aria-label="배경 움직임"></label>
       <button id="logout" class="icon-button" title="로그아웃" aria-label="로그아웃" hidden><i data-lucide="log-out"></i></button>
@@ -22,7 +23,7 @@
   <main>
     <section id="entry" class="stage entry-stage" aria-labelledby="entry-title">
       <div class="entry-copy">
-        <h1 id="entry-title">seungmin.xyz</h1>
+        <h1 id="entry-title" class="sr-only">입장</h1>
         <button id="enter" class="enter-button"><span>입장</span><i data-lucide="arrow-up-right"></i></button>
       </div>
     </section>
@@ -79,8 +80,29 @@
       <div class="complete-sprite"><canvas id="saved-avatar" width="320" height="352" role="img" aria-label="저장된 나의 분신"></canvas></div>
       <p id="saved-name" class="saved-name"></p><p class="saved-class" id="saved-class"></p>
       <p class="saved-status"><i data-lucide="cloud-check"></i>저장됨</p>
-      <a href="test.html" class="primary complete-link"><span>내 기록</span><i data-lucide="arrow-right"></i></a>
+      <button type="button" class="primary complete-link" id="open-map"><span>지도</span><i data-lucide="arrow-right"></i></button>
       <div class="complete-actions"><button class="text-button" id="edit-avatar">캐릭터 수정</button><span>·</span><button class="text-button" id="edit-profile">프로필 수정</button></div>
+    </section>
+    <section id="map" class="stage map-stage" aria-labelledby="map-title" hidden>
+      <picture class="dungeon-art" aria-hidden="true">
+        <source media="(max-aspect-ratio: 1/1)" srcset="assets/dungeon-tall.webp">
+        <img src="assets/dungeon-wide.webp" alt="" width="1586" height="992" decoding="sync" fetchpriority="low">
+      </picture>
+      <div class="map-shade" aria-hidden="true"></div>
+      <h1 id="map-title" tabindex="-1">지도</h1>
+      <nav class="dungeon-locations" aria-label="지도 메뉴">
+        <a class="dungeon-node node-calendar" href="test.html#calendar" data-location="calendar">
+          <span class="node-pin"><i data-lucide="calendar-days"></i></span><span class="node-label">일정관리<i data-lucide="arrow-up-right"></i></span>
+        </a>
+        <a class="dungeon-node node-workout" href="test.html#workout" data-location="workout">
+          <span class="node-pin"><i data-lucide="dumbbell"></i></span><span class="node-label">운동계획<i data-lucide="arrow-up-right"></i></span>
+        </a>
+        <a class="dungeon-node node-projects" href="test.html#projects" data-location="projects">
+          <span class="node-pin"><i data-lucide="folder-kanban"></i></span><span class="node-label">프로젝트<i data-lucide="arrow-up-right"></i></span>
+        </a>
+      </nav>
+      <div class="map-actor" id="map-actor"><canvas id="map-avatar" width="160" height="176" role="img" aria-label="내 캐릭터"></canvas><span class="actor-shadow" aria-hidden="true"></span></div>
+      <button type="button" class="map-character" id="map-character" title="캐릭터 보기" aria-label="캐릭터 보기"><i data-lucide="user-round"></i><span id="map-name"></span><span class="map-level">LV. 1</span><i data-lucide="chevron-right"></i></button>
     </section>
   </main>
   <nav class="journey" aria-label="생성 진행 상황" hidden><ol><li data-step="auth"><span>01</span>계정</li><li data-step="profile"><span>02</span>프로필</li><li data-step="avatar"><span>03</span>캐릭터</li></ol></nav>

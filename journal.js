@@ -24,14 +24,23 @@ records = readLocal();
 const cloud = window.journalCloud;
 const allRecords = () => records || [];
 $('workout-month').value = today.slice(0,7);
-document.querySelectorAll('[data-tab]').forEach(button => button.addEventListener('click', () => {
+function selectView() {
+  const requested = location.hash.slice(1);
+  const view = ['calendar','workout','projects','connections'].includes(requested) ? requested : 'calendar';
   document.querySelectorAll('[data-tab]').forEach(tab => {
-    const active = tab === button;
+    const active = tab.dataset.tab === view;
     tab.classList.toggle('active', active);
     tab.setAttribute('aria-pressed', String(active));
     $(tab.dataset.tab).hidden = !active;
   });
+  document.title = ({calendar:'일정관리',workout:'운동계획',projects:'프로젝트',connections:'캘린더 연동'})[view];
+}
+document.querySelectorAll('[data-tab]').forEach(button => button.addEventListener('click', () => {
+  location.hash = button.dataset.tab;
 }));
+window.addEventListener('hashchange', selectView);
+selectView();
+window.lucide?.createIcons();
 async function persist(next, record = null) {
   if (records === null) return false;
   const version = cloud?.version;

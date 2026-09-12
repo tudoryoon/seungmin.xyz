@@ -1,0 +1,44 @@
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.realm-header { justify-content: flex-end; }
+.world { background: #03070e; visibility: visible; }
+.world canvas { z-index: 0; opacity: 1; transition: none; }
+.landscape {
+  z-index: 1;
+  opacity: .78;
+  mix-blend-mode: screen;
+  mask-image: radial-gradient(ellipse 85% 80% at 50% 47%, #000 25%, #000b 62%, transparent 100%);
+}
+.world-shade { z-index: 2; background: linear-gradient(180deg, #02060b25, transparent 50%, #02060b40); }
+body:not([data-stage=entry]) .world canvas { opacity: 1; }
+body:not([data-stage=entry]) .landscape { opacity: 0; transform: scale(3); }
+body:not([data-stage=entry]) .world-shade { background: linear-gradient(90deg, #03081210, #050a1530 60%, #03081210); }
+body.entering .landscape { transform: scale(5); opacity: 0; }
+body.entering .world canvas { opacity: 1; }
+body[data-stage=map] .world { visibility: visible; }
+.entry-stage { min-height: 600px; }
+.entry-copy { padding-bottom: 115px; }
+.enter-button { background: #0c202cce; border-color: #b5d3d6; }
+.map-stage { background: transparent; }
+.dungeon-art {
+  opacity: .88;
+  mask-image: radial-gradient(ellipse 68% 73% at 50% 51%, #000 32%, #000d 60%, #0000 94%);
+}
+.map-shade { background: linear-gradient(180deg, #03081225, transparent 30%, transparent 74%, #03081230); }
+.form-wrap,.avatar-form-wrap { text-shadow: 0 2px 12px #030712; }
+.form-wrap input,.form-wrap select,.avatar-form-wrap textarea { background: #0b1425df; }
+.form-wrap .primary,.avatar-form-wrap .primary { text-shadow: none; }
+@media(max-width:760px) {
+  .realm-header { padding: 20px 22px; }
+  .entry-copy { padding-bottom: 90px; }
+  .dungeon-art { mask-image: radial-gradient(ellipse 87% 74% at 50% 50%, #000 39%, #000e 64%, #0000 100%); }
+}

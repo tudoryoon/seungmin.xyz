@@ -1,0 +1,156 @@
+.map-stage {
+  height: 100svh;
+  min-height: 600px;
+  overflow: hidden;
+  isolation: isolate;
+  background: #090f14;
+}
+.dungeon-art, .dungeon-art img, .map-shade, .dungeon-locations {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.dungeon-art { z-index: -2; }
+.dungeon-art img { object-fit: fill; }
+.map-shade {
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(180deg, #060d16b3 0%, transparent 20%, transparent 80%, #060d1699 100%);
+}
+body[data-stage=map] .world { visibility: hidden; }
+body[data-stage=map] .realm-header { background: none; }
+#map-title {
+  position: absolute;
+  left: 44px;
+  top: 124px;
+  font-size: 22px;
+  font-weight: 500;
+  color: #dce9e4;
+}
+.dungeon-locations { pointer-events: none; }
+.dungeon-node {
+  --node-color: #b7ebd5;
+  --node-rgb: 183, 235, 213;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: auto;
+  min-width: 136px;
+  color: var(--node-color);
+  border-radius: 4px;
+  -webkit-user-drag: none;
+}
+.node-calendar { left: 26%; top: 37%; }
+.node-workout {
+  left: 78%;
+  top: 41%;
+  --node-color: #ecc1cf;
+  --node-rgb: 236, 193, 207;
+}
+.node-projects {
+  left: 68%;
+  top: 82%;
+  --node-color: #eed398;
+  --node-rgb: 238, 211, 152;
+}
+.node-pin {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--node-color);
+  background: #0b1821ec;
+  box-shadow: 0 0 20px rgba(var(--node-rgb), .16), inset 0 0 10px rgba(var(--node-rgb), .08);
+  transform: rotate(45deg);
+  transition: box-shadow .2s, background .2s;
+}
+.node-pin svg { width: 22px; height: 22px; transform: rotate(-45deg); }
+.node-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-width: 136px;
+  height: 44px;
+  padding: 0 15px;
+  background: #09151ff0;
+  border: 1px solid rgba(var(--node-rgb), .6);
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px #0007;
+}
+.node-label svg { width: 14px; height: 14px; opacity: .65; }
+.dungeon-node:hover .node-pin, .dungeon-node:focus-visible .node-pin {
+  background: #223937;
+  box-shadow: 0 0 32px rgba(var(--node-rgb), .3);
+}
+.dungeon-node:hover .node-label, .dungeon-node:focus-visible .node-label { border-color: var(--node-color); }
+.dungeon-node[aria-current=true] .node-label { background: #294138; }
+.map-actor {
+  position: absolute;
+  left: 50%;
+  top: 51%;
+  width: 88px;
+  height: 97px;
+  transform: translate(-50%, -85%);
+  pointer-events: none;
+}
+.map-actor canvas {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 2px 1px #050a13bb);
+}
+.actor-shadow {
+  position: absolute;
+  width: 30px;
+  height: 9px;
+  border-radius: 50%;
+  background: #0008;
+  left: 34%;
+  bottom: 11%;
+}
+.map-character {
+  position: absolute;
+  left: 44px;
+  bottom: 30px;
+  min-height: 48px;
+  max-width: calc(100% - 88px);
+  display: flex;
+  gap: 12px;
+  padding: 0 16px;
+  background: #0c1922eb;
+  border: 1px solid #849f985c;
+  border-radius: 4px;
+  color: #dce8e2;
+}
+.map-character:hover { background: #1d3439; }
+#map-name { max-width: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.map-level { color: #b7ebd5; font: 10px ui-monospace, monospace; white-space: nowrap; }
+.map-character>svg { width: 16px; height: 16px; flex-shrink: 0; color: #a8c3bc; }
+@media (max-aspect-ratio: 1/1) {
+  .node-calendar { left: 31%; top: 26%; }
+  .node-workout { left: 77%; top: 49%; }
+  .node-projects { left: 31%; top: 81%; }
+  .map-actor { left: 48%; top: 52%; }
+}
+@media (max-width: 760px) {
+  #map-title { left: 24px; top: 96px; font-size: 18px; }
+  .dungeon-node { min-width: 108px; gap: 8px; }
+  .node-pin { width: 36px; height: 36px; }
+  .node-pin svg { width: 18px; height: 18px; }
+  .node-label { min-width: 108px; padding: 0 12px; gap: 10px; font-size: 13px; height: 44px; }
+  .map-actor { width: 66px; height: 73px; }
+  .map-character { left: 22px; bottom: 22px; max-width: calc(100% - 44px); padding: 0 12px; }
+  #map-name { max-width: 140px; }
+}
