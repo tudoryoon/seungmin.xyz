@@ -76,20 +76,11 @@ async function checkLayout(page, name) {
   assert.ok(stats.channels.slice(0,3).some(channel=>channel.stdev>5),'map terrain is visibly rendered: '+name);
 }
 async function walkTo(page, name) {
-  const target=await page.locator(`[data-location=${name}]`).boundingBox();
-  for(const [axis,value] of [['x',target.x+target.width/2],['y',target.y+target.height*.4]]) {
-    const actor=await page.locator('#map-actor').boundingBox();
-    const start=axis==='x'?actor.x+actor.width/2:actor.y+actor.height*.85;
-    const positive=value>start;
-    const key=axis==='x'?(positive?'ArrowRight':'ArrowLeft'):(positive?'ArrowDown':'ArrowUp');
-    await page.keyboard.down(key);
-    await page.waitForFunction(({axis,value,positive})=>{
-      const box=document.querySelector('#map-actor').getBoundingClientRect();
-      const current=axis==='x'?box.x+box.width/2:box.y+box.height*.85;
-      return positive?current>=value:current<=value;
-    },{axis,value,positive});
-    await page.keyboard.up(key);
-  }
+  const portrait=await page.evaluate(()=>matchMedia('(max-aspect-ratio: 1/1)').matches);
+  const key=({calendar:portrait?'ArrowUp':'ArrowLeft',workout:'ArrowRight',library:'ArrowDown'})[name];
+  await page.keyboard.down(key);
+  await page.waitForFunction(name=>document.querySelector('.dungeon-node.nearby')?.dataset.location===name,name);
+  await page.keyboard.up(key);
   assert.equal(await page.locator('.dungeon-node.nearby').getAttribute('data-location'),name);
   await page.keyboard.press('Enter');
 }

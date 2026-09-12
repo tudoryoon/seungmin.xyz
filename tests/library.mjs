@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {normalizeUrl,inspectFile,MAX_FILE_SIZE,createLibraryStore} from '../library-store.js';
-import {movePosition} from '../dungeon.js';
 const {Window} = await import(process.env.DOM_MODULE || 'happy-dom');
 const {PGlite} = await import(process.env.PGLITE_MODULE || '@electric-sql/pglite');
 const owner='00000000-0000-4000-8000-000000000001', other='00000000-0000-4000-8000-000000000002';
@@ -12,10 +11,6 @@ for(const value of ['javascript:alert(1)','data:text/html,hi','file:///tmp/a','h
 assert.equal((await inspectFile(pdf)).kind,'pdf');
 await assert.rejects(inspectFile(new File(['<svg/>'],'image.png',{type:'image/png'})));
 await assert.rejects(inspectFile({size:MAX_FILE_SIZE+1,name:'large.pdf'}));
-const straight=movePosition({x:50,y:50},{x:1,y:0},.05,1000,1000);
-const diagonal=movePosition({x:50,y:50},{x:1,y:1},.05,1000,1000);
-assert.ok(Math.abs(Math.hypot(diagonal.x-50,diagonal.y-50)-(straight.x-50))<.00001,'diagonal speed is normalized');
-assert.equal(movePosition({x:99,y:99},{x:1,y:1},100,1000,1000).y,94);
 
 // Exercise real PostgreSQL constraints and RLS without changing a production account.
 const db=new PGlite();
@@ -144,4 +139,4 @@ try {
   window.location.hash='#projects';window.dispatchEvent(new window.Event('hashchange'));
   assert.equal($('library').hidden,false);assert.equal(window.location.hash,'#library');
 } finally {await window.happyDOM.close();}
-console.log('PASS: library SQL/RLS and repeat setup, private files, URL/file validation, retry and account isolation, DOM add/search/trash/restore/logout, isolated dungeon views, and normalized keyboard movement.');
+console.log('PASS: library SQL/RLS and repeat setup, private files, URL/file validation, retry and account isolation, DOM add/search/trash/restore/logout, and isolated dungeon views.');
