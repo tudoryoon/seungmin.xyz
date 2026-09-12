@@ -25,12 +25,17 @@ Email verification/reset callbacks retain the previously configured https://seun
 
 ## Testing
 
+Cloudflare's `_headers` revalidates mutable files on each visit. App CSS/JS URLs and their module imports use the release query `v=20260912-1` to bypass the previous four-hour browser cache. Keep the query consistent across HTML and imports when changing a release. No storage clearing or data migration is needed. See [Pages response headers](https://developers.cloudflare.com/pages/configuration/headers/).
+
 Node plus Playwright and installed Chrome are needed. Set PLAYWRIGHT_MODULE to the absolute Playwright module path when it is not locally installed.
 
 ```sh
 node tests/realm.mjs
 node tests/online.mjs
 node tests/dungeon.mjs
+node tests/cache.mjs
+BROWSER=webkit node tests/realm.mjs
+BROWSER=webkit node tests/dungeon.mjs
 ```
 
 Auth/API calls are mocked; tests do not log into or modify a real account. Runtime animations support prefers-reduced-motion, an explicit persisted motion toggle, visibility pausing, and a no-WebGL fallback.

@@ -1,0 +1,3 @@
+# Mutable files must be revalidated when a visitor returns after deployment.
+/*
+  Cache-Control: public, max-age=0, must-revalidate

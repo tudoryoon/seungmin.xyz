@@ -37,6 +37,12 @@ body[data-stage=map] .world { visibility: visible; }
 .form-wrap,.avatar-form-wrap { text-shadow: 0 2px 12px #030712; }
 .form-wrap input,.form-wrap select,.avatar-form-wrap textarea { background: #0b1425df; }
 .form-wrap .primary,.avatar-form-wrap .primary { text-shadow: none; }
+body[data-renderer="fallback"]:not([data-stage="entry"]) .landscape {
+  opacity: .2;
+  transform: none;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
 @media(max-width:760px) {
   .realm-header { padding: 20px 22px; }
   .entry-copy { padding-bottom: 90px; }

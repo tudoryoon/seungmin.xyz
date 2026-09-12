@@ -1,6 +1,6 @@
-import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js';
-import { validProfile } from './profile.js';
-import { createDungeon } from './dungeon.js';
+import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js?v=20260912-1';
+import { validProfile } from './profile.js?v=20260912-1';
+import { createDungeon } from './dungeon.js?v=20260912-1';
 
 const $ = id => document.getElementById(id);
 const client = window.realmClient;
@@ -32,10 +32,13 @@ $('motion').addEventListener('change', event => {
 });
 reducedQuery.addEventListener('change', () => { if (motionPreference === null) setMotion(!reducedQuery.matches); });
 // Rendering is optional: a failed GPU or module must never block account access.
-import('./portal.js').then(({ createPortal }) => {
+import('./portal.js?v=20260912-1').then(({ createPortal }) => {
   portal = createPortal($('portal'), motion);
   portal.setStage(stage);
-}).catch(() => { $('portal').hidden = true; });
+}).catch(() => {
+  $('portal').hidden = true;
+  document.body.dataset.renderer = 'fallback';
+});
 
 function show(next) {
   const previous = stage;

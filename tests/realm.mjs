@@ -3,7 +3,8 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { parseAvatar, validAvatar, avatarTraits } from '../avatar.js';
 import { validProfile } from '../profile.js';
-const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const playwright = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const engine = process.env.BROWSER || 'chromium';
 const sharp = (await import(process.env.SHARP_MODULE || 'sharp')).default;
 
 const silver = parseAvatar('은빛 긴 머리에 청록색 도포를 입은 도사. 손에는 달빛 지팡이.');
@@ -27,7 +28,7 @@ const server = createServer(async(req,res)=>{
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const base='http://127.0.0.1:'+server.address().port;
-const browser=await chromium.launch({headless:true,channel:'chrome',args:['--enable-unsafe-swiftshader']});
+const browser=await playwright[engine].launch({headless:true,...(engine==='chromium'?{channel:'chrome',args:['--enable-unsafe-swiftshader']}:{})});
 const errors=[];
 const users=new Map();
 const makeUser=(email,id)=>({id,email,aud:'authenticated',role:'authenticated',app_metadata:{provider:'email'},user_metadata:{},created_at:new Date().toISOString()});
@@ -181,6 +182,31 @@ try{
   const fallback=await setup({viewport:{width:320,height:740},reducedMotion:'reduce'});
   await fallback.page.addInitScript(()=>{const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return type.startsWith('webgl')?null:original.call(this,type,...args);};});
   await fallback.page.goto(base);await fallback.page.locator('#enter').click();await fallback.page.locator('#auth').waitFor({state:'visible'});await noOverflow(fallback.page);
+  await fallback.page.waitForFunction(()=>document.body.dataset.renderer==='fallback');
+  assert.equal(await fallback.page.locator('.landscape').evaluate(el=>getComputedStyle(el).opacity),'0.2');
+  const fallbackPixels=await pixels(fallback.page.locator('.world'));
+  await fallback.page.locator('.landscape').evaluate(el=>el.style.opacity='0');
+  assert.ok(changed(fallbackPixels,await pixels(fallback.page.locator('.world')))>200,'no-GPU background is not blank');
+  await fallback.context.close();
+  // Shader compilation failure and a lost GPU context also retain usable UI.
+  for (const failure of ['shader','context']) {
+    const broken=await setup({viewport:{width:390,height:844},reducedMotion:'reduce'});
+    if(failure==='shader') await broken.page.addInitScript(()=>{
+      const original=WebGL2RenderingContext.prototype.getProgramParameter;
+      WebGL2RenderingContext.prototype.getProgramParameter=function(program,parameter){
+        return parameter===this.LINK_STATUS?false:original.call(this,program,parameter);
+      };
+    });
+    await broken.page.goto(base);
+    await broken.page.waitForFunction(()=>document.querySelector('#portal').width>300);
+    if(failure==='context') await broken.page.locator('#portal').evaluate(canvas=>canvas.getContext('webgl2').getExtension('WEBGL_lose_context').loseContext());
+    await broken.page.waitForFunction(()=>document.body.dataset.renderer==='fallback');
+    await broken.page.locator('#enter').click();
+    await broken.page.locator('#auth').waitFor({state:'visible'});
+    assert.equal(await broken.page.locator('#portal').isVisible(),false);
+    assert.equal(await broken.page.locator('#auth-submit').isEnabled(),true);
+    await broken.context.close();
+  }
   assert.deepEqual(errors,[]);
   console.log('PASS: portal nonblank/moving, warp, reduced motion, no-WebGL, signup/login/errors, profile validation/save recovery, actual pixel traits, draft invalidation, avatar save recovery, reload, second-device sync, account isolation, journal gate, desktop/mobile layout.');
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}

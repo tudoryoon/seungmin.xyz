@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { parseAvatar } from '../avatar.js';
-const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const playwright = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const engine = process.env.BROWSER || 'chromium';
 const sharp = (await import(process.env.SHARP_MODULE || 'sharp')).default;
 const root = new URL('../', import.meta.url);
 const server = createServer(async (req,res) => {
@@ -16,7 +17,7 @@ const server = createServer(async (req,res) => {
 });
 await new Promise(resolve => server.listen(0,'127.0.0.1',resolve));
 const base = 'http://127.0.0.1:' + server.address().port;
-const browser = await chromium.launch({headless:true,channel:'chrome'});
+const browser = await playwright[engine].launch({headless:true,...(engine==='chromium'?{channel:'chrome'}:{})});
 const errors = [], failed = [];
 const user = {id:'00000000-0000-4000-8000-000000000001',email:'map@example.com',aud:'authenticated',role:'authenticated',
   app_metadata:{provider:'email'},user_metadata:{realm_profile:{version:1,name:'승민',age:31,gender:'unspecified',mbti:'',blood:''},

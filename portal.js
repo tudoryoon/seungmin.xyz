@@ -3,12 +3,18 @@ import * as THREE from './vendor/three.module.js';
 // One renderer and one star field remain alive across every onboarding stage.
 export function createPortal(canvas, motion) {
   let renderer;
+  function useFallback() {
+    canvas.hidden = true;
+    document.body.dataset.renderer = 'fallback';
+    renderer?.setAnimationLoop(null);
+  }
   try {
     renderer = new THREE.WebGLRenderer({canvas,antialias:false,alpha:true,powerPreference:'low-power'});
   } catch {
-    canvas.hidden = true;
+    useFallback();
     return {setMotion(){},setStage(){},async travel(){}};
   }
+  renderer.debug.onShaderError = useFallback;
   const renderRatio = () => Math.min(devicePixelRatio,1.2,Math.sqrt(1600000/(innerWidth*innerHeight)));
   const pixelRatio = renderRatio();
   renderer.setPixelRatio(pixelRatio);
@@ -65,7 +71,9 @@ export function createPortal(canvas, motion) {
         p=mat2(.91,-.41,.41,.91)*p;
         float n=fbm(p*3.8+4.0);
         float clouds=fbm(p*5.0+vec2(n*2.3,n*.7));
-        float band=exp(-pow((p.y+.12+n*.25)*2.4,2.0));
+        // GLSL pow is undefined for negative bases, including a square.
+        float bandPosition=(p.y+.12+n*.25)*2.4;
+        float band=exp(-bandPosition*bandPosition);
         float dust=smoothstep(.35,.83,clouds)*band;
         float ridges=pow(max(0.0,fbm(p*16.0+n)-.35),2.0)*band;
         vec3 blue=vec3(.055,.09,.19);
@@ -223,7 +231,7 @@ export function createPortal(canvas, motion) {
   window.addEventListener('resize',resize);
   document.addEventListener('visibilitychange',loop);
   canvas.addEventListener('webglcontextlost',event=>{
-    event.preventDefault();canvas.hidden=true;renderer.setAnimationLoop(null);
+    event.preventDefault();useFallback();
     if(traveling)finishTravel();
   });
   resize();loop();
