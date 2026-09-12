@@ -7,7 +7,7 @@ import {parseAvatar} from '../avatar.js';
 const {chromium} = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const root = process.env.TEST_ROOT || fileURLToPath(new URL('../',import.meta.url));
 const repo = process.env.SOURCE_REPO || root;
-const version = '20260912-1';
+const version = '20260912-2';
 const user = {id:'cache-test-user',user_metadata:{
   realm_profile:{version:1,name:'테스트',age:30,gender:'unspecified',mbti:'',blood:''},
   realm_avatar:parseAvatar('청록색 도포를 입은 도사. 지팡이.')
@@ -19,7 +19,7 @@ const auth = `window.realmError=error=>error.message;window.realmClient={auth:{
 }};`;
 const browser = await chromium.launch({headless:true,channel:'chrome'});
 try {
-  for (const revision of ['00b6242','fcb8416']) {
+  for (const revision of ['00b6242','fcb8416','5367651']) {
     let deployed = false;
     const requested = [], errors = [];
     const server = createServer(async(req,res)=>{
@@ -31,7 +31,7 @@ try {
           : execFileSync('git',['show',revision+':'+path],{cwd:repo,stdio:['ignore','pipe','ignore']});
         const type = path.endsWith('.js')?'text/javascript':path.endsWith('.css')?'text/css':path.endsWith('.webp')?'image/webp':'text/html';
         res.writeHead(200,{'Content-Type':type,'Cache-Control':deployed||path.endsWith('.html')
-          ? 'public, max-age=0, must-revalidate':'public, max-age=14400, must-revalidate'});
+          ? 'no-cache, max-age=0, must-revalidate':'public, max-age=14400, must-revalidate'});
         res.end(body);
       } catch {res.writeHead(404);res.end();}
     });
@@ -63,5 +63,5 @@ try {
       console.log('PASS: warm '+revision+' cache upgrades without clearing browser data.');
     } finally {await context.close();await new Promise(resolve=>server.close(resolve));}
   }
-  assert.match(await readFile(root+'/_headers','utf8'),/Cache-Control: public, max-age=0, must-revalidate/);
+  assert.match(await readFile(root+'/_headers','utf8'),/Cache-Control: no-cache, max-age=0, must-revalidate/);
 } finally {await browser.close();}

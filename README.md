@@ -25,7 +25,7 @@ Email verification/reset callbacks retain the previously configured https://seun
 
 ## Testing
 
-Cloudflare's `_headers` revalidates mutable files on each visit. App CSS/JS URLs and their module imports use the release query `v=20260912-1` to bypass the previous four-hour browser cache. Keep the query consistent across HTML and imports when changing a release. No storage clearing or data migration is needed. See [Pages response headers](https://developers.cloudflare.com/pages/configuration/headers/).
+Cloudflare's `_headers` explicitly sends `no-cache` to revalidate mutable files on each visit, including when the custom domain's Browser Cache TTL increases `max-age`. App CSS/JS URLs and their module imports use the release query `v=20260912-2` to bypass the previous four-hour browser cache. Keep the query consistent across HTML and imports when changing a release. No storage clearing or data migration is needed. See [Pages response headers](https://developers.cloudflare.com/pages/configuration/headers/).
 
 Node plus Playwright and installed Chrome are needed. Set PLAYWRIGHT_MODULE to the absolute Playwright module path when it is not locally installed.
 
