@@ -19,7 +19,7 @@ dialog.daily-dialog{box-sizing:border-box;width:min(520px,calc(100% - 28px));max
 #daily-meter::-webkit-progress-bar{background:#2b3a32}#daily-meter::-webkit-progress-value{background:#91cfa3}#daily-meter::-moz-progress-bar{background:#91cfa3}
 .daily-list{list-style:none;margin:0;padding:0}
 .daily-list li{border-bottom:1px solid #304338}
-.daily-list label{display:flex;align-items:flex-start;gap:12px;padding:15px 0;line-height:1.6;cursor:pointer;margin:0;font-size:15px;color:#e0ece6;font-weight:400}
+.daily-list label{display:flex;flex-direction:row;align-items:flex-start;gap:12px;padding:15px 0;line-height:1.6;cursor:pointer;margin:0;font-size:15px;color:#e0ece6;font-weight:400}
 .daily-list input[type=checkbox]{appearance:auto;width:21px;height:21px;min-width:21px;min-height:21px;margin:2px 0 0;accent-color:#8bd4a7;flex:none;padding:0}
 .daily-list span{min-width:0;overflow-wrap:anywhere}
 .daily-list [data-completed=true] span{color:#96ad9e;text-decoration:line-through;text-decoration-thickness:1px}

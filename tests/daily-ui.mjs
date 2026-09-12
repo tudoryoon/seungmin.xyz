@@ -12,6 +12,7 @@ async function until(test){for(let i=0;i<150;i++){if(test())return;await new Pro
 async function setup({page='index.html',saved=seed(),initial=owner,stage='map',deferred=false}={}) {
   const w=new Window({url:'http://localhost/'+page,settings:{disableCSSFileLoading:true,disableJavaScriptFileLoading:true}});
   w.document.write(await readFile(new URL('../'+page,import.meta.url),'utf8'));
+  w.sessionStorage.setItem('daily-prompt:owner:2026-09-12','1');
   w.document.body.classList.remove('session-checking');if(page==='index.html')w.document.body.dataset.stage=stage;
   let callback,fail=false,pending=null,account=initial,rpcs=0;
   w.confirm=()=>true;w.lucide={createIcons(){}};w.testDaily={validAvatar,validProfile};
@@ -36,7 +37,7 @@ let app=await setup();
 try {
   const {w,$,saved}=app;
   await until(()=>$('daily-dialog').open&&!$('daily-save').disabled);
-  assert.equal($('daily-form').hidden,false,'first daily visit prompts for tasks');
+  assert.equal($('daily-form').hidden,false,'every visit prompts even with a legacy dismissal flag');
   const type=(input,value)=>{input.value=value;input.dispatchEvent(new w.Event('input'));};
   type($('daily-inputs').querySelector('input'),'<b>운동</b>');$('daily-add').click();
   type($('daily-inputs').lastElementChild.querySelector('input'),'자료 읽기');
@@ -82,7 +83,20 @@ try {
 
 app=await setup({saved:{...seed(),revision:1,tasks:[{id:'a',title:'saved',completed:false}]}});
 try {
-  await until(()=>app.$('daily-badge').textContent==='0/1');assert.equal(app.$('daily-dialog').open,false,'existing online plan skips setup');
+  await until(()=>app.$('daily-dialog').open&&!app.$('daily-close').disabled);
+  assert.equal(app.$('daily-badge').textContent,'0/1','saved plans open on return visits');
+  app.$('daily-close').click();app.w.dispatchEvent(new app.w.CustomEvent('realm-view'));
+  await new Promise(r=>setTimeout(r,10));assert.equal(app.$('daily-dialog').open,false,'closing does not immediately reopen the dialog');
+  const restored = new app.w.Event('pageshow'); Object.defineProperty(restored,'persisted',{value:true}); app.w.dispatchEvent(restored);
+  await until(()=>app.$('daily-dialog').open&&!app.$('daily-close').disabled);
+  app.$('daily-close').click();app.account(null,'SIGNED_OUT');app.account(owner);
+  await until(()=>app.$('daily-dialog').open,'signing back into the same account prompts again');
+} finally {await app.w.happyDOM.close();}
+app=await setup({saved:{...seed(),revision:2,level:2,awarded:true,tasks:[{id:'a',title:'done',completed:true}]}});
+try {
+  await until(()=>app.$('daily-dialog').open&&!app.$('daily-close').disabled);
+  assert.equal(app.$('daily-status').textContent,'오늘 완료','completed plans also open without a second reward');
+  assert.equal(app.saved.level,2);
 } finally {await app.w.happyDOM.close();}
 app=await setup({stage:'avatar'});
 try {
@@ -98,4 +112,4 @@ try {
 app=await setup({initial:null});
 try {await new Promise(r=>setTimeout(r,20));assert.equal(app.rpcs(),0);assert.equal(app.$('daily-open').hidden,true);}
 finally {await app.w.happyDOM.close();}
-console.log('PASS: daily first-visit prompt, save/check/level UI, literal titles, repeat visits, deep links, errors/draft protection, day changes, setup gating and account isolation.');
+console.log('PASS: daily repeat-visit prompts, legacy dismissal bypass, saved/completed lists, back-forward restoration, repeat sign-in, save/check/level UI, errors/draft protection and account isolation.');

@@ -8,7 +8,7 @@ import {dailyFixture} from './daily-fixture.mjs';
 const {chromium} = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const root = process.env.TEST_ROOT || fileURLToPath(new URL('../',import.meta.url));
 const repo = process.env.SOURCE_REPO || root;
-const version = '20260912-6';
+const version = '20260912-7';
 const user = {id:'cache-test-user',user_metadata:{
   realm_profile:{version:1,name:'테스트',age:30,gender:'unspecified',mbti:'',blood:''},
   realm_avatar:parseAvatar('청록색 도포를 입은 도사. 지팡이.')
@@ -41,6 +41,7 @@ try {
     const context = await browser.newContext({viewport:{width:1440,height:900},reducedMotion:'reduce'});
     try {
       const page = await context.newPage();
+      await page.addLocatorHandler(page.locator('#daily-dialog'), () => page.locator('#daily-close').click());
       page.on('pageerror',e=>errors.push(e.message));
       const base = 'http://127.0.0.1:'+server.address().port;
       await page.goto(base);

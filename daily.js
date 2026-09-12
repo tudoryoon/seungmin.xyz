@@ -1,5 +1,5 @@
-import { validProfile } from './profile.js?v=20260912-6';
-import { validAvatar } from './avatar.js?v=20260912-6';
+import { validProfile } from './profile.js?v=20260912-7';
+import { validAvatar } from './avatar.js?v=20260912-7';
 
 const client = window.realmClient;
 const launcher = document.createElement('button');
@@ -32,8 +32,8 @@ const seen = new Set();
 const eligible = () => !!user && !recovery && validProfile(user.user_metadata?.realm_profile) && validAvatar(user.user_metadata?.realm_avatar)
   && !document.body.classList.contains('session-checking') && (!document.body.dataset.stage || ['map','complete'].includes(document.body.dataset.stage));
 const promptKey = () => user.id + ':' + (state?.day || 'unavailable');
-function wasSeen() { try { return seen.has(promptKey()) || sessionStorage.getItem('daily-prompt:' + promptKey()) === '1'; } catch { return seen.has(promptKey()); } }
-function markSeen() { seen.add(promptKey()); try { sessionStorage.setItem('daily-prompt:' + promptKey(), '1'); } catch {} }
+function wasSeen() { return seen.has(promptKey()); }
+function markSeen() { seen.add(promptKey()); }
 function icons() { window.lucide?.createIcons(); }
 function unlockLogout() { logoutSnapshot.forEach(([node,disabled]) => { node.disabled = disabled; }); logoutSnapshot = []; }
 function level(value) { document.querySelectorAll('[data-player-level]').forEach(node => { node.textContent = 'LV. ' + value; }); }
@@ -116,7 +116,7 @@ function accept(next, award = false) {
 }
 function open(auto = false) {
   if (!eligible() || document.querySelector('dialog[open]:not(#daily-dialog)')) return;
-  if (auto && (state?.tasks.length || wasSeen())) return;
+  if (auto && wasSeen()) return;
   if (!dialog.open) { dialog.showModal(); if (auto) markSeen(); }
   if (editing) $('daily-inputs').querySelector('input')?.focus();
 }
@@ -192,8 +192,14 @@ document.addEventListener('close',() => setTimeout(evaluate,0),true);
 new MutationObserver(() => evaluate()).observe(document.body,{attributes:true,attributeFilter:['data-stage','class']});
 const onReturn = () => { if (!document.hidden && (performance.now()-lastRead>1000 || performance.now()>=deadline)) refresh(); };
 window.addEventListener('focus',onReturn); window.addEventListener('online',onReturn); document.addEventListener('visibilitychange',onReturn);
+window.addEventListener('pageshow',event => {
+  if (!event.persisted) return;
+  seen.clear();
+  if (!dirty) refresh(); else evaluate();
+});
 function account(next) {
   if (user?.id !== next?.id) {
+    seen.clear();
     unlockLogout();
     epoch++; clearTimeout(timer); state = null; busy = false; loading = false; editing = false; dirty = false;
     draft = []; notice = ''; failure = ''; blocked = false; deadline = 0;
