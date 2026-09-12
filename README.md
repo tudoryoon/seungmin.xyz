@@ -24,6 +24,16 @@ Apply `supabase/library.sql` once using the existing project's SQL Editor. It cr
 
 The library supports add, search, type filtering, title/notes editing, file opening/downloads, and trash/restore. Trash is reversible and retains its files; permanent deletion and storage-quota management are not implemented. Image thumbnails use short-lived signed URLs. Open files use authenticated downloads and temporary Blob URLs, revoked on close/account changes. API errors keep inputs and failed upload jobs available for retry. Upload jobs reuse their UUID so retries do not create duplicate metadata. If a response fails after uploading, private bytes may remain without a list row; retry the same job to finish. There is no scheduled orphan cleanup.
 
+## Daily Plans And Levels
+
+Apply `supabase/daily.sql` in the same Supabase project before deploying this feature. It adds three private tables (daily plans, tasks, and reward history), owner-only read policies, and two authenticated RPCs. Clients cannot write the tables directly; each RPC derives the account from `auth.uid()`. Existing journal/library schemas and records are not changed.
+
+After completed onboarding, the first visit without a saved plan opens today's list. The same control is available on the map and inside all three dungeons. A list has 1-20 self-reported tasks with 160-character titles. Before the daily award, users can add/remove/rename tasks or change their checks. Renaming a checked task resets its completion. Removing unfinished tasks does not itself award a level; an explicit finish action is required if the remaining tasks are all checked.
+
+The last completion check awards one level, once per account per Asia/Seoul calendar day. Completed days are locked. Level equals 1 plus the server reward-history count, never a field in editable Auth metadata. Empty lists cannot award. Row locks, optimistic revisions, and a unique user/day reward key protect against concurrent edits and duplicate awards, including retries after a lost response. Previous days remain stored; missed days do not reduce the level.
+
+Daily data lives online, not in browser storage. Session storage only remembers dismissal of an empty daily prompt. Focus, reconnect, and the server's next-midnight deadline recheck the plan; they do not send reminders. An outdated or uncertain write requires a reload before another write. Unsaved input is retained after errors and requires confirmation before discarding. Account changes clear private UI and ignore late responses. Open dialogs pause map movement. Reminder delivery, reminder preferences, notifications, XP, and calendar synchronization remain out of scope.
+
 ## Art
 
 - assets/realm-gate.webp: original image generated with the built-in imagegen tool. Prompt: original high-detail pixel-art Korean fantasy temple valley, central circular jade portal, midnight teal, silver, pale gold, no text/UI/characters. Converted to WebP for delivery.
@@ -33,7 +43,7 @@ The library supports add, search, type filtering, title/notes editing, file open
 
 ## Testing
 
-Cloudflare's `_headers` requests `no-cache` revalidation. This works on `pages.dev`, but the custom domain currently rewrites static asset responses to `max-age=14400` and removes `no-cache`. Set its Browser Cache TTL to **Respect Existing Headers** in the dashboard when account access is available. Until then, the release query `v=20260912-5` on app CSS/JS URLs and module imports ensures returning visitors fetch the correct release. Bump it consistently across HTML and imports for every code release; headers alone are not sufficient on this domain. No storage clearing or data migration is needed. See [Pages response headers](https://developers.cloudflare.com/pages/configuration/headers/) and [Browser Cache TTL](https://developers.cloudflare.com/cache/how-to/edge-browser-cache-ttl/set-browser-ttl/).
+Cloudflare's `_headers` requests `no-cache` revalidation. This works on `pages.dev`, but the custom domain currently rewrites static asset responses to `max-age=14400` and removes `no-cache`. Set its Browser Cache TTL to **Respect Existing Headers** in the dashboard when account access is available. Until then, the release query `v=20260912-6` on app CSS/JS URLs and module imports ensures returning visitors fetch the correct release. Bump it consistently across HTML and imports for every code release; headers alone are not sufficient on this domain. No storage clearing or data migration is needed. See [Pages response headers](https://developers.cloudflare.com/pages/configuration/headers/) and [Browser Cache TTL](https://developers.cloudflare.com/cache/how-to/edge-browser-cache-ttl/set-browser-ttl/).
 
 Node plus Playwright and installed Chrome are needed. Set PLAYWRIGHT_MODULE to the absolute Playwright module path when it is not locally installed.
 
@@ -45,11 +55,13 @@ node tests/cache.mjs
 node tests/library.mjs
 node tests/movement.mjs
 node tests/realm-routing.mjs
+node tests/daily-db.mjs
+node tests/daily-ui.mjs
 BROWSER=webkit node tests/realm.mjs
 BROWSER=webkit node tests/dungeon.mjs
 ```
 
 Auth/API calls are mocked; tests do not log into or modify a real account. Runtime animations support prefers-reduced-motion, an explicit persisted motion toggle, visibility pausing, and a no-WebGL fallback.
-The library and movement unit tests use Happy DOM. Library schema checks run with PGlite, including two-user RLS isolation and idempotent schema application. Set `DOM_MODULE` and `PGLITE_MODULE` to their module paths if needed.
+The library, movement, routing, and daily UI unit tests use Happy DOM. Library and daily schema checks run with PGlite, including two-user RLS isolation and idempotent schema application. Daily checks also cover server day boundaries, stale revisions, reward idempotency, direct-write denial, cumulative levels, failed-save draft retention, and logout isolation. Set `DOM_MODULE` and `PGLITE_MODULE` to their module paths if needed.
 
-Experience points, schedule-completion rewards, and Google Calendar integration are intentionally not implemented yet.
+Experience points, automatic calendar-event completion, and Google Calendar integration are intentionally not implemented yet.

@@ -8,9 +8,10 @@
   <title>입장</title>
   <link rel="icon" href="data:,">
   <link rel="preload" as="image" href="assets/realm-gate.webp">
-  <link rel="stylesheet" href="styles.css?v=20260912-5">
-  <link rel="stylesheet" href="dungeon.css?v=20260912-5">
-  <link rel="stylesheet" href="continuity.css?v=20260912-5">
+  <link rel="stylesheet" href="styles.css?v=20260912-6">
+  <link rel="stylesheet" href="dungeon.css?v=20260912-6">
+  <link rel="stylesheet" href="continuity.css?v=20260912-6">
+  <link rel="stylesheet" href="daily.css?v=20260912-6">
 </head>
 <body data-stage="entry" class="session-checking">
   <div class="world" aria-hidden="true"><div class="landscape"></div><canvas id="portal"></canvas><div class="world-shade"></div></div>
@@ -58,7 +59,7 @@
         <div class="character-space">
           <p class="character-tag"><span class="status-dot"></span><span id="preview-label">미리보기</span></p>
           <div class="sprite-presentation"><canvas id="avatar-canvas" width="320" height="352" role="img" aria-label="생성한 도트 캐릭터"></canvas><div class="summon-floor" aria-hidden="true"></div></div>
-          <div class="character-caption"><span id="character-class">도사</span><p id="character-name">캐릭터</p><span class="character-level">LV. 1</span></div>
+          <div class="character-caption"><span id="character-class">도사</span><p id="character-name">캐릭터</p><span class="character-level" data-player-level>LV. 1</span></div>
           <div class="character-tools"><button id="turn-character" class="icon-button" title="방향 바꾸기" aria-label="방향 바꾸기"><i data-lucide="flip-horizontal-2"></i></button><button id="download-character" class="icon-button" title="아바타 PNG 다운로드" aria-label="아바타 PNG 다운로드"><i data-lucide="download"></i></button></div>
         </div>
         <div class="avatar-form-wrap">
@@ -79,7 +80,7 @@
     <section id="complete" class="stage complete-stage" aria-labelledby="complete-title" hidden>
       <h1 id="complete-title" tabindex="-1">캐릭터</h1>
       <div class="complete-sprite"><canvas id="saved-avatar" width="320" height="352" role="img" aria-label="저장된 나의 분신"></canvas></div>
-      <p id="saved-name" class="saved-name"></p><p class="saved-class" id="saved-class"></p>
+      <p id="saved-name" class="saved-name"></p><p class="saved-class"><span data-player-level>LV. …</span> · <span id="saved-class"></span></p>
       <p class="saved-status"><i data-lucide="cloud-check"></i>저장됨</p>
       <button type="button" class="primary complete-link" id="open-map"><span>지도</span><i data-lucide="arrow-right"></i></button>
       <div class="complete-actions"><button class="text-button" id="edit-avatar">캐릭터 수정</button><span>·</span><button class="text-button" id="edit-profile">프로필 수정</button></div>
@@ -104,15 +105,16 @@
       </div>
       <div class="map-actor" id="map-actor"><canvas id="map-avatar" width="160" height="176" role="img" aria-label="내 캐릭터"></canvas><span class="actor-shadow" aria-hidden="true"></span></div>
       <div class="map-controls"><div class="direction-pad" aria-label="캐릭터 이동"><button data-move="ArrowUp" aria-label="위로 이동" title="위로 이동"><i data-lucide="chevron-up"></i></button><button data-move="ArrowLeft" aria-label="왼쪽으로 이동" title="왼쪽으로 이동"><i data-lucide="chevron-left"></i></button><button data-move="ArrowDown" aria-label="아래로 이동" title="아래로 이동"><i data-lucide="chevron-down"></i></button><button data-move="ArrowRight" aria-label="오른쪽으로 이동" title="오른쪽으로 이동"><i data-lucide="chevron-right"></i></button></div><button id="nearby-enter" hidden><i data-lucide="door-open"></i>입장</button></div>
-      <button type="button" class="map-character" id="map-character" title="캐릭터 보기" aria-label="캐릭터 보기"><i data-lucide="user-round"></i><span id="map-name"></span><span class="map-level">LV. 1</span><i data-lucide="chevron-right"></i></button>
+      <button type="button" class="map-character" id="map-character" title="캐릭터 보기" aria-label="캐릭터 보기"><i data-lucide="user-round"></i><span id="map-name"></span><span class="map-level" data-player-level>LV. …</span><i data-lucide="chevron-right"></i></button>
     </section>
   </main>
   <nav class="journey" aria-label="생성 진행 상황" hidden><ol><li data-step="auth"><span>01</span>계정</li><li data-step="profile"><span>02</span>프로필</li><li data-step="avatar"><span>03</span>캐릭터</li></ol></nav>
   <p id="global-message" class="global-message" role="status"></p>
   <noscript><p class="noscript">입장하려면 브라우저에서 JavaScript를 켜주세요.</p></noscript>
   <script src="vendor/supabase.js" defer></script>
-  <script src="auth-client.js?v=20260912-5" defer></script>
+  <script src="auth-client.js?v=20260912-6" defer></script>
   <script src="vendor/lucide.js" defer></script>
-  <script type="module" src="realm.js?v=20260912-5"></script>
+  <script type="module" src="realm.js?v=20260912-6"></script>
+  <script type="module" src="daily.js?v=20260912-6"></script>
 </body>
 </html>

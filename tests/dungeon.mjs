@@ -3,6 +3,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { parseAvatar } from '../avatar.js';
 import { ROAD_MAPS } from '../roads.js';
+import { dailyFixture } from './daily-fixture.mjs';
 const playwright = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const engine = process.env.BROWSER || 'chromium';
 const sharp = (await import(process.env.SHARP_MODULE || 'sharp')).default;
@@ -36,6 +37,7 @@ async function setup(viewport) {
     else if(path.endsWith('/user')) result = user;
     else if(path.endsWith('/logout')) {status=204;result=null;}
     else if(path.includes('/journal_records') || path.includes('/library_items')) result = [];
+    else if(path.endsWith('/daily_plan_state')) result = dailyFixture();
     await route.fulfill({status,contentType:'application/json',body:status===204?'':JSON.stringify(result)});
   });
   await page.goto(base + '/index.html#map');

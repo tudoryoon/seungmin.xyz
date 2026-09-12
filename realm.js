@@ -1,7 +1,7 @@
-import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js?v=20260912-5';
-import { validProfile } from './profile.js?v=20260912-5';
-import { createDungeon } from './dungeon.js?v=20260912-5';
-import { resolveRealmStage } from './realm-route.js?v=20260912-5';
+import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js?v=20260912-6';
+import { validProfile } from './profile.js?v=20260912-6';
+import { createDungeon } from './dungeon.js?v=20260912-6';
+import { resolveRealmStage } from './realm-route.js?v=20260912-6';
 
 const $ = id => document.getElementById(id);
 const client = window.realmClient;
@@ -9,7 +9,7 @@ window.lucide?.createIcons();
 let user = null, stage = 'entry', authMode = 'login', epoch = 0, entered = false, flipped = false;
 let sessionReady = false, recovery = false;
 let draft = null, preview = parseAvatar(DEFAULT_PROMPT), frame = 0;
-const dungeon = createDungeon($('map'), () => stage === 'map' && !!user && !$('logout').disabled);
+const dungeon = createDungeon($('map'), () => stage === 'map' && !!user && !$('logout').disabled && !document.querySelector('dialog[open]'));
 let portal = { setMotion() {}, setStage() {}, async travel() {} };
 const reducedQuery = matchMedia('(prefers-reduced-motion: reduce)');
 let motionPreference = null;
@@ -34,7 +34,7 @@ $('motion').addEventListener('change', event => {
 });
 reducedQuery.addEventListener('change', () => { if (motionPreference === null) setMotion(!reducedQuery.matches); });
 // Rendering is optional: a failed GPU or module must never block account access.
-import('./portal.js?v=20260912-5').then(({ createPortal }) => {
+import('./portal.js?v=20260912-6').then(({ createPortal }) => {
   portal = createPortal($('portal'), motion);
   portal.setStage(stage);
 }).catch(() => {
@@ -67,6 +67,7 @@ function show(next, {replace=false} = {}) {
   window.scrollTo({ top: 0, behavior: 'instant' });
   $(next + '-title')?.focus({ preventScroll: true });
   renderAvatar();
+  window.dispatchEvent(new CustomEvent('realm-view', {detail:next}));
 }
 function fillProfile() {
   const profile = user?.user_metadata?.realm_profile;
@@ -281,7 +282,7 @@ function complete(options = {}) {
   if (!validAvatar(stored)) { show('avatar'); return; }
   preview = stored;
   $('saved-name').textContent = user.user_metadata.realm_profile.name;
-  $('saved-class').textContent = 'LV. 1 · ' + avatarTitle(stored);
+  $('saved-class').textContent = avatarTitle(stored);
   $('saved-avatar').setAttribute('aria-label', avatarTraits(stored).join(', ') + ' 저장된 분신');
   show('complete',options);
 }

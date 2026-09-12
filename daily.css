@@ -1,0 +1,39 @@
+.daily-launcher{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:42px;min-width:72px;padding:0 10px;border:1px solid #466563;border-radius:6px;background:#152722;color:#d7eee4;font:inherit;font-size:13px;cursor:pointer;flex-shrink:0}
+.daily-launcher svg,.daily-icon svg{width:18px;height:18px;flex:none}
+.daily-launcher span{font-variant-numeric:tabular-nums;white-space:nowrap}
+.daily-launcher:hover{background:#263e35}.daily-launcher[hidden]{display:none}
+dialog.daily-dialog{box-sizing:border-box;width:min(520px,calc(100% - 28px));max-width:520px;max-height:calc(100dvh - 32px);margin:auto;padding:24px;border:1px solid #49605b;border-radius:8px;background:#101c1b;color:#e0ece6;box-shadow:0 20px 70px #0009;overflow:auto;color-scheme:dark;font-size:15px;letter-spacing:0}
+.daily-dialog::backdrop{background:#040907bf;backdrop-filter:blur(5px)}
+.daily-dialog *{box-sizing:border-box;letter-spacing:0}
+.daily-dialog [hidden]{display:none!important}
+.daily-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:0 0 22px;padding:0;border:0;background:none}
+.daily-heading h2{font-size:23px;line-height:1.3;margin:4px 0 0;font-weight:600}
+#daily-date{font-size:13px;color:#a9bab1;margin:0;min-height:18px}
+.daily-dialog button{font:inherit;cursor:pointer;border:1px solid #4a6258;border-radius:5px;background:#20352b;color:#dcebe2;padding:10px 16px;min-height:42px;white-space:normal}
+.daily-dialog button:hover{background:#2c4839}.daily-dialog button:disabled{opacity:.5;cursor:default}
+.daily-dialog .daily-icon{width:42px;height:42px;min-width:42px;padding:0;display:inline-grid;place-items:center;background:transparent}
+.daily-dialog :focus-visible,.daily-launcher:focus-visible{outline:2px solid #d9c27d;outline-offset:3px}
+.daily-summary{display:flex;justify-content:space-between;gap:16px;font-size:13px;font-variant-numeric:tabular-nums;margin-bottom:10px;color:#c1d3c6}
+.daily-summary [data-player-level]{color:#e5d196;font-weight:600}
+#daily-meter{display:block;appearance:none;width:100%;height:5px;border:0;background:#2b3a32;border-radius:0;margin:0 0 16px;accent-color:#91cfa3}
+#daily-meter::-webkit-progress-bar{background:#2b3a32}#daily-meter::-webkit-progress-value{background:#91cfa3}#daily-meter::-moz-progress-bar{background:#91cfa3}
+.daily-list{list-style:none;margin:0;padding:0}
+.daily-list li{border-bottom:1px solid #304338}
+.daily-list label{display:flex;align-items:flex-start;gap:12px;padding:15px 0;line-height:1.6;cursor:pointer;margin:0;font-size:15px;color:#e0ece6;font-weight:400}
+.daily-list input[type=checkbox]{appearance:auto;width:21px;height:21px;min-width:21px;min-height:21px;margin:2px 0 0;accent-color:#8bd4a7;flex:none;padding:0}
+.daily-list span{min-width:0;overflow-wrap:anywhere}
+.daily-list [data-completed=true] span{color:#96ad9e;text-decoration:line-through;text-decoration-thickness:1px}
+.daily-input-row{display:grid;grid-template-columns:minmax(0,1fr) 42px;gap:8px;margin:10px 0}
+.daily-input-row input{width:100%;min-width:0;height:44px;padding:10px 12px;border:1px solid #465f51;border-radius:5px;background:#15271e;color:#edf3ed;font:inherit;font-size:16px}
+.daily-input-row input::placeholder{color:#8fa999}
+.daily-edit-tools{display:flex;align-items:center;gap:12px;margin:12px 0;color:#96ad9e;font-size:12px}
+.daily-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:20px}
+.daily-dialog .daily-primary{background:#bfdaaa;color:#132b1c;border-color:#bfdaaa;font-weight:600}.daily-dialog .daily-primary:hover{background:#d5e8c5}
+.daily-status{min-height:22px;margin:16px 0 0;color:#dcca96;font-size:14px;line-height:1.5}
+.daily-error-row{display:flex;align-items:center;gap:10px}.daily-error-row p{min-width:0;margin:0;color:#efb3a3;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+.topbar{gap:12px}.topbar .settings-tab{margin-left:auto}.topbar .daily-launcher span{color:#d7eee4}
+.daily-awarded [data-player-level]{animation:daily-level-up .7s ease-out}
+@keyframes daily-level-up{0%{color:#fff;transform:translateY(4px)}50%{color:#ffe28e}100%{transform:translateY(0)}}
+.reduced-motion .daily-awarded [data-player-level]{animation:none}
+@media(prefers-reduced-motion:reduce){.daily-awarded [data-player-level]{animation:none}}
+@media(max-width:520px){dialog.daily-dialog{padding:20px}.daily-heading h2{font-size:21px}.daily-launcher{min-width:66px;padding:0 8px}.header-actions{gap:8px}}
