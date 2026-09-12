@@ -16,7 +16,12 @@
   <div class="world" aria-hidden="true"><div class="landscape"></div><canvas id="portal"></canvas><div class="world-shade"></div></div>
   <header class="realm-header">
     <div class="header-actions">
-      <label class="motion-control" title="배경 움직임"><i data-lucide="orbit"></i><span>움직임</span><input id="motion" type="checkbox" role="switch" checked aria-label="배경 움직임"></label>
+      <div id="realm-settings" class="realm-settings">
+        <button id="settings-toggle" class="icon-button" type="button" title="설정" aria-label="설정" aria-expanded="false" aria-controls="settings-panel"><i data-lucide="settings" aria-hidden="true"></i></button>
+        <div id="settings-panel" class="settings-panel" role="group" aria-label="설정" hidden>
+          <label class="motion-control"><span>배경 움직임</span><input id="motion" type="checkbox" role="switch" checked aria-label="배경 움직임"></label>
+        </div>
+      </div>
       <button id="logout" class="icon-button" title="로그아웃" aria-label="로그아웃" hidden><i data-lucide="log-out"></i></button>
     </div>
   </header>

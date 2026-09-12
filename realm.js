@@ -9,7 +9,28 @@ window.lucide?.createIcons();
 let user = null, stage = 'entry', authMode = 'login', epoch = 0, entered = false, flipped = false;
 let sessionReady = false, recovery = false;
 let draft = null, preview = parseAvatar(DEFAULT_PROMPT), frame = 0;
-const dungeon = createDungeon($('map'), () => stage === 'map' && !!user && !$('logout').disabled && !document.querySelector('dialog[open]'));
+const settings = $('realm-settings'), settingsPanel = $('settings-panel'), settingsToggle = $('settings-toggle');
+function setSettings(open, restoreFocus = false) {
+  settingsPanel.hidden = !open;
+  settingsToggle.setAttribute('aria-expanded', String(open));
+  if (open) $('motion').focus({ preventScroll: true });
+  else if (restoreFocus) settingsToggle.focus({ preventScroll: true });
+}
+settingsToggle.addEventListener('click', () => setSettings(settingsPanel.hidden, true));
+for (const eventName of ['pointerdown', 'focusin']) {
+  document.addEventListener(eventName, event => {
+    if (!settingsPanel.hidden && !settings.contains(event.target)) {
+      setSettings(false, eventName === 'pointerdown' && settingsPanel.contains(document.activeElement));
+    }
+  });
+}
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape' || settingsPanel.hidden) return;
+  event.preventDefault();
+  event.stopPropagation();
+  setSettings(false, true);
+});
+const dungeon = createDungeon($('map'), () => stage === 'map' && !!user && !$('logout').disabled && settingsPanel.hidden && !document.querySelector('dialog[open]'));
 let portal = { setMotion() {}, setStage() {}, async travel() {} };
 const reducedQuery = matchMedia('(prefers-reduced-motion: reduce)');
 let motionPreference = null;
@@ -43,6 +64,7 @@ import('./portal.js?v=20260912-8').then(({ createPortal }) => {
 });
 
 function show(next, {replace=false} = {}) {
+  setSettings(false);
   const previous = stage;
   stage = next;
   document.body.dataset.stage = next;

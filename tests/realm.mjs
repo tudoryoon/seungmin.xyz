@@ -73,6 +73,11 @@ async function pixels(locator){
 }
 const changed=(a,b)=>{let n=0;for(let i=0;i<a.length;i+=4)if(Math.abs(a[i]-b[i])+Math.abs(a[i+1]-b[i+1])+Math.abs(a[i+2]-b[i+2])>12)n++;return n;};
 async function noOverflow(page){assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);}
+async function motionSetting(page,checked){
+  await page.locator('#settings-toggle').click();
+  await page.locator('#motion').setChecked(checked);
+  await page.keyboard.press('Escape');
+}
 try{
   const {page}=await setup();
   await page.goto(base);
@@ -85,12 +90,12 @@ try{
   const portalPixels=await pixels(page.locator('#portal'));
   await page.waitForTimeout(450);
   assert.ok(changed(portalPixels,await pixels(page.locator('#portal')))>20,'portal animates');
-  await page.locator('#motion').uncheck();
+  await motionSetting(page,false);
   const withPortal=await pixels(page.locator('#portal'));
   await page.locator('#portal').evaluate(el=>el.style.opacity='0');
   assert.ok(changed(withPortal,await pixels(page.locator('#portal')))>200,'WebGL contains visible pixels');
   await page.locator('#portal').evaluate(el=>el.style.opacity='');
-  await page.locator('#motion').check();
+  await motionSetting(page,true);
   await page.locator('#enter').click();
   await page.waitForTimeout(800);
   assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('entering')),true);
@@ -116,7 +121,7 @@ try{
   failUpdate=false;await page.locator('#profile-form button[type=submit]').click();
   await page.locator('#avatar').waitFor({state:'visible'});
   assert.equal(await worldCanvas.evaluate(element=>element===document.querySelector('#portal')),true,'same renderer canvas after profile');
-  await page.locator('#motion').uncheck();
+  await motionSetting(page,false);
   await page.locator('#character-prompt').fill('우주를 떠도는 로봇');await page.locator('#generate').click();
   await page.locator('#avatar-message').filter({hasText:'인식 가능한 요소가 없습니다'}).waitFor();
   assert.equal(await page.locator('#save-avatar').isVisible(),false);
@@ -155,11 +160,11 @@ try{
   await other.page.screenshot({path:'/tmp/realm-entry-mobile.png'});
   await noOverflow(other.page);
   await other.page.waitForFunction(()=>document.querySelector('#portal').width>300);
-  await other.page.locator('#motion').check();
+  await motionSetting(other.page,true);
   const mobilePortal=await pixels(other.page.locator('#portal'));
   await other.page.waitForTimeout(500);
   assert.ok(changed(mobilePortal,await pixels(other.page.locator('#portal')))>20,'mobile portal animates');
-  await other.page.locator('#motion').uncheck();
+  await motionSetting(other.page,false);
   await other.page.locator('#enter').click();await login(other.page);
   await other.page.locator('#map').waitFor({state:'visible'});
   await other.page.locator('#map-character').click();

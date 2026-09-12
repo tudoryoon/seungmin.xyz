@@ -10,6 +10,26 @@
   border: 0;
 }
 .realm-header { justify-content: flex-end; }
+.realm-settings { position: relative; display: flex; }
+#settings-toggle { width: 44px; height: 44px; }
+#settings-toggle[aria-expanded="true"] { background: #20323d; border-color: var(--mint); }
+.settings-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 224px;
+  max-width: calc(100vw - 44px);
+  padding: 12px 16px;
+  background: #0a151c;
+  border: 1px solid #61776b80;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px #0006;
+}
+.settings-panel .motion-control { min-height: 44px; gap: 16px; justify-content: space-between; font-size: 13px; }
+.settings-panel .motion-control span { overflow-wrap: anywhere; }
+.settings-panel .motion-control input { flex: 0 0 36px; width: 36px; height: 20px; margin: 0; }
+.settings-panel .motion-control input:before { width: 14px; height: 14px; }
+.settings-panel .motion-control input:checked:before { transform: translateX(16px); }
 .world { background: #03070e; visibility: visible; }
 .world canvas { z-index: 0; opacity: 1; transition: none; }
 .landscape {

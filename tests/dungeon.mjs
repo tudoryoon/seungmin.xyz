@@ -99,6 +99,11 @@ async function walkTo(page, name) {
   assert.equal(await page.locator('.dungeon-node.nearby').getAttribute('data-location'),name);
   await page.keyboard.press('Enter');
 }
+async function motionSetting(page,checked){
+  await page.locator('#settings-toggle').click();
+  await page.locator('#motion').setChecked(checked);
+  await page.keyboard.press('Escape');
+}
 try {
   const page=await setup({width:1440,height:900});
   await checkLayout(page,'desktop');
@@ -110,7 +115,7 @@ try {
   assert.equal(new URL(page.url()).hash,'#calendar');
   await page.locator('.map-return').click();await page.locator('#map').waitFor({state:'visible'});
   assert.equal(await page.locator('#map').getAttribute('aria-busy'),null);
-  await page.locator('#motion').uncheck();
+  await motionSetting(page,false);
   const paused = await page.locator('#portal').screenshot();
   await page.waitForTimeout(300);
   assert.equal(Buffer.compare(await page.locator('#portal').screenshot(),paused)===0,true,'motion toggle freezes the shared scene');
@@ -131,7 +136,7 @@ try {
   await page.locator('.map-return').click();await page.locator('#map').waitFor({state:'visible'});
   await page.locator('#map-character').click();await page.locator('#complete').waitFor({state:'visible'});
   await page.locator('#open-map').click();await page.locator('#map').waitFor({state:'visible'});
-  await page.locator('#motion').check();
+  await motionSetting(page,true);
   await page.keyboard.down('ArrowRight');
   await page.locator('#logout').click();await page.locator('#auth').waitFor({state:'visible'});
   await page.keyboard.up('ArrowRight');
@@ -145,7 +150,7 @@ try {
     ['wide',{width:2560,height:1080}],['short-desktop',{width:1280,height:720}]
   ]) {await mobile.setViewportSize(viewport);await mobile.waitForTimeout(200);await checkLayout(mobile,name);}
   await mobile.setViewportSize({width:390,height:844});
-  await mobile.locator('#motion').uncheck();
+  await motionSetting(mobile,false);
   await walkTo(mobile,'library');await mobile.locator('#library').waitFor({state:'visible'});
   await mobile.locator('.map-return').click();await mobile.locator('#map').waitFor({state:'visible'});
   assert.deepEqual(errors,[]);
