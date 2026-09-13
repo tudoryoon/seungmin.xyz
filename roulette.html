@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>룰렛</title>
+  <link rel="stylesheet" href="roulette.css?v=20260913-1">
+</head>
+<body class="session-checking">
+  <header class="roulette-header"><a href="index.html#map"><i data-lucide="arrow-left"></i>지도</a><button id="open-stations" class="icon-button" aria-label="역 목록" title="역 목록" aria-haspopup="dialog"><i data-lucide="list"></i></button></header>
+  <main class="roulette-main">
+    <h1>룰렛</h1>
+    <p class="roulette-scope">1–9호선 · 경의중앙선</p>
+    <p id="roulette-odds" class="roulette-odds"></p>
+    <div class="roulette-wheel" id="roulette-wheel" aria-busy="false">
+      <canvas id="wheel-art" width="1200" height="1200" aria-hidden="true"></canvas>
+      <span class="wheel-pointer" aria-hidden="true"></span>
+      <div class="wheel-hub" aria-hidden="true"><i data-lucide="train-front"></i><p id="rolling-name">?</p><div id="rolling-lines" class="line-badges"></div></div>
+    </div>
+    <p id="roulette-result" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+    <div class="roulette-actions"><button id="spin" class="primary" disabled><i data-lucide="rotate-cw"></i><span>돌리기</span></button><a id="station-map" class="icon-button" aria-label="선택된 역 지도" title="선택된 역 지도" target="_blank" rel="noopener noreferrer" hidden><i data-lucide="map-pin"></i></a></div>
+    <p id="station-note" class="station-note"></p>
+    <p id="roulette-error" role="alert"></p>
+  </main>
+  <dialog id="stations-dialog" aria-labelledby="stations-title">
+    <div class="dialog-head"><h2 id="stations-title">역 목록</h2><button id="close-stations" class="icon-button" aria-label="닫기" title="닫기"><i data-lucide="x"></i></button></div>
+    <label class="station-search"><i data-lucide="search"></i><input id="station-search" type="search" placeholder="역 검색" aria-label="역 검색" maxlength="100" autocomplete="off"></label>
+    <p id="station-count" role="status"></p>
+    <ul id="station-list"></ul>
+    <footer><a href="https://t-data.seoul.go.kr/dataprovide/trafficdataviewfile.do?data_id=36" target="_blank" rel="noopener noreferrer">서울시 T-DATA</a><a href="https://www.korail.com/ticket/train/stationGuide/station/view?stationSeq=10281375" target="_blank" rel="noopener noreferrer">코레일</a><span>2026.09.13 기준</span></footer>
+  </dialog>
+  <script src="vendor/supabase.js" defer></script>
+  <script src="auth-client.js?v=20260913-1" defer></script>
+  <script src="vendor/lucide.js" defer></script>
+  <script type="module" src="journal-gate.js?v=20260913-1"></script>
+  <script type="module" src="roulette.js?v=20260913-1"></script>
+</body>
+</html>

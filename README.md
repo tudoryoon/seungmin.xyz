@@ -43,7 +43,7 @@ Daily data lives online, not in browser storage. Focus, reconnect, and the serve
 
 ## Testing
 
-Cloudflare's `_headers` requests `no-cache` revalidation. This works on `pages.dev`, but the custom domain currently rewrites static asset responses to `max-age=14400` and removes `no-cache`. Set its Browser Cache TTL to **Respect Existing Headers** in the dashboard when account access is available. Until then, the release query `v=20260912-9` on app CSS/JS URLs and module imports ensures returning visitors fetch the correct release. Bump it consistently across HTML and imports for every code release; headers alone are not sufficient on this domain. No storage clearing or data migration is needed. See [Pages response headers](https://developers.cloudflare.com/pages/configuration/headers/) and [Browser Cache TTL](https://developers.cloudflare.com/cache/how-to/edge-browser-cache-ttl/set-browser-ttl/).
+Cloudflare's `_headers` requests `no-cache` revalidation. This works on `pages.dev`, but the custom domain currently rewrites static asset responses to `max-age=14400` and removes `no-cache`. Set its Browser Cache TTL to **Respect Existing Headers** in the dashboard when account access is available. Until then, the release query `v=20260913-1` on app CSS/JS URLs and module imports ensures returning visitors fetch the correct release. Bump it consistently across HTML and imports for every code release; headers alone are not sufficient on this domain. No storage clearing or data migration is needed. See [Pages response headers](https://developers.cloudflare.com/pages/configuration/headers/) and [Browser Cache TTL](https://developers.cloudflare.com/cache/how-to/edge-browser-cache-ttl/set-browser-ttl/).
 
 Node plus Playwright and installed Chrome are needed. Set PLAYWRIGHT_MODULE to the absolute Playwright module path when it is not locally installed.
 
@@ -66,3 +66,6 @@ Auth/API calls are mocked; tests do not log into or modify a real account. Runti
 The library, movement, routing, and daily UI unit tests use Happy DOM. Library and daily schema checks run with PGlite, including two-user RLS isolation and idempotent schema application. Midnight tests substitute a clock only inside the isolated test database to verify undo before midnight, no early rewards, closed-day settlement, legacy reward correction, offline days, and unchanged access controls. UI tests cover the persistent calendar-only surface, hidden other-dungeon states, failed-save drafts, and logout isolation. Set `DOM_MODULE` and `PGLITE_MODULE` to their module paths if needed.
 
 Experience points, automatic calendar-event completion, and Google Calendar integration are intentionally not implemented yet.
+# Roulette Dungeon
+
+`roulette.html` is an authenticated, standalone dungeon reached from the map. It samples 448 distinct stations from lines 1-9 and Gyeongui-Jungang with equal probability, including branches outside Seoul. Transfers are deduplicated; unrelated same-name stations stay separate. Results are temporary, with no Supabase migration or journal changes. Source snapshot and normalization rules: `data/stations.md`. Core checks: `node tests/roulette.mjs`.

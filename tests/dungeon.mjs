@@ -57,7 +57,7 @@ async function checkLayout(page, name) {
   assert.equal(await page.locator('.world').evaluate(element=>getComputedStyle(element).visibility),'hidden','map terrain replaces the cosmic canvas');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   const nodes=page.locator('[data-location]');
-  assert.equal(await nodes.count(),3);
+  assert.equal(await nodes.count(),4);
   const boxes=await nodes.evaluateAll(nodes=>nodes.map(node=>{const r=node.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height};}));
   for(const b of boxes){
     assert.ok(b.x>=0 && b.x+b.w<=viewport.width && b.y>=80 && b.y+b.h<=viewport.height,'node fits viewport: '+name);

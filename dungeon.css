@@ -45,6 +45,11 @@ body[data-stage=map] .realm-header { background: none; }
   -webkit-user-drag: none;
 }
 .node-calendar { left: 26%; top: 37%; }
+.node-roulette {
+  left: 14%; top: 69%;
+  --node-color: #a8d7ed;
+  --node-rgb: 168, 215, 237;
+}
 .node-workout {
   left: 78%;
   top: 41%;
@@ -152,6 +157,7 @@ body[data-stage=map] .realm-header { background: none; }
   .node-calendar { left: 31%; top: 26%; }
   .node-workout { left: 77%; top: 49%; }
   .node-library { left: 31%; top: 81%; }
+  .node-roulette { left: 20%; top: 44%; }
   .map-actor { left: 48%; top: 52%; }
 }
 @media (max-width: 760px) {
