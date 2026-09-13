@@ -8,9 +8,9 @@
   <title>입장</title>
   <link rel="icon" href="data:,">
   <link rel="preload" as="image" href="assets/realm-gate.webp">
-  <link rel="stylesheet" href="styles.css?v=20260913-2">
-  <link rel="stylesheet" href="dungeon.css?v=20260913-2">
-  <link rel="stylesheet" href="continuity.css?v=20260913-2">
+  <link rel="stylesheet" href="styles.css?v=20260913-3">
+  <link rel="stylesheet" href="dungeon.css?v=20260913-3">
+  <link rel="stylesheet" href="continuity.css?v=20260913-3">
 </head>
 <body data-stage="entry" class="session-checking">
   <div class="world" aria-hidden="true"><div class="landscape"></div><canvas id="portal"></canvas><div class="world-shade"></div></div>
@@ -91,10 +91,10 @@
     </section>
     <section id="map" class="stage map-stage" aria-labelledby="map-title" hidden>
       <picture class="dungeon-art" aria-hidden="true">
-        <source media="(max-aspect-ratio: 1/1)" srcset="assets/dungeon-tall.webp">
-        <img src="assets/dungeon-wide.webp" alt="" width="1586" height="992" decoding="sync" fetchpriority="low">
+        <source media="(max-aspect-ratio: 1/1)" srcset="assets/dungeon-tall-v2.webp">
+        <img src="assets/dungeon-wide-v2.webp" alt="" width="1586" height="992" decoding="sync" fetchpriority="low">
       </picture>
-      <svg id="map-bridges" class="map-bridges" preserveAspectRatio="none" aria-hidden="true"></svg>
+      <canvas id="map-wind" class="map-wind" aria-hidden="true" hidden></canvas>
       <div class="map-shade" aria-hidden="true"></div>
       <h1 id="map-title" tabindex="-1">지도</h1>
       <div class="dungeon-locations" role="group" aria-label="던전 위치">
@@ -120,9 +120,10 @@
   <p id="global-message" class="global-message" role="status"></p>
   <noscript><p class="noscript">입장하려면 브라우저에서 JavaScript를 켜주세요.</p></noscript>
   <script src="vendor/supabase.js" defer></script>
-  <script src="auth-client.js?v=20260913-2" defer></script>
+  <script src="auth-client.js?v=20260913-3" defer></script>
   <script src="vendor/lucide.js" defer></script>
-  <script type="module" src="realm.js?v=20260913-2"></script>
-  <script type="module" src="player-level.js?v=20260913-2"></script>
+  <script type="module" src="realm.js?v=20260913-3"></script>
+  <script type="module" src="player-level.js?v=20260913-3"></script>
+  <script type="module" src="map-wind.js?v=20260913-3"></script>
 </body>
 </html>

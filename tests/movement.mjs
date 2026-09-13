@@ -68,8 +68,8 @@ try {
   const roads=createRoads(false,width,height);
   for(const destination of ['workout','roulette']) {
   dungeon.reset();
-  assert.equal(stage.querySelector('#map-bridges').getAttribute('viewBox'),'0 0 1586 992');
-  assert.ok(stage.querySelectorAll('#map-bridges polygon').length>40,'stone bridge rendered');
+  assert.equal(stage.querySelector('#map-bridges'),null,'no mismatched vector bridge overlay');
+  assert.match(stage.querySelector('.dungeon-art img').getAttribute('src'),/dungeon-wide-v2\.webp$/);
   for(const point of roads.map.routes[destination].slice(1)) {
     const target=percent(roads,point);
     for(let tick=0;pixels(roads,position(),target)>9&&tick<500;tick++) {

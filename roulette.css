@@ -1,7 +1,7 @@
 :root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; color: #e2e9e2; background: #0d1417; letter-spacing: 0; }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 280px; min-height: 100svh; }
-body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: linear-gradient(#0d1417b8, #0d1417f2), url('assets/dungeon-wide.webp') center / cover; pointer-events: none; }
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: linear-gradient(#0d1417b8, #0d1417f2), url('assets/dungeon-wide-v2.webp') center / cover; pointer-events: none; }
 [hidden] { display: none !important; }
 .session-checking main, .session-checking header { visibility: hidden; }
 button, a, input { font: inherit; }

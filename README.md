@@ -38,12 +38,14 @@ Daily data lives online, not in browser storage. Focus, reconnect, and the serve
 
 - assets/realm-gate.webp: original image generated with the built-in imagegen tool. Prompt: original high-detail pixel-art Korean fantasy temple valley, central circular jade portal, midnight teal, silver, pale gold, no text/UI/characters. Converted to WebP for delivery.
 - assets/dungeon-wide.webp and assets/dungeon-tall.webp: built-in imagegen. Prompt set: original pixel-art East Asian dungeon map with three connected landmarks (jade archive, rose training courtyard, gold workshop), empty central player junction, mossy stone paths and teal water; no text, UI, or characters. Portrait variant repositions the same landmarks into a vertical zigzag for mobile. Converted to WebP.
+- assets/dungeon-wide-v2.webp and assets/dungeon-tall-v2.webp: built-in imagegen edits of those maps, adding a weathered stone bridge between the central plaza and roulette approach. Landmark positions, stone texture, lighting, and perspective are preserved; the bridge is painted into the artwork, not a separate vector overlay.
+- map-wind.js: a full-map Three.js shader moves only four blossom-canopy regions and a few nearby petals. Roads and buildings remain stationary. It runs at up to 30 fps, pauses outside the map or in hidden tabs, follows the existing motion setting, and falls back to the static artwork when WebGL is unavailable.
 - avatar.js: original layered pixel sprite artwork drawn in code; no existing game's sprites are used.
 - Three.js r180 and Lucide are vendored with their licenses. Supabase SDK remains vendored.
 
 ## Testing
 
-Cloudflare's `_headers` requests `no-cache` revalidation. This works on `pages.dev`, but the custom domain currently rewrites static asset responses to `max-age=14400` and removes `no-cache`. Set its Browser Cache TTL to **Respect Existing Headers** in the dashboard when account access is available. Until then, the release query `v=20260913-2` on app CSS/JS URLs and module imports ensures returning visitors fetch the correct release. Bump it consistently across HTML and imports for every code release; headers alone are not sufficient on this domain. No storage clearing or data migration is needed. See [Pages response headers](https://developers.cloudflare.com/pages/configuration/headers/) and [Browser Cache TTL](https://developers.cloudflare.com/cache/how-to/edge-browser-cache-ttl/set-browser-ttl/).
+Cloudflare's `_headers` requests `no-cache` revalidation. This works on `pages.dev`, but the custom domain currently rewrites static asset responses to `max-age=14400` and removes `no-cache`. Set its Browser Cache TTL to **Respect Existing Headers** in the dashboard when account access is available. Until then, the release query `v=20260913-3` on app CSS/JS URLs and module imports ensures returning visitors fetch the correct release. Bump it consistently across HTML and imports for every code release; headers alone are not sufficient on this domain. No storage clearing or data migration is needed. See [Pages response headers](https://developers.cloudflare.com/pages/configuration/headers/) and [Browser Cache TTL](https://developers.cloudflare.com/cache/how-to/edge-browser-cache-ttl/set-browser-ttl/).
 
 Node plus Playwright and installed Chrome are needed. Set PLAYWRIGHT_MODULE to the absolute Playwright module path when it is not locally installed.
 
@@ -54,6 +56,7 @@ node tests/dungeon.mjs
 node tests/cache.mjs
 node tests/library.mjs
 node tests/movement.mjs
+node tests/map-wind.mjs
 node tests/realm-routing.mjs
 node tests/daily-db.mjs
 node tests/daily-midnight.mjs
