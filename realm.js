@@ -1,8 +1,8 @@
-import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js?v=20260914-4';
-import { validProfile } from './profile.js?v=20260914-4';
-import { createDungeon } from './dungeon.js?v=20260914-4';
-import { resolveRealmStage } from './realm-route.js?v=20260914-4';
-import { createScrollEntry } from './scroll-entry.js?v=20260914-4';
+import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js?v=20260914-5';
+import { validProfile } from './profile.js?v=20260914-5';
+import { createDungeon } from './dungeon.js?v=20260914-5';
+import { resolveRealmStage } from './realm-route.js?v=20260914-5';
+import { createScrollEntry, entryScene } from './scroll-entry.js?v=20260914-5';
 
 const $ = id => document.getElementById(id);
 const client = window.realmClient;
@@ -56,46 +56,67 @@ $('motion').addEventListener('change', event => {
 });
 reducedQuery.addEventListener('change', () => { if (motionPreference === null) setMotion(!reducedQuery.matches); });
 // Rendering is optional: a failed GPU or module must never block account access.
-import('./portal.js?v=20260914-4').then(({ createPortal }) => {
+import('./portal.js?v=20260914-5').then(({ createPortal }) => {
   portal = createPortal($('portal'), motion);
-  portal.setStage(stage);
+  portal.setStage(document.body.classList.contains('entry-flow')?'entry':stage);
   portal.setEntryProgress(entrance.progress);
 }).catch(() => {
   $('portal').hidden = true;
   document.body.dataset.renderer = 'fallback';
 });
 const entrance=createScrollEntry({
-  section:$('entry'),button:$('enter'),isActive:()=>sessionReady && stage==='entry',motion:()=>motion,
-  render(progress){document.body.style.setProperty('--entry-progress',progress);portal.setEntryProgress(progress);},
-  onEnter(){entered=true;routeAccount();}
+  section:$('entry'),button:$('enter'),isActive:()=>sessionReady && !user && !recovery && ['entry','auth'].includes(stage),motion:()=>motion,
+  render(progress){
+    document.body.style.setProperty('--entry-progress',progress);
+    for(const [key,value] of Object.entries(entryScene(progress)))document.body.style.setProperty('--'+key,value);
+    document.body.style.setProperty('--auth-reveal',Math.max(0,(progress-.8)/.2));
+    portal.setEntryProgress(progress);
+    if(document.body.classList.contains('entry-flow')){
+      const auth=$('auth');
+      if(progress<1 && auth.contains(document.activeElement))document.activeElement.blur();
+      auth.hidden=progress<=.8;
+      auth.inert=progress<1;
+      auth.setAttribute('aria-hidden',String(progress<1));
+    }
+  },
+  onEnter(){entered=true;show('auth',{replace:true,fromScroll:true});},
+  onLeave(){entered=false;show('entry',{replace:true,fromScroll:true});}
 });
 
-function show(next, {replace=false} = {}) {
+function show(next, {replace=false,fromScroll=false} = {}) {
   setSettings(false);
   const previous = stage;
   stage = next;
   document.body.dataset.stage = next;
+  const entryFlow=!user && ['entry','auth'].includes(next);
+  document.body.classList.toggle('entry-flow',entryFlow);
   const hash=next==='entry'?'':'#'+next;
   if(location.hash!==hash)history[replace?'replaceState':'pushState'](null,'',location.pathname+location.search+hash);
-  document.querySelectorAll('.stage').forEach(section => { section.hidden = section.id !== next; });
+  document.querySelectorAll('.stage').forEach(section => {
+    if(entryFlow && section.id==='auth' && fromScroll)return;
+    section.hidden = section.id !== next && !(entryFlow && section.id==='entry');
+  });
   document.querySelector('.journey').hidden = ['entry','auth','complete','map'].includes(next);
   dungeon.reset();
   document.querySelectorAll('[data-step]').forEach(item => {
     if (item.dataset.step === next) item.setAttribute('aria-current', 'step');
     else item.removeAttribute('aria-current');
   });
-  portal.setStage(next);
+  portal.setStage(entryFlow?'entry':next);
   document.title = ({entry:'입장',auth:'로그인',profile:'프로필',avatar:'캐릭터',complete:'캐릭터',map:'지도'})[next];
-  if (motion && previous !== next) {
+  if (motion && previous !== next && !entryFlow) {
     $(next).getAnimations().forEach(animation => animation.cancel());
     $(next).animate([
       {opacity:0,transform:next === 'map' ? 'scale(.94)' : 'translateY(12px)'},
       {opacity:1,transform:next === 'map' ? 'scale(1)' : 'translateY(0)'}
     ], {duration:650,easing:'cubic-bezier(.22,.61,.36,1)'});
   }
-  window.scrollTo({ top: 0, behavior: 'instant' });
-  if(next==='entry')entrance.reset();
-  $(next + '-title')?.focus({ preventScroll: true });
+  // The signed-out runway remains mounted so native scrolling can rewind it.
+  if(!fromScroll){
+    if(entryFlow)entrance.reset(next==='auth'?1:0);
+    else window.scrollTo({ top: 0, behavior: 'instant' });
+    $(next + '-title')?.focus({ preventScroll: true });
+  }
   renderAvatar();
   window.dispatchEvent(new CustomEvent('realm-view', {detail:next}));
 }
@@ -160,7 +181,7 @@ const ready = client.auth.getSession().then(({ data, error }) => {
   document.body.classList.remove('session-checking');
   document.querySelector('main').setAttribute('aria-busy','false');
 });
-const restoreRoute=()=>{if(sessionReady)routeAccount();};
+const restoreRoute=()=>{if(sessionReady){if(!user && !location.hash)entered=false;routeAccount();}};
 window.addEventListener('hashchange',restoreRoute);
 window.addEventListener('popstate',restoreRoute);
 $('show-password').addEventListener('click', () => {

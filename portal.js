@@ -32,7 +32,7 @@ export function createPortal(canvas, motion) {
   const target = new THREE.Vector3(0,0,14);
   const pointer = new THREE.Vector2();
   const drift = new THREE.Vector2();
-  let targetFov = 55, gateOpacity = 1;
+  let targetFov = 55;
   function entryPose(){
     if(stage!=='entry')return;
     const p=active ? entryProgress : 0,ease=p*p*(3-2*p);
@@ -146,26 +146,6 @@ export function createPortal(canvas, motion) {
   });
   const stars=new THREE.Points(starGeometry,starMaterial);
   scene.add(stars);
-  const gate=new THREE.Group();
-  gate.position.y=1.65;
-  scene.add(gate);
-  const gold=new THREE.MeshBasicMaterial({color:0xdbbd8a,transparent:true,opacity:.7});
-  const jade=new THREE.MeshBasicMaterial({color:0x94e0d5,transparent:true,opacity:.7});
-  const rings=[];
-  for(let i=0;i<22;i++){
-    const ring=new THREE.Mesh(new THREE.TorusGeometry(3.18,i===0?.025:.009,5,160,Math.PI*(i%2?1.5:1.9)),i%4?jade:gold);
-    ring.position.z=-i*2.7;ring.rotation.z=i*.8;
-    gate.add(ring);rings.push(ring);
-  }
-  const runes=new THREE.Group();
-  gate.add(runes);
-  const runeGeometry=new THREE.BoxGeometry(.023,.1,.02);
-  for(let i=0;i<80;i++){
-    const angle=i/80*Math.PI*2;
-    const rune=new THREE.Mesh(runeGeometry,i%4?jade:gold);
-    rune.position.set(Math.cos(angle)*3.43,Math.sin(angle)*3.43,0);
-    rune.rotation.z=angle-Math.PI/2;runes.add(rune);
-  }
   function applyPose(){
     camera.position.copy(base);
     camera.position.x+=drift.x*.35;
@@ -185,13 +165,7 @@ export function createPortal(canvas, motion) {
       camera.fov+=(targetFov-camera.fov)*Math.min(1,dt*(stage==='entry'?7:1.6));
       stars.rotation.y=elapsed*.0015;
       stars.rotation.z=Math.sin(elapsed*.02)*.012;
-      runes.rotation.z=elapsed*.045;
-      rings.forEach((ring,i)=>{ring.rotation.z=i*.8+elapsed*(i%2?-.1:.12);});
     }
-    const opacityTarget=stage==='entry'?1-THREE.MathUtils.smoothstep(entryProgress,.55,1):0;
-    gateOpacity=active?gateOpacity+(opacityTarget-gateOpacity)*Math.min(1,dt*2.5):opacityTarget;
-    gold.opacity=gateOpacity*.7;jade.opacity=gateOpacity*.55;
-    gate.visible=gateOpacity>.005;
     starMaterial.uniforms.uTime.value=elapsed;
     skyMaterial.uniforms.uTime.value=elapsed;
     applyPose();

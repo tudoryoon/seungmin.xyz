@@ -1,0 +1,20 @@
+# Seoul Entrance Artwork
+
+Generated with the built-in image_gen tool. WebP encoding: quality 88.
+These are illustrative pixel-art environments, not satellite imagery or a navigable map.
+
+## Earth
+Asset: assets/entry-earth.webp
+
+Use case: style-transfer. Asset type: full-bleed website background for a scroll-driven Earth-to-Seoul zoom, widescreen 16:9. Input image is edit target. Change the scene to ONE Earth seen from orbit, no other planets or Sun. Rotate the Earth to show East Asia facing the viewer, specifically the Korean peninsula centered almost exactly at the center of the entire image (Seoul is the zoom target). China to the left, Japan to the right, Korea recognizable in between, subtle city lights and thin clouds which do not hide Korea. Earth centered x50% y50%, the entire globe fits comfortably in the image and has diameter 58% of image height; lots of near-black open space and a few crisp tiny stars around it. Preserve refined detailed pixel-art game illustration rather than photorealism, restrained cyan atmosphere, blue oceans, jade land and soft warm city lights. Elegant real geography impression, not a labeled map. No labels, text, UI, logos, orbit rings, Milky Way stripe, spacecraft, decorative effects. Earth should be sharp and bright enough to inspect; black space no purple haze. Center crop for phone must keep Earth and Korea visible. This is a static scene that will be zoomed toward Korea through scrolling.
+
+## Korea
+Asset: assets/entry-korea.webp
+
+Use case: style-transfer. Asset type: middle frame artwork in a full-screen Earth-to-Seoul scroll zoom, 16:9 widescreen. Input image is style and geography reference. Move the camera much closer: a directly overhead, orthographic satellite-like view of the Korean peninsula at blue hour, NOT a globe, NO outer space, no horizon. The entire Korean peninsula recognizable, heading north up, with Seoul metropolitan lights centered exactly at x50% y50% of the full canvas as the fixed zoom target. North Korea extends to the upper right, South Korea below center, Yellow Sea west, East Sea east, coastal China at the far left and a little Japan at the far right. Seoul brighter warm ivory city light cluster, jade mountains and navy teal seas. Dense but clean restrained retro pixel-art texture consistent with the reference. Full image filled with land and sea, no framed map, no borders, no labels, no text, no UI, no pins, no stars or planets. Geographical impression should be plausible, but a game illustration not navigation. The Seoul zoom target at the image center is very important for a subsequent crossfade into the city.
+
+## Seoul
+Asset: assets/entry-seoul.webp
+
+Use case: style-transfer. Asset type: final full-bleed scene for a scroll-driven Earth-to-Korea-to-Seoul entrance, widescreen 16:9. Input image is style reference for a continuous zoom. Now descend into SEOUL, SOUTH KOREA at blue hour, a beautiful high aerial oblique view from the north looking southeast across central Seoul. Recognizable Seoul details: Namsan hill and slender N Seoul Tower near the left of center foreground, dense city streets with restrained warm window lights, the broad winding Han River and several elegant bridges crossing the middle distance, Lotte World Tower a thin landmark far to the right, distant low mountains. Entire image should be inhabited detailed city, no outer space and no globe. Refined sophisticated retro pixel-art game environment, finely articulated small buildings and streets, not a photoreal photograph, no excessive neon, muted jade vegetation and cyan river, ivory/amber city lights with subtle mauve blue-hour sky only in the very top 12 percent. Keep the central third readable in a portrait crop with the river and Seoul city visible; no enormous tower occluding the center where a login form will overlay. Immersive unframed artwork, no text, labels, pins, UI, logo, borders, characters or vehicles in foreground. Clear Seoul identity, calm cinematic lighting, same natural dark blue/jade/ivory materials as the reference. This is an illustrative scene, not a navigable map.
+
