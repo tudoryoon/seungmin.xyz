@@ -1,4 +1,4 @@
-import {createLibraryStore,inspectFile,libraryError,normalizeUrl} from './library-store.js?v=20260913-3';
+import {createLibraryStore,inspectFile,libraryError,normalizeUrl} from './library-store.js?v=20260913-4';
 
 const $ = id => document.getElementById(id);
 const cloud = window.journalCloud;

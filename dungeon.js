@@ -1,7 +1,8 @@
-import {createRoads,roadSpawn,moveOnRoad,nearbyRoad} from './roads.js?v=20260913-3';
+import {createRoads,roadSpawn,moveOnRoad,nearbyRoad} from './roads.js?v=20260913-4';
 export function createDungeon(stage, isActive) {
   const actor = stage.querySelector('#map-actor');
   const portrait = matchMedia('(max-aspect-ratio: 1/1)');
+  const touchEntry = matchMedia('(any-pointer: coarse), (max-width: 760px)');
   const links = [...stage.querySelectorAll('[data-location]')];
   const keys = new Set(), arrows = ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
   let navigating = false, raf = 0, lastTime = 0, nearby = null;
@@ -18,14 +19,27 @@ export function createDungeon(stage, isActive) {
   }
   function place() {actor.style.left=position.x+'%';actor.style.top=position.y+'%';updateNearby();}
   function stopKeys() {keys.clear();cancelAnimationFrame(raf);raf=0;lastTime=0;actor.dataset.walking='false';}
-  function reset() {stopKeys();navigating=false;measureRoads();position=roadSpawn(roads);actor.dataset.facing='right';place();}
+  function syncEntryMode() {
+    stage.dataset.entryMode=touchEntry.matches?'touch':'walk';
+    for(const link of links) {
+      if(touchEntry.matches) {
+        link.setAttribute('href',link.dataset.destination);
+        link.setAttribute('aria-label',link.textContent.trim()+' 입장');
+      } else {
+        if(document.activeElement===link&&isActive())stage.querySelector('#map-title').focus({preventScroll:true});
+        link.removeAttribute('href');link.removeAttribute('aria-label');
+      }
+    }
+  }
+  function reset() {stopKeys();navigating=false;measureRoads();position=roadSpawn(roads);actor.dataset.facing='right';syncEntryMode();place();}
+  function navigate(link) {
+    if(!link||!isActive()||navigating||stage.hidden||document.hidden)return;
+    stopKeys();navigating=true;location.assign(link.dataset.destination);
+  }
   function enter() {
     if(!isActive()||navigating)return;
     updateNearby();
-    if(!nearby)return;
-    stopKeys();
-    navigating=true;
-    location.assign(nearby.dataset.destination);
+    navigate(nearby);
   }
   function tick(time) {
     raf=0;
@@ -53,6 +67,10 @@ export function createDungeon(stage, isActive) {
   window.addEventListener('blur',stopKeys);
   document.addEventListener('visibilitychange',()=>{if(document.hidden)stopKeys();});
   stage.querySelector('#nearby-enter').addEventListener('click',enter);
+  for(const link of links)link.addEventListener('click',event=>{
+    event.preventDefault();
+    if(touchEntry.matches)navigate(link);
+  });
   // Touch controls use the same movement loop as the physical arrow keys.
   stage.querySelectorAll('[data-move]').forEach(button=>{
     button.addEventListener('pointerdown',event=>{
@@ -62,7 +80,9 @@ export function createDungeon(stage, isActive) {
     for(const name of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(name,()=>{keys.delete(button.dataset.move);if(!keys.size)stopKeys();});
   });
   portrait.addEventListener('change',reset);
+  touchEntry.addEventListener('change',syncEntryMode);
   window.addEventListener('resize',()=>{stopKeys();measureRoads();if(isActive())place();});
   window.addEventListener('pageshow',reset);
+  syncEntryMode();
   return {reset};
 }

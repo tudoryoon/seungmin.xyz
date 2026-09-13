@@ -151,9 +151,9 @@ try {
   ]) {await mobile.setViewportSize(viewport);await mobile.waitForTimeout(200);await checkLayout(mobile,name);}
   await mobile.setViewportSize({width:390,height:844});
   await motionSetting(mobile,false);
-  await walkTo(mobile,'library');await mobile.locator('#library').waitFor({state:'visible'});
+  await mobile.getByRole('link',{name:'자료 정리 입장',exact:true}).click();await mobile.locator('#library').waitFor({state:'visible'});
   await mobile.locator('.map-return').click();await mobile.locator('#map').waitFor({state:'visible'});
   assert.deepEqual(errors,[]);
   assert.deepEqual(failed,[]);
-  console.log('PASS: 3 map destinations, desktop/mobile/tablet layouts, saved avatar, movement-only entrance, reduced motion, keyboard navigation, deep links, back/refresh, character access, and logout cancellation.');
+  console.log('PASS: 4 map destinations, desktop/mobile/tablet layouts, saved avatar, desktop movement/mobile tap entrance, reduced motion, keyboard navigation, deep links, back/refresh, character access, and logout cancellation.');
 } finally {await browser.close();await new Promise(resolve=>server.close(resolve));}

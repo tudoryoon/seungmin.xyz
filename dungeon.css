@@ -30,6 +30,9 @@ body[data-stage=map] .realm-header { background: none; }
   color: #dce9e4;
 }
 .dungeon-locations { pointer-events: none; }
+.map-stage[data-entry-mode=touch] .dungeon-node { pointer-events: auto; cursor: pointer; touch-action: manipulation; }
+.dungeon-node[href]:focus-visible { outline: 2px solid #b7ebd5; outline-offset: 8px; }
+.dungeon-node[href]:active .node-label { background: #24443e; border-color: #dce9c6; }
 .dungeon-node {
   --node-color: #b7ebd5;
   --node-rgb: 183, 235, 213;

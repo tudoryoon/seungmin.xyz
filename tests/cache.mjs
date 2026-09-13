@@ -8,7 +8,7 @@ import {dailyFixture} from './daily-fixture.mjs';
 const {chromium} = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const root = process.env.TEST_ROOT || fileURLToPath(new URL('../',import.meta.url));
 const repo = process.env.SOURCE_REPO || root;
-const version = '20260913-3';
+const version = '20260913-4';
 const user = {id:'cache-test-user',user_metadata:{
   realm_profile:{version:1,name:'테스트',age:30,gender:'unspecified',mbti:'',blood:''},
   realm_avatar:parseAvatar('청록색 도포를 입은 도사. 지팡이.')
