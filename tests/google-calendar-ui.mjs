@@ -24,6 +24,7 @@ w.calendarRequest=async(action,args={})=>{
   return {};
 };
 try {
+  w.eval(await readFile(new URL('../workout.js',import.meta.url),'utf8'));
   w.eval(await readFile(new URL('../journal.js',import.meta.url),'utf8'));
   const source=(await readFile(new URL('../google-calendar.js',import.meta.url),'utf8')).replace(/^import[^\n]+\n/gm,'');
   w.eval(`(()=>{const {occursOn,eventFields,eventPayload,localDate,errorMessage}=window.testCore;const calendarRequest=window.calendarRequest;const connectGoogle=async()=>{};${source}\n})()`);

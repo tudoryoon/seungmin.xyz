@@ -13,11 +13,12 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="포털">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="stylesheet" href="journal.css?v=20260913-6">
-  <link rel="stylesheet" href="journal-theme.css?v=20260913-6">
-  <link rel="stylesheet" href="library.css?v=20260913-6">
-  <link rel="stylesheet" href="daily.css?v=20260913-6">
-  <link rel="stylesheet" href="google-calendar.css?v=20260913-6">
+  <link rel="stylesheet" href="journal.css?v=20260913-7">
+  <link rel="stylesheet" href="journal-theme.css?v=20260913-7">
+  <link rel="stylesheet" href="library.css?v=20260913-7">
+  <link rel="stylesheet" href="daily.css?v=20260913-7">
+  <link rel="stylesheet" href="google-calendar.css?v=20260913-7">
+  <link rel="stylesheet" href="workout.css?v=20260913-7">
   <link rel="stylesheet" href="pwa.css?v=1">
   <script src="pwa.js?v=1" defer></script>
 </head>
@@ -42,9 +43,20 @@
       </div>
     </section>
     <section id="workout" class="view" hidden>
-      <div class="section-head"><h1>운동계획</h1><button class="primary" id="add-workout">운동 추가</button></div>
-      <div class="workout-filter"><label>조회 월 <input type="month" id="workout-month" required></label><p id="workout-summary"></p></div>
-      <div id="workout-list"></div>
+      <div class="section-head"><h1>운동계획</h1><div class="actions"><button id="add-workout-type" class="workout-icon" aria-label="운동 항목 추가" title="운동 항목 추가"><i data-lucide="list-plus"></i></button><button class="primary" id="add-workout"><i data-lucide="plus"></i>운동 추가</button></div></div>
+      <div class="calendar-layout workout-layout">
+        <div>
+          <div class="month-toolbar"><h2 id="workout-month-title"></h2><div class="actions"><button id="workout-previous" class="workout-icon" aria-label="운동 이전 달" title="이전 달"><i data-lucide="chevron-left"></i></button><button id="workout-today">오늘</button><button id="workout-next" class="workout-icon" aria-label="운동 다음 달" title="다음 달"><i data-lucide="chevron-right"></i></button></div></div>
+          <div class="weekdays" aria-hidden="true"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+          <div id="workout-grid" class="month-grid" aria-label="운동 날짜 선택"></div>
+          <p id="workout-summary" class="workout-summary" role="status"></p>
+        </div>
+        <aside class="day-agenda"><h2 id="workout-selected-date"></h2><div id="workout-list"></div></aside>
+      </div>
+      <section class="workout-week" aria-labelledby="workout-week-title">
+        <div class="workout-week-heading"><h2 id="workout-week-title">주간 목표</h2><p id="workout-week-range"></p></div>
+        <div id="workout-goals" class="workout-goals"></div>
+      </section>
     </section>
     <section id="library" class="view" hidden aria-labelledby="library-title">
       <div class="section-head"><h1 id="library-title">자료 정리</h1><div class="library-actions"><button id="add-link"><i data-lucide="link"></i>링크 추가</button><button class="primary" id="add-files"><i data-lucide="upload"></i>파일 추가</button></div></div>
@@ -96,12 +108,18 @@
       <label><span id="name-label">제목</span><input id="record-title" maxlength="100" required autocomplete="off"></label>
       <label>날짜<input type="date" id="record-date" required></label>
       <div id="event-fields"><div class="form-grid"><label>시작 시간<input type="time" id="start-time"></label><label>종료 시간<input type="time" id="end-time"></label></div><label class="check"><input type="checkbox" id="all-day">종일</label></div>
-      <div id="workout-fields" hidden><div class="form-grid"><label>종류<select id="workout-type"><option>근력</option><option>러닝</option><option>걷기</option><option>수영</option><option>사이클</option><option>요가</option><option>기타</option></select></label><label>운동 시간 (분)<input type="number" id="duration" min="1" max="1440" step="1"></label></div></div>
+      <div id="workout-fields" hidden><div class="form-grid"><label>운동<select id="workout-type"><option>런닝</option><option>케틀벨 스윙</option><option>푸시업</option><option>스쿼트</option><option>플랭크</option></select></label><label>운동 시간 (분)<input type="number" id="duration" min="1" max="1440" step="1"></label></div><button type="button" id="editor-add-workout-type" class="workout-add-type"><i data-lucide="plus"></i>항목 추가</button><label class="check"><input type="checkbox" id="workout-completed">완료</label></div>
       <label>메모<textarea id="record-notes" rows="4" maxlength="4000" placeholder="자유롭게 기록"></textarea></label>
       <p id="form-error" role="alert"></p>
       <div class="dialog-actions"><button type="button" id="delete-record" class="danger" hidden>삭제</button><button type="submit" class="primary">저장</button></div>
     </form>
   </dialog>
+  <dialog id="workout-type-dialog"><form id="workout-type-form">
+    <div class="dialog-head"><h2>운동 항목 추가</h2><button type="button" id="close-workout-type" class="workout-icon" aria-label="운동 항목 창 닫기" title="닫기"><i data-lucide="x"></i></button></div>
+    <label>운동 이름<input id="new-workout-type" maxlength="40" required autocomplete="off"></label>
+    <p id="workout-type-error" role="alert"></p>
+    <div class="dialog-actions"><button type="submit" class="primary" id="save-workout-type">추가</button></div>
+  </form></dialog>
   <dialog id="auth-dialog"><form id="auth-form">
     <div class="dialog-head"><h2>내 기록 로그인</h2><button type="button" id="close-auth" aria-label="로그인 창 닫기">×</button></div>
     <label>이메일<input id="auth-email" type="email" required autocomplete="email"></label>
@@ -112,13 +130,14 @@
   </form></dialog>
   <dialog id="password-dialog"><form id="password-form"><h2>새 비밀번호</h2><label>비밀번호<input id="new-password" type="password" required minlength="8" autocomplete="new-password"></label><p id="password-message" role="status"></p><button class="primary" type="submit">비밀번호 저장</button></form></dialog>
   <script src="vendor/supabase.js" defer></script>
-  <script src="auth-client.js?v=20260913-6" defer></script>
-  <script type="module" src="journal-gate.js?v=20260913-6"></script>
-  <script src="cloud.js?v=20260913-6" defer></script>
+  <script src="auth-client.js?v=20260913-7" defer></script>
+  <script type="module" src="journal-gate.js?v=20260913-7"></script>
+  <script src="cloud.js?v=20260913-7" defer></script>
   <script src="vendor/lucide.js" defer></script>
-  <script src="journal.js?v=20260913-6" defer></script>
-  <script type="module" src="google-calendar.js?v=20260913-6"></script>
-  <script type="module" src="library.js?v=20260913-6"></script>
-  <script type="module" src="daily.js?v=20260913-6"></script>
+  <script src="workout.js?v=20260913-7" defer></script>
+  <script src="journal.js?v=20260913-7" defer></script>
+  <script type="module" src="google-calendar.js?v=20260913-7"></script>
+  <script type="module" src="library.js?v=20260913-7"></script>
+  <script type="module" src="daily.js?v=20260913-7"></script>
 </body>
 </html>

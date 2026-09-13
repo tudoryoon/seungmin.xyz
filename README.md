@@ -53,9 +53,17 @@ Daily data lives online, not in browser storage. Focus, reconnect, and the serve
 - avatar.js: original layered pixel sprite artwork drawn in code; no existing game's sprites are used.
 - Three.js r180 and Lucide are vendored with their licenses. Supabase SDK remains vendored.
 
+## Workout Calendar
+
+The workout dungeon has an independent monthly calendar and a selected-day agenda. Weekly goals use Monday through Sunday in Asia/Seoul: running twice, kettlebell swings three times, and push-ups three times. Only completed records dated on or before today count. New future records are planned; completion is reversible. Legacy records without a completion field remain completed, except future dates. Existing workout categories and notes are preserved when editing; legacy `러닝` counts toward `런닝`.
+
+The five default choices are 런닝, 케틀벨 스윙, 푸시업, 스쿼트, 플랭크. Up to 30 additional names (40 characters each) are stored in the signed-in user's Supabase Auth `user_metadata.workout_types`, separate from profile/avatar fields. They are preferences, never authorization data. Saves read the current account first and reject stale account responses; simultaneous edits to this preference list from two devices remain last-write-wins. Anonymous choices stay in a separate local-storage key. Workout records continue to use the existing owner-only `journal_records` RLS; no SQL migration is required.
+
+`node tests/workout.mjs` runs mocked Happy DOM checks for date boundaries, completion undo/failure, legacy records and account-specific choices. `node tests/workout-preview.mjs` serves a local-only fixture at port 4179 for desktop and responsive checks (`tests/workout-responsive.html`). It never accesses production data.
+
 ## Testing
 
-Cloudflare's `_headers` requests `no-cache` revalidation. This works on `pages.dev`, but the custom domain currently rewrites static asset responses to `max-age=14400` and removes `no-cache`. Set its Browser Cache TTL to **Respect Existing Headers** in the dashboard when account access is available. Until then, the release query `v=20260913-6` on app CSS/JS URLs and module imports ensures returning visitors fetch the correct release. Bump it consistently across HTML and imports for every code release; headers alone are not sufficient on this domain. No storage clearing or data migration is needed. See [Pages response headers](https://developers.cloudflare.com/pages/configuration/headers/) and [Browser Cache TTL](https://developers.cloudflare.com/cache/how-to/edge-browser-cache-ttl/set-browser-ttl/).
+Cloudflare's `_headers` requests `no-cache` revalidation. This works on `pages.dev`, but the custom domain currently rewrites static asset responses to `max-age=14400` and removes `no-cache`. Set its Browser Cache TTL to **Respect Existing Headers** in the dashboard when account access is available. Until then, the release query `v=20260913-7` on app CSS/JS URLs and module imports ensures returning visitors fetch the correct release. Bump it consistently across HTML and imports for every code release; headers alone are not sufficient on this domain. No storage clearing or data migration is needed. See [Pages response headers](https://developers.cloudflare.com/pages/configuration/headers/) and [Browser Cache TTL](https://developers.cloudflare.com/cache/how-to/edge-browser-cache-ttl/set-browser-ttl/).
 
 Node plus Playwright and installed Chrome are needed. Set PLAYWRIGHT_MODULE to the absolute Playwright module path when it is not locally installed.
 

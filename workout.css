@@ -1,0 +1,33 @@
+#workout .section-head button,#workout-fields button{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+#workout svg,#workout-fields svg,.workout-icon svg{width:18px;height:18px;flex-shrink:0}
+.workout-icon{display:inline-grid;place-items:center;width:42px;height:42px;padding:0;flex-shrink:0}
+.workout-layout{grid-template-columns:minmax(0,1fr) 300px}
+.workout-summary{font-size:13px;color:#a9bdc0;margin:16px 0 0}
+#workout-grid .day.in-week{background:#192b2d}
+#workout-grid .day.selected{background:#29463e}
+#workout-grid .day-count{display:flex;gap:4px;align-items:center;flex-wrap:wrap;justify-content:center;min-height:16px}
+.workout-dot{width:6px;height:6px;border-radius:50%;background:#b7ebd5;display:inline-block}
+.workout-dot.planned{background:transparent;border:1px solid #c7b986}
+.workout-week{margin-top:32px;padding-top:24px;border-top:1px solid #34464b}
+.workout-week-heading{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.workout-week-heading p{font-size:13px;color:#a9bdc0;margin:0}
+.workout-goals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:32px}
+.workout-goal{min-width:0;--goal-color:#b7ebd5}
+.workout-goal:nth-child(2){--goal-color:#d6b889}
+.workout-goal:nth-child(3){--goal-color:#bcafdd}
+.workout-goal-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px;min-height:24px}
+.workout-goal-heading strong{font-weight:500;overflow-wrap:anywhere}
+.workout-goal-heading span{white-space:nowrap;color:var(--goal-color);font-variant-numeric:tabular-nums}
+.workout-goal progress{display:block;appearance:none;width:100%;height:6px;border:0;border-radius:3px;overflow:hidden;background:#2b3b40;margin:12px 0 0}
+.workout-goal progress::-webkit-progress-bar{background:#2b3b40}
+.workout-goal progress::-webkit-progress-value{background:var(--goal-color)}
+.workout-goal progress::-moz-progress-bar{background:var(--goal-color)}
+.workout-record-actions{display:flex;align-items:center;gap:8px}
+.workout-record-actions input{width:20px;height:20px;min-height:20px;margin:0;accent-color:#91c5ac;cursor:pointer}
+#workout-list .record{align-items:flex-start}
+#workout-list .record button{width:36px;height:36px;min-height:36px;padding:8px}
+.workout-add-type{font-size:13px;margin-top:10px;background:transparent}
+#workout-type-error{color:#e99f92;font-size:14px;overflow-wrap:anywhere}
+#workout-type-error:empty{display:none}
+@media(max-width:850px){.workout-layout{grid-template-columns:1fr}.workout-layout .day-agenda{border-left:0;border-top:1px solid #34464b;padding:12px 0}.workout-layout .day-agenda h2{margin:8px 0}.workout-goals{gap:20px}}
+@media(max-width:480px){.workout-goals{grid-template-columns:1fr;gap:22px}.workout-week{margin-top:24px}#workout .month-toolbar{gap:4px}#workout .month-toolbar .actions{gap:4px}#workout-grid .day{height:66px}#workout-grid .blank{min-height:66px}.workout-week-heading{gap:8px}.workout-layout{gap:20px}}

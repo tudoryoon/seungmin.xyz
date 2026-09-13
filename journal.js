@@ -23,7 +23,7 @@ try {
 records = readLocal();
 const cloud = window.journalCloud;
 const allRecords = () => records || [];
-$('workout-month').value = today.slice(0,7);
+const workout = window.createWorkoutJournal({getRecords:() => records, row:recordRow, onChange:render});
 function selectView() {
   const requested = location.hash.slice(1);
   const view = requested === 'projects' ? 'library' : ['calendar','workout','library','connections'].includes(requested) ? requested : 'calendar';
@@ -126,11 +126,31 @@ function recordRow(record) {
   const info = make('div', undefined, 'record-info');
   info.append(make('h3', record.title));
   info.append(make('p', record.kind === 'event' ? (record.allDay ? '종일' : `${record.start}${record.end ? ' – '+record.end : ''}`) : `${record.date} · ${record.type} · ${record.duration}분`));
+  if (record.kind === 'workout') info.append(make('p', window.workoutModel.done(record) ? '완료' : '예정'));
   if (record.notes) info.append(make('p', record.notes, 'notes'));
   const edit = make('button', '수정');
   edit.setAttribute('aria-label', `${record.title} 수정`);
   edit.addEventListener('click', () => openEditor(record.kind, record));
-  row.append(info, edit);
+  if (record.kind === 'workout') {
+    edit.textContent = ''; edit.title = '수정';
+    const icon = make('i'); icon.dataset.lucide = 'pencil'; edit.append(icon);
+    const actions = make('div', undefined, 'workout-record-actions');
+    const completed = make('input'); completed.type = 'checkbox'; completed.checked = window.workoutModel.done(record);
+    completed.disabled = busy || record.date > window.workoutModel.dayKey(new Date());
+    completed.setAttribute('aria-label', `${record.title} 완료`);
+    completed.title = record.date > window.workoutModel.dayKey(new Date()) ? '운동 날짜가 되면 완료할 수 있습니다.' : '완료';
+    completed.addEventListener('change', async () => {
+      if (busy || records === null) return;
+      const updated = {...record, completed:completed.checked};
+      busy = true; completed.disabled = true;
+      const saved = await persist(allRecords().map(item => item.id === record.id ? updated : item), updated);
+      busy = false;
+      if (!saved) $('message').textContent = $('form-error').textContent || '완료 상태를 저장하지 못했습니다.';
+      else $('message').textContent = '';
+      render();
+    });
+    actions.append(completed, edit); row.append(info, actions);
+  } else row.append(info, edit);
   return row;
 }
 function render() {
@@ -157,9 +177,7 @@ function render() {
   const googleEvents = window.googleCalendar?.eventsForDate(selected) || [];
   const eventRows = [...events.map(record => ({start:record.start || '',row:recordRow(record)})),...googleEvents.map(record => ({start:record.start.date ? '' : new Date(record.start.dateTime).toTimeString(),row:window.googleCalendar.recordRow(record)}))].sort((a,b)=>a.start.localeCompare(b.start));
   $('event-list').replaceChildren(...(eventRows.length ? eventRows.map(item=>item.row) : [make('p',records === null ? '기록을 아직 불러오지 못했습니다.' : '등록된 일정이 없습니다.','empty')]));
-  const workouts = allRecords().filter(r => r.kind === 'workout' && r.date.startsWith($('workout-month').value)).sort((a,b) => b.date.localeCompare(a.date));
-  $('workout-summary').textContent = `${workouts.length}회 · 총 ${workouts.reduce((sum,r) => sum+Number(r.duration),0)}분`;
-  $('workout-list').replaceChildren(...(workouts.length ? workouts.map(recordRow) : [make('p',records === null ? '기록을 아직 불러오지 못했습니다.' : '이번 달 운동 기록이 없습니다.','empty')]));
+  workout.render();
   window.dispatchEvent(new Event('journal-calendar-range'));
 }
 function toggleTime() {
@@ -174,16 +192,30 @@ function openEditor(type, record = null) {
   $('name-label').textContent = type === 'event' ? '제목' : '운동 이름';
   $('event-fields').hidden = type !== 'event'; $('workout-fields').hidden = type !== 'workout';
   $('duration').required = type === 'workout';
-  $('record-title').value = record?.title || '';
-  $('record-date').value = record?.date || (type === 'event' ? selected : today);
+  $('record-title').value = record?.title || (type === 'workout' ? '런닝' : '');
+  $('record-date').value = record?.date || (type === 'event' ? selected : workout.selected());
   $('record-notes').value = record?.notes || '';
   $('start-time').value = record?.start || '09:00'; $('end-time').value = record?.end || '';
   $('all-day').checked = record?.allDay || false;
-  $('workout-type').value = record?.type || '근력'; $('duration').value = record?.duration || 30;
+  workout.options(record?.type || '런닝', Boolean(record && type === 'workout'));
+  $('workout-type').dataset.previous = $('workout-type').value;
+  $('duration').value = record?.duration || 30;
+  $('workout-completed').checked = record ? record.completed !== false : $('record-date').value <= window.workoutModel.dayKey(new Date());
+  updateWorkoutCompletion();
   $('delete-record').hidden = !record;
   toggleTime(); $('editor').showModal(); $('record-title').focus();
 }
 $('all-day').addEventListener('change', toggleTime);
+function updateWorkoutCompletion() {
+  $('workout-completed').disabled = $('record-date').value > window.workoutModel.dayKey(new Date());
+  if ($('workout-completed').disabled) $('workout-completed').checked = false;
+}
+$('record-date').addEventListener('change', updateWorkoutCompletion);
+$('workout-type').addEventListener('change', () => {
+  const field = $('workout-type');
+  if (!$('record-title').value.trim() || $('record-title').value === field.dataset.previous) $('record-title').value = field.value;
+  field.dataset.previous = field.value;
+});
 $('add-event').addEventListener('click', () => {
   if (window.googleCalendar?.openNew(selected)) return;
   openEditor('event');
@@ -200,14 +232,17 @@ $('record-form').addEventListener('submit', async event => {
   }
   const record = { id: editing || crypto.randomUUID(), kind, title, date: $('record-date').value, notes: $('record-notes').value.trim() };
   if (kind === 'event') Object.assign(record, {allDay:$('all-day').checked,start:$('all-day').checked?'':$('start-time').value,end:$('all-day').checked?'':$('end-time').value});
-  else Object.assign(record, {type:$('workout-type').value,duration:Number($('duration').value)});
+  else {
+    if (!$('workout-type').value) {$('form-error').textContent = '운동 항목을 선택해 주세요.'; return;}
+    Object.assign(record, {type:$('workout-type').value,duration:Number($('duration').value),completed:$('workout-completed').checked && record.date <= window.workoutModel.dayKey(new Date())});
+  }
   const next = allRecords().filter(r => r.id !== editing).concat(record);
   busy = true; event.submitter.disabled = true;
   const saved = await persist(next, record);
   busy = false; event.submitter.disabled = false;
   if (!saved) return;
   if (kind === 'event') { selected = record.date; const [y,m] = selected.split('-').map(Number); month = new Date(y,m-1,1); }
-  else $('workout-month').value = record.date.slice(0,7);
+  else workout.select(record.date);
   $('editor').close(); render();
 });
 $('delete-record').addEventListener('click', async () => {
@@ -220,7 +255,7 @@ $('delete-record').addEventListener('click', async () => {
 $('previous').addEventListener('click', () => {month = new Date(month.getFullYear(),month.getMonth()-1,1);render();});
 $('next').addEventListener('click', () => {month = new Date(month.getFullYear(),month.getMonth()+1,1);render();});
 $('today').addEventListener('click', () => {selected=today;month=new Date(new Date().getFullYear(),new Date().getMonth(),1);render();});
-$('workout-month').addEventListener('change', () => {if (!$('workout-month').value) $('workout-month').value=today.slice(0,7);render();});
 window.journalCalendar = {render,range:()=>({start:new Date(month.getFullYear(),month.getMonth(),1).toISOString(),end:new Date(month.getFullYear(),month.getMonth()+1,1).toISOString(),selected})};
 render();
 if (!cloud || cloud.ready) loadAccount();
+if (cloud?.ready) workout.ready();

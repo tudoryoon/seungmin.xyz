@@ -86,6 +86,7 @@ try {
   window.journalCloud=cloud;window.realmClient=client;window.lucide={createIcons(){}};
   window.cloudError=e=>e.message;
   window.testLibraryModule=await import('../library-store.js');
+  window.eval(await readFile(new URL('../workout.js',import.meta.url),'utf8'));
   window.eval(await readFile(new URL('../journal.js',import.meta.url),'utf8'));
   const source=await readFile(new URL('../library.js',import.meta.url),'utf8');
   window.eval('(()=>{const {createLibraryStore,inspectFile,libraryError,normalizeUrl}=window.testLibraryModule;\n'+source.replace(/^import[^\n]+\n/,'')+'\n})()');

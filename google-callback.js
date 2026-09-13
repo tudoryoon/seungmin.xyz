@@ -1,4 +1,4 @@
-import {calendarRequest,errorMessage} from './google-api.js?v=20260913-6';
+import {calendarRequest,errorMessage} from './google-api.js?v=20260913-7';
 const query = new URLSearchParams(location.search);
 history.replaceState(null,'',location.pathname);
 const status = document.getElementById('callback-status');
