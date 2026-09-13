@@ -8,6 +8,16 @@ const pixels=(roads,a,b)=>Math.hypot((b.x-a.x)*roads.width/100,(b.y-a.y)*roads.h
 const percent=(roads,[x,y])=>({x:x/roads.map.size[0]*100,y:y/roads.map.size[1]*100});
 for(const [width,height] of [[1440,900],[390,844],[320,740],[1024,1366],[2560,1080]]) {
   const roads=createRoads(width<=height,width,height),spawn=roadSpawn(roads);
+  const route=roads.map.routes.roulette;
+  const routeLength=route.slice(1).reduce((sum,p,i)=>sum+Math.hypot(p[0]-route[i][0],p[1]-route[i][1]),0);
+  assert.ok(routeLength<(width<=height?420:850),'roulette uses the direct bridge route');
+  for(const bridge of roads.map.bridges) {
+    const fromIndex=route.findIndex(p=>p[0]===bridge.from[0]&&p[1]===bridge.from[1]);
+    assert.deepEqual(route[fromIndex+1],bridge.to,'visible bridge matches walking segment');
+    const middle=bridge.from.map((n,i)=>(n+bridge.to[i])/2);
+    assert.ok(isWalkable(roads,percent(roads,middle)),'bridge deck is walkable');
+    assert.ok(bridge.width>=roads.map.radius*2+16,'deck contains the full walking corridor');
+  }
   for(const direction of [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1},{x:1,y:1}]) {
     const next=moveOnRoad(roads,spawn,direction,.016);
     assert.ok(Math.abs(pixels(roads,spawn,next)-4.8)<.0001,'1.5x speed without a diagonal boost');
@@ -27,7 +37,7 @@ for(const [width,height] of [[1440,900],[390,844],[320,740],[1024,1366],[2560,10
     }
     if(!name.startsWith('side-'))assert.equal(nearbyRoad(roads,position),name);
   }
-  assert.equal(isWalkable(roads,percent(roads,width<=height?[600,1030]:[570,560])),false,'water stays blocked');
+  assert.equal(isWalkable(roads,percent(roads,width<=height?[600,1030]:[570,480])),false,'water outside the bridge stays blocked');
   let position=spawn;
   for(let tick=0;tick<1600;tick++) {
     const direction=tick<400?{x:-1,y:0}:{x:Math.cos(tick*.013),y:Math.sin(tick*.013)};
@@ -55,8 +65,12 @@ try {
   active=false;key('ArrowRight');step(10);assert.deepEqual(position(),stopped);active=true;
   key('ArrowLeft');step(2);window.dispatchEvent(new window.Event('blur'));assert.equal(frames.size,0);
   const before=position();width=1280;height=720;window.dispatchEvent(new window.Event('resize'));assert.deepEqual(position(),before);
-  dungeon.reset();const roads=createRoads(false,width,height);
-  for(const point of roads.map.routes.workout.slice(1)) {
+  const roads=createRoads(false,width,height);
+  for(const destination of ['workout','roulette']) {
+  dungeon.reset();
+  assert.equal(stage.querySelector('#map-bridges').getAttribute('viewBox'),'0 0 1586 992');
+  assert.ok(stage.querySelectorAll('#map-bridges polygon').length>40,'stone bridge rendered');
+  for(const point of roads.map.routes[destination].slice(1)) {
     const target=percent(roads,point);
     for(let tick=0;pixels(roads,position(),target)>9&&tick<500;tick++) {
       const here=position(),dx=(target.x-here.x)*width/100,dy=(target.y-here.y)*height/100;
@@ -65,7 +79,9 @@ try {
     }
     assert.ok(pixels(roads,position(),target)<=9,'keyboard reaches bend');
   }
-  assert.equal(stage.querySelector('.nearby').dataset.location,'workout');key('Enter');assert.equal(destinations[0],'test.html#workout');
+  assert.equal(stage.querySelector('.nearby').dataset.location,destination);key('Enter');
+  assert.equal(destinations.at(-1),destination==='roulette'?'roulette.html':'test.html#workout');
+  }
   dungeon.reset();const right=stage.querySelector('[data-move=ArrowRight]');right.dispatchEvent(new window.PointerEvent('pointerdown',{pointerId:1,bubbles:true}));step(10);right.dispatchEvent(new window.PointerEvent('pointercancel',{pointerId:1}));assert.equal(frames.size,0);
   console.log('PASS: free corridor/plaza movement, all primary and side paths, 1.5x speed, water collision, 5 layouts, keyboard/touch guards, resize and gated entrance.');
 }finally{await window.happyDOM.close();for(const [key,value]of Object.entries(saved)){if(value===undefined)delete globalThis[key];else globalThis[key]=value;}}

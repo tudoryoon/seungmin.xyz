@@ -1,4 +1,5 @@
-import {createRoads,roadSpawn,moveOnRoad,nearbyRoad} from './roads.js?v=20260913-1';
+import {createRoads,roadSpawn,moveOnRoad,nearbyRoad} from './roads.js?v=20260913-2';
+import {renderBridges} from './bridges.js?v=20260913-2';
 export function createDungeon(stage, isActive) {
   const actor = stage.querySelector('#map-actor');
   const portrait = matchMedia('(max-aspect-ratio: 1/1)');
@@ -6,7 +7,10 @@ export function createDungeon(stage, isActive) {
   const keys = new Set(), arrows = ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
   let navigating = false, raf = 0, lastTime = 0, nearby = null;
   let roads, position;
-  function measureRoads() {roads=createRoads(portrait.matches,stage.clientWidth||1,stage.clientHeight||1);}
+  function measureRoads() {
+    roads=createRoads(portrait.matches,stage.clientWidth||1,stage.clientHeight||1);
+    renderBridges(stage.querySelector('#map-bridges'),roads.map);
+  }
   function updateNearby() {
     const destination=nearbyRoad(roads,position);
     nearby=links.find(link=>link.dataset.location===destination)||null;
