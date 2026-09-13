@@ -13,12 +13,12 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="포털">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="stylesheet" href="journal.css?v=20260914-2">
-  <link rel="stylesheet" href="journal-theme.css?v=20260914-2">
-  <link rel="stylesheet" href="library.css?v=20260914-2">
-  <link rel="stylesheet" href="daily.css?v=20260914-2">
-  <link rel="stylesheet" href="google-calendar.css?v=20260914-2">
-  <link rel="stylesheet" href="workout.css?v=20260914-2">
+  <link rel="stylesheet" href="journal.css?v=20260914-3">
+  <link rel="stylesheet" href="journal-theme.css?v=20260914-3">
+  <link rel="stylesheet" href="library.css?v=20260914-3">
+  <link rel="stylesheet" href="daily.css?v=20260914-3">
+  <link rel="stylesheet" href="google-calendar.css?v=20260914-3">
+  <link rel="stylesheet" href="workout.css?v=20260914-3">
   <link rel="stylesheet" href="pwa.css?v=1">
   <script src="pwa.js?v=1" defer></script>
 </head>
@@ -31,6 +31,7 @@
     <section id="calendar" class="view">
       <div class="section-head"><h1>일정관리</h1><button class="primary" id="add-event">일정 추가</button></div>
       <div class="google-toolbar"><p id="google-sync-status" role="status"></p><a id="google-setup-link" href="#connections">Google Calendar 연결</a><label id="event-destination-field" hidden>새 일정<select id="event-destination" aria-label="새 일정 저장 위치"><option value="local">내 기록</option></select></label></div>
+      <details id="google-visibility" class="google-visibility" open hidden><summary>표시할 캘린더</summary><div id="google-calendar-filters" class="google-calendars" aria-label="표시할 Google 캘린더"></div></details>
       <div class="calendar-workspace">
       <div class="calendar-layout">
         <div><div class="month-toolbar"><h2 id="month-title"></h2><div class="actions"><button id="previous" aria-label="이전 달" title="이전 달">←</button><button id="today">오늘</button><button id="next" aria-label="다음 달" title="다음 달">→</button></div></div>
@@ -130,14 +131,14 @@
   </form></dialog>
   <dialog id="password-dialog"><form id="password-form"><h2>새 비밀번호</h2><label>비밀번호<input id="new-password" type="password" required minlength="8" autocomplete="new-password"></label><p id="password-message" role="status"></p><button class="primary" type="submit">비밀번호 저장</button></form></dialog>
   <script src="vendor/supabase.js" defer></script>
-  <script src="auth-client.js?v=20260914-2" defer></script>
-  <script type="module" src="journal-gate.js?v=20260914-2"></script>
-  <script src="cloud.js?v=20260914-2" defer></script>
+  <script src="auth-client.js?v=20260914-3" defer></script>
+  <script type="module" src="journal-gate.js?v=20260914-3"></script>
+  <script src="cloud.js?v=20260914-3" defer></script>
   <script src="vendor/lucide.js" defer></script>
-  <script src="workout.js?v=20260914-2" defer></script>
-  <script src="journal.js?v=20260914-2" defer></script>
-  <script type="module" src="google-calendar.js?v=20260914-2"></script>
-  <script type="module" src="library.js?v=20260914-2"></script>
-  <script type="module" src="daily.js?v=20260914-2"></script>
+  <script src="workout.js?v=20260914-3" defer></script>
+  <script src="journal.js?v=20260914-3" defer></script>
+  <script type="module" src="google-calendar.js?v=20260914-3"></script>
+  <script type="module" src="library.js?v=20260914-3"></script>
+  <script type="module" src="daily.js?v=20260914-3"></script>
 </body>
 </html>

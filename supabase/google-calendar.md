@@ -2,6 +2,8 @@
 
 The schedule grid displays Google events alongside existing journal records. The destination selector controls new-event storage. Google changes go directly to Calendar API; events are not copied to `journal_records`. The site fetches the current month on entry, month navigation, refresh, and returning to a visible tab after a minute. This is pull-based synchronization, not a background webhook service.
 
+All readable calendars in the connected Google account's calendar list are visible by default, including subscriptions and hidden entries (`showHidden=true`). Google Calendar's own `selected` setting does not control this site's visibility. Checkboxes above the month grid and in connections share the same selection. Explicit hidden IDs are stored per browser/Supabase account at `google-calendar-hidden-v2:<user-id>`; the old primary-only allowlist is intentionally reset once. New calendars start visible, and choosing to hide every calendar is preserved. Refresh and entering a calendar view reload the calendar list; toggles never change Google's original calendars or events. A calendar must be subscribed to in the connected Google account and grant at least reader access to expose its event details.
+
 ## Deployment
 
 1. Enable Google Calendar API in the Google Cloud project. Configure an external OAuth app and add the owner as a test user while testing.

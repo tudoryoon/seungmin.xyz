@@ -9,17 +9,19 @@ async function until(test){for(let i=0;i<200;i++){if(test())return;await pause()
 w.document.write(await readFile(new URL('../test.html',import.meta.url),'utf8'));
 w.lucide={createIcons(){}};w.confirm=()=>true;
 w.Option=function(text,value){const option=w.document.createElement('option');option.textContent=text;option.value=value;return option;};
-let failSave=false,savePending=null,eventPending=null,pendingReads=false,readCount=0;
+let failSave=false,savePending=null,eventPending=null,pendingReads=false,readCount=0,failedCalendar=null;
 const local={id:'local',kind:'event',title:'Local record',date:core.localDate(new Date()),start:'12:00'};
 const event={id:'google1',etag:'v1',title:'Google <b>record</b>',start:{date:local.date},end:{date:core.nextDate(local.date)},notes:'<b>Safe note</b>',location:'',editable:true,htmlLink:'https://calendar.google.com/calendar/event?eid=example'};
 const calls=[];
+const calendarList=[{id:'primary',name:'Main',primary:true,accessRole:'owner',color:'#11aa66'},{id:'us',name:'US 실적발표',selected:false,accessRole:'reader',color:'#ffaaaa'},{id:'kr',name:'KR 실적발표',accessRole:'reader',color:'#aaaaff'}];
+w.localStorage.setItem('google-calendar-display:owner',JSON.stringify(['primary']));
 w.journalCloud={user:{id:'owner',email:'owner@example.com'},ready:true,version:1,async list(){return [local];},async save(){throw new Error('Google events must not enter local storage');}};
 w.cloudError=()=> 'Error';w.testCore=core;
 w.calendarRequest=async(action,args={})=>{
   calls.push({action,args});
   if(action==='status')return {configured:true,connected:true,email:'calendar@example.com'};
-  if(action==='calendars')return {calendars:[{id:'primary',name:'Main',primary:true,accessRole:'owner',color:'#11aa66'},{id:'read',name:'Read',accessRole:'reader',color:'#ffaaaa'}]};
-  if(action==='events'){readCount++;if(pendingReads)return new Promise(resolve=>{eventPending=resolve;});return {events:[event]};}
+  if(action==='calendars')return {calendars:[...calendarList]};
+  if(action==='events'){readCount++;if(args.calendarId===failedCalendar)throw new Error('GOOGLE_ERROR');if(pendingReads)return new Promise(resolve=>{eventPending=resolve;});return {events:[args.calendarId==='primary' ? event : {...event,id:args.calendarId,title:args.calendarId+' earnings',editable:false}]};}
   if(action==='create' || action==='update'){if(failSave)throw new Error('EVENT_CHANGED');if(savePending)return new Promise(resolve=>{savePending.resolve=resolve;});return {id:'saved'};}
   return {};
 };
@@ -29,8 +31,39 @@ try {
   const source=(await readFile(new URL('../google-calendar.js',import.meta.url),'utf8')).replace(/^import[^\n]+\n/gm,'');
   w.eval(`(()=>{const {occursOn,eventFields,eventPayload,localDate,errorMessage}=window.testCore;const calendarRequest=window.calendarRequest;const connectGoogle=async()=>{};${source}\n})()`);
   await until(()=>$('google-sync-status').textContent==='Google 일정 동기화됨');
-  assert.equal($('event-list').querySelectorAll('.record').length,2);
-  assert.ok($('month-grid').querySelector(`[aria-label="${local.date}, 일정 2개"]`));
+  assert.equal($('event-list').querySelectorAll('.record').length,4);
+  assert.ok($('month-grid').querySelector(`[aria-label="${local.date}, 일정 4개"]`));
+  const checks=()=>[...$('google-calendar-filters').querySelectorAll('input')];
+  const toggle=id=>checks().find(input=>input.dataset.calendarId===id).click();
+  const synced=()=>until(()=>$('google-sync-status').textContent==='Google 일정 동기화됨');
+  assert.ok(checks().every(input=>input.checked),'old primary-only preference resets to all calendars');
+  assert.equal($('google-visibility').hidden,false);
+  assert.equal($('event-list').querySelectorAll('.google-record button').length,1,'subscribed read-only calendars cannot be edited');
+  assert.equal($('event-destination').options.length,2,'read-only calendars cannot be write destinations');
+  failedCalendar='us';$('refresh-records').click();await until(()=>$('google-sync-status').textContent.includes('US 실적발표:'));
+  assert.equal(w.googleCalendar.eventsForDate(local.date).length,2,'one unavailable calendar does not hide the others');
+  failedCalendar=null;$('refresh-records').click();await synced();
+  toggle('us');await synced();
+  assert.equal(w.googleCalendar.eventsForDate(local.date).length,2);
+  assert.equal($('google-calendars').querySelector('[data-calendar-id="us"]').checked,false,'both visibility controls stay in sync');
+  w.dispatchEvent(new w.Event('journal-account'));await synced();
+  assert.equal(checks().find(input=>input.dataset.calendarId==='us').checked,false,'explicit choices survive account reload');
+  calendarList.push({id:'new',name:'New subscription',accessRole:'reader'});
+  $('refresh-records').click();await until(()=>checks().length===4);await synced();
+  assert.ok(checks().find(input=>input.dataset.calendarId==='new').checked,'new calendars default on');
+  for(const input of checks())if(input.checked)input.click();
+  await until(()=>$('google-sync-status').textContent==='표시할 Google 캘린더 없음');
+  w.dispatchEvent(new w.Event('journal-account'));
+  await until(()=>$('google-sync-status').textContent==='표시할 Google 캘린더 없음');
+  assert.ok(checks().every(input=>!input.checked),'all-off preference is not replaced with a default');
+  assert.equal(w.googleCalendar.eventsForDate(local.date).length,0);
+  assert.equal($('event-list').querySelectorAll('.record').length,1,'local records remain visible');
+  w.journalCloud.user={id:'other',email:'other@example.com'};w.dispatchEvent(new w.Event('journal-account'));await synced();
+  assert.ok(checks().every(input=>input.checked),'preferences are isolated per account');
+  w.journalCloud.user={id:'owner',email:'owner@example.com'};w.dispatchEvent(new w.Event('journal-account'));
+  await until(()=>$('google-sync-status').textContent==='표시할 Google 캘린더 없음');
+  calendarList.pop();$('refresh-records').click();await until(()=>checks().length===3);
+  for(const input of checks())if(!input.checked)input.click();await synced();
   assert.equal($('event-list').querySelector('b'),null,'provider text cannot inject markup');
   assert.equal($('event-list').querySelector('.notes').textContent,'Safe note');
   assert.equal($('event-destination').value,'primary');
@@ -44,6 +77,9 @@ try {
   await until(()=>!$('google-editor').open && !$('google-save').disabled);
   assert.equal(calls.filter(c=>c.action==='create').at(-1).args.eventId,firstId,'retry keeps idempotency ID');
   $('event-destination').value='local';$('add-event').click();assert.ok($('editor').open);assert.equal($('google-editor').open,false);$('editor').close();
+  const listReads=calls.filter(c=>c.action==='calendars').length;$('refresh-records').click();
+  await until(()=>calls.filter(c=>c.action==='calendars').length>listReads);await synced();
+  assert.equal($('event-destination').value,'local','refresh preserves the chosen new-event destination');
   $('event-list').querySelector('.google-record button').click();assert.ok($('google-editor').open);assert.equal($('google-event-calendar').disabled,true);
   $('google-form').dispatchEvent(new w.Event('submit',{cancelable:true}));await until(()=>!$('google-save').disabled);
   assert.equal(calls.find(c=>c.action==='update').args.etag,'v1');
@@ -55,5 +91,5 @@ try {
   eventPending({events:[event]});await pause();await pause();
   assert.equal($('event-list').querySelectorAll('.google-record').length,0,'late private data cannot enter another account');
   assert.equal($('google-editor').open,false);
-  console.log('PASS: merged calendar counts, XSS-safe rows, Google/local destination, draft preservation, retry IDs, update etags, dungeon isolation and logout races.');
+  console.log('PASS: all calendars by default, legacy reset, synchronized toggles, persistent all-off, new subscriptions, account isolation, merged counts, XSS-safe rows, read-only protection, drafts, retries, etags and logout races.');
 } finally {await w.happyDOM.close();}

@@ -1,36 +1,62 @@
-import {calendarRequest,connectGoogle,errorMessage} from './google-api.js?v=20260914-2';
-import {occursOn,eventFields,eventPayload,localDate} from './google-calendar-core.js?v=20260914-2';
+import {calendarRequest,connectGoogle,errorMessage} from './google-api.js?v=20260914-3';
+import {occursOn,eventFields,eventPayload,localDate} from './google-calendar-core.js?v=20260914-3';
 const el = id => document.getElementById(id);
-let owner = null, generation = 0, fetchGeneration = 0, connected = false;
+let owner = null, generation = 0, fetchGeneration = 0, listGeneration = 0, connected = false;
 let calendars = [], events = [], selectedCalendars = new Set(), loadedRange = '', editingEvent = null, saving = false, requestId = '';
 let lastSync = 0;
+let hiddenCalendars = new Set();
 const current = () => owner && owner === window.journalCloud?.user?.id;
 const active = () => ['calendar','connections'].includes(document.body.dataset.view);
 const writable = calendar => ['owner','writer'].includes(calendar.accessRole);
 const make = (tag,text,className) => {const node=document.createElement(tag);if(text !== undefined)node.textContent=text;if(className)node.className=className;return node;};
 const icon = (name,label) => {const button=make('button',undefined,'google-icon');button.type='button';button.title=label;button.setAttribute('aria-label',label);const i=make('i');i.dataset.lucide=name;button.append(i);return button;};
 const refreshJournal = () => {window.journalCalendar?.render();window.lucide?.createIcons();};
-const preferencesKey = () => `google-calendar-display:${owner}`;
-function remember() {try {localStorage.setItem(preferencesKey(),JSON.stringify([...selectedCalendars]));} catch {}}
-function renderCalendars() {
-  const container=el('google-calendars');container.replaceChildren();
-  for (const calendar of calendars) {
-    const label=make('label'),checkbox=make('input'),swatch=make('span',undefined,'google-color');
-    checkbox.type='checkbox';checkbox.checked=selectedCalendars.has(calendar.id);
-    swatch.style.setProperty('--calendar-color',/^#[0-9a-f]{6}$/i.test(calendar.color) ? calendar.color : '#81b6d5');
-    label.append(checkbox,swatch,make('span',`${calendar.name}${writable(calendar) ? '' : ' · 읽기 전용'}`));
-    checkbox.addEventListener('change',()=>{if(checkbox.checked)selectedCalendars.add(calendar.id);else selectedCalendars.delete(calendar.id);remember();refreshJournal();loadEvents(true);});
-    container.append(label);
+// A denylist makes new calendars visible; v2 resets the old implicit primary-only allowlist.
+const preferencesKey = () => `google-calendar-hidden-v2:${owner}`;
+function remember() {try {localStorage.setItem(preferencesKey(),JSON.stringify([...hiddenCalendars]));} catch {}}
+function renderCalendars(selectPrimary=false) {
+  el('google-visibility').hidden=!connected || !calendars.length;
+  for (const container of [el('google-calendars'),el('google-calendar-filters')]) {
+    container.replaceChildren();
+    for (const calendar of calendars) {
+      const label=make('label'),checkbox=make('input'),swatch=make('span',undefined,'google-color');
+      checkbox.type='checkbox';checkbox.checked=selectedCalendars.has(calendar.id);checkbox.dataset.calendarId=calendar.id;
+      swatch.style.setProperty('--calendar-color',/^#[0-9a-f]{6}$/i.test(calendar.color) ? calendar.color : '#81b6d5');
+      label.append(checkbox,swatch,make('span',`${calendar.name}${writable(calendar) ? '' : ' · 읽기 전용'}`));
+      checkbox.addEventListener('change',()=>{
+        if(checkbox.checked){selectedCalendars.add(calendar.id);hiddenCalendars.delete(calendar.id);}
+        else {selectedCalendars.delete(calendar.id);hiddenCalendars.add(calendar.id);}
+        for(const input of document.querySelectorAll('.google-calendars input'))input.checked=selectedCalendars.has(input.dataset.calendarId);
+        remember();loadEvents(true);
+      });
+      container.append(label);
+    }
   }
   const destination=el('event-destination'),previous=destination.value;
   destination.replaceChildren(new Option('내 기록','local'));
   for (const calendar of calendars.filter(writable)) destination.add(new Option(`Google · ${calendar.name}`,calendar.id));
-  destination.value=calendars.some(c=>c.id===previous && writable(c)) ? previous : (calendars.find(c=>c.primary && writable(c))?.id || 'local');
+  destination.value=(!selectPrimary && previous==='local') || calendars.some(c=>c.id===previous && writable(c)) ? previous : (calendars.find(c=>c.primary && writable(c))?.id || 'local');
   el('event-destination-field').hidden=!connected;
 }
+async function loadCalendars(selectPrimary=false) {
+  if(!current() || !connected || !active())return;
+  const version=generation,request=++listGeneration;
+  try {
+    const result=await calendarRequest('calendars');
+    if(version!==generation || request!==listGeneration || !current())return;
+    calendars=result.calendars;
+    selectedCalendars=new Set(calendars.filter(c=>!hiddenCalendars.has(c.id)).map(c=>c.id));
+    el('google-connection-error').textContent='';
+    renderCalendars(selectPrimary);await loadEvents(true);
+  } catch(error) {
+    if(version!==generation || request!==listGeneration || !current())return;
+    el('google-connection-error').textContent=errorMessage(error);el('google-sync-status').textContent=errorMessage(error);
+  }
+}
 async function loadAccount() {
-  const version=++generation; fetchGeneration++;
-  owner=window.journalCloud?.user?.id || null;connected=false;calendars=[];events=[];loadedRange='';lastSync=0;
+  const version=++generation; fetchGeneration++;listGeneration++;
+  owner=window.journalCloud?.user?.id || null;connected=false;calendars=[];events=[];selectedCalendars=new Set();hiddenCalendars=new Set();loadedRange='';lastSync=0;
+  try {const saved=JSON.parse(localStorage.getItem(preferencesKey()));if(Array.isArray(saved))hiddenCalendars=new Set(saved.filter(id=>typeof id==='string'));} catch {}
   el('google-editor').close();el('google-account').textContent=owner ? '연결 확인 중…' : '로그인 후 연결';
   el('google-disconnect').hidden=true;el('google-connect').disabled=!owner;el('google-connect').textContent='연결';
   el('google-setup-link').hidden=false;el('google-sync-status').textContent='';el('google-connection-error').textContent='';
@@ -45,13 +71,7 @@ async function loadAccount() {
     el('google-disconnect').hidden=!connected;el('google-setup-link').hidden=connected;
     if (!status.configured) {el('google-connection-error').textContent=errorMessage(new Error('NOT_CONFIGURED'));return;}
     if (!connected) return;
-    const result=await calendarRequest('calendars');
-    if (version!==generation || !current()) return;
-    calendars=result.calendars;
-    let remembered;
-    try {remembered=JSON.parse(localStorage.getItem(preferencesKey()));} catch {}
-    selectedCalendars=new Set(Array.isArray(remembered) ? remembered.filter(id=>calendars.some(c=>c.id===id)) : calendars.filter(c=>c.primary || c.selected).map(c=>c.id));
-    renderCalendars(); await loadEvents(true);
+    await loadCalendars(true);
   } catch(error) {
     if (version!==generation || !current()) return;
     el('google-account').textContent=connected ? el('google-account').textContent : '연결 확인 실패';
@@ -134,7 +154,7 @@ el('google-form').addEventListener('submit',async event=>{
   try {
     await calendarRequest(editingEvent ? 'update' : 'create',{calendarId,eventId:editingEvent?.id || requestId,etag:editingEvent?.etag,event:payload});
     if(version!==generation || !current())return;
-    selectedCalendars.add(calendarId);remember();renderCalendars();el('google-editor').close();await loadEvents(true);
+    selectedCalendars.add(calendarId);hiddenCalendars.delete(calendarId);remember();renderCalendars();el('google-editor').close();await loadEvents(true);
   } catch(error){if(version===generation && current())el('google-error').textContent=errorMessage(error);}
   finally{controls.forEach(({control,disabled})=>{control.disabled=disabled;});saving=false;el('google-save').disabled=false;}
 });
@@ -148,7 +168,7 @@ el('google-disconnect').addEventListener('click',async()=>{
 });
 window.addEventListener('journal-account',loadAccount);
 window.addEventListener('journal-calendar-range',()=>loadEvents());
-window.addEventListener('journal-view',()=>{if(active()){if(!connected)loadAccount();else loadEvents(true);}});
-el('refresh-records').addEventListener('click',()=>{if(active()){if(!connected)loadAccount();else loadEvents(true);}});
+window.addEventListener('journal-view',()=>{if(active()){if(!connected)loadAccount();else loadCalendars();}});
+el('refresh-records').addEventListener('click',()=>{if(active()){if(!connected)loadAccount();else loadCalendars();}});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden && active() && Date.now()-lastSync>60000)loadEvents(true);});
 if(window.journalCloud?.ready)loadAccount();

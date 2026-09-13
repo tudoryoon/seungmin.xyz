@@ -47,7 +47,10 @@ async function fake(url,options={}) {
   }
   if(url==='https://openidconnect.googleapis.com/v1/userinfo')return json({email:'calendar@example.com',email_verified:true});
   if(url==='https://oauth2.googleapis.com/revoke')return json({});
-  if(u.pathname.endsWith('/calendarList'))return json({items:[{id:'a@example.com',summary:'Main',accessRole:'owner',primary:true}]});
+  if(u.pathname.endsWith('/calendarList')) {
+    assert.equal(u.searchParams.get('showHidden'),'true');assert.equal(u.searchParams.get('minAccessRole'),'reader');
+    return json(u.searchParams.has('pageToken') ? {items:[{id:'kr',summary:'KR 실적발표',hidden:true,accessRole:'reader'},{id:'deleted',deleted:true}]} : {items:[{id:'a@example.com',summary:'Main',accessRole:'owner',primary:true},{id:'us',summary:'US 실적발표',selected:false,accessRole:'reader'}],nextPageToken:'calendars2'});
+  }
   if(u.pathname.includes('/calendarList/'))return json({accessRole:u.pathname.endsWith('/read') ? 'reader' : 'owner'});
   if(u.pathname.includes('/events')) {
     if(method==='POST' || method==='PATCH'){writes.push({url,method,headers:options.headers,body:JSON.parse(options.body)});return json({id:'created'});}
@@ -72,7 +75,8 @@ assert.equal((await call({action:'exchange',state:auth.state,code:'code'})).stat
 assert.ok(!JSON.stringify(connections).includes('refresh-private'));assert.ok(!JSON.stringify(connections).includes('access-private'));
 assert.equal((await call({action:'exchange',state:auth.state,code:'code'})).error,'INVALID_STATE');
 assert.equal((await call({action:'status'})).email,'calendar@example.com');assert.equal((await call({action:'status'},{token:'other'})).connected,false);
-assert.equal((await call({action:'calendars'})).calendars.length,1);assert.ok(refreshes>0);
+const calendarList=(await call({action:'calendars'})).calendars;
+assert.deepEqual(calendarList.map(c=>c.id),['a@example.com','us','kr']);assert.equal(calendarList[2].accessRole,'reader');assert.ok(refreshes>0);
 const listing=await call({action:'events',calendarId:'a@example.com',timeMin:'2026-09-01T00:00:00Z',timeMax:'2026-10-01T00:00:00Z'});
 assert.equal(listing.events.length,2);assert.equal(pages,2);assert.ok(!JSON.stringify(listing).includes('access-private'));
 assert.equal((await call({action:'events',calendarId:'a',timeMin:'invalid',timeMax:'invalid'})).error,'INVALID_REQUEST');

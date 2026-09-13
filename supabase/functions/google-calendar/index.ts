@@ -143,7 +143,7 @@ export function createHandler(env, fetcher = fetch) {
       }
       const accessToken = await access(user);
       if (input.action === 'calendars') {
-        const calendars = await pages(accessToken,'users/me/calendarList',{maxResults:'250',minAccessRole:'reader'});
+        const calendars = await pages(accessToken,'users/me/calendarList',{maxResults:'250',minAccessRole:'reader',showHidden:'true'});
         return reply({calendars:calendars.filter(c=>!c.deleted).map(c=>({id:c.id,name:c.summaryOverride || c.summary,primary:Boolean(c.primary),selected:Boolean(c.selected),color:c.backgroundColor,timeZone:c.timeZone,accessRole:c.accessRole}))});
       }
       need(typeof input.calendarId === 'string' && input.calendarId.length > 0 && input.calendarId.length <= 1024);
