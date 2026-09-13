@@ -9,6 +9,12 @@
 .daily-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:0 0 22px;padding:0;border:0;background:none}
 .daily-heading h2{font-size:20px;line-height:1.4;margin:4px 0 0;font-weight:600}
 #daily-date{font-size:13px;color:#a9bab1;margin:0;min-height:18px}
+#daily-history-date{font-size:13px;color:#a9bab1;margin:0;min-height:18px}
+#daily-history-status{font-size:13px;color:#a9bab1;line-height:1.6}
+#daily-history .daily-list label{cursor:default}
+#daily-history .daily-list input:disabled{opacity:1}
+.day-tasks{display:inline-flex;align-items:center;gap:3px;font-size:11px;line-height:14px;color:#d5c69d;white-space:nowrap}
+.day-tasks svg{width:12px;height:12px}
 .daily-panel button{font:inherit;cursor:pointer;border:1px solid #4a6258;border-radius:5px;background:#20352b;color:#dcebe2;padding:10px 16px;min-height:42px;white-space:normal}
 .daily-panel button:hover{background:#2c4839}.daily-panel button:disabled{opacity:.5;cursor:default}
 .daily-panel .daily-icon{width:42px;height:42px;min-width:42px;padding:0;display:inline-grid;place-items:center;background:transparent}

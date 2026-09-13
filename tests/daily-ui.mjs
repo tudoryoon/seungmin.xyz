@@ -25,7 +25,8 @@ async function setup({page='test.html',view='calendar',saved=seed(),initial=owne
     saved.revision++;return {data:clone(saved)};
   }};
   const source=await readFile(new URL('../'+(page==='test.html'?'daily.js':'player-level.js'),import.meta.url),'utf8');
-  w.eval('(()=>{const {validAvatar,validProfile}=window.testDaily;\n'+source.replace(/^import[^\n]+\n/gm,'')+'\n})()');
+  if(page==='test.html')w.eval((await readFile(new URL('../daily-history.js',import.meta.url),'utf8')).replace('export function createDailyHistory','window.createDailyHistory = function'));
+  w.eval('(()=>{const {validAvatar,validProfile}=window.testDaily;const createDailyHistory=window.createDailyHistory;\n'+source.replace(/^import[^\n]+\n/gm,'')+'\n})()');
   return {w,$:id=>w.document.getElementById(id),saved,setView,rpcs:()=>rpcs,setFail:v=>{fail=v;},hasPending:()=>!!pending,
     resolve:value=>pending({data:clone(value)}),account(next){callback(next?'SIGNED_IN':'SIGNED_OUT',next?{user:next}:null);}};
 }

@@ -165,11 +165,18 @@ function render() {
     const count = allRecords().filter(r => r.kind === 'event' && r.date === key).length + (window.googleCalendar?.eventsForDate(key).length || 0);
     const button = make('button', undefined, 'day');
     button.classList.toggle('selected', key === selected);
-    button.classList.toggle('today', key === today);
+    button.classList.toggle('today', key === dateKey(new Date()));
     button.setAttribute('aria-pressed', String(key === selected));
-    button.setAttribute('aria-label', `${key}, 일정 ${count}개`);
+    const tasks = window.dailyHistory?.counts(key);
+    button.setAttribute('aria-label', `${key}, 일정 ${count}개${tasks?.total ? `, 할 일 ${tasks.completed}/${tasks.total}개 완료` : ''}`);
+    button.dataset.date = key;
     button.append(make('span', String(day), 'day-number'), make('span', count ? `${count}건` : '', 'day-count'));
-    button.addEventListener('click', () => { selected = key; render(); grid.querySelector(`[aria-label="${key}, 일정 ${count}개"]`)?.focus(); });
+    if (tasks?.total) {
+      const marker = make('span', `${tasks.completed}/${tasks.total}`, 'day-tasks');
+      marker.title = `할 일 ${tasks.completed}/${tasks.total}개 완료`;
+      const icon = make('i'); icon.dataset.lucide = 'list-checks'; marker.prepend(icon); button.append(marker);
+    }
+    button.addEventListener('click', () => { selected = key; render(); grid.querySelector(`[data-date="${key}"]`)?.focus(); });
     grid.append(button);
   }
   $('selected-date').textContent = `${Number(selected.slice(5,7))}월 ${Number(selected.slice(8))}일`;
@@ -252,10 +259,10 @@ $('delete-record').addEventListener('click', async () => {
   if (await persist(allRecords().filter(r => r.id !== editing))) { $('editor').close(); render(); }
   busy = false; $('delete-record').disabled = false;
 });
-$('previous').addEventListener('click', () => {month = new Date(month.getFullYear(),month.getMonth()-1,1);render();});
-$('next').addEventListener('click', () => {month = new Date(month.getFullYear(),month.getMonth()+1,1);render();});
-$('today').addEventListener('click', () => {selected=today;month=new Date(new Date().getFullYear(),new Date().getMonth(),1);render();});
-window.journalCalendar = {render,range:()=>({start:new Date(month.getFullYear(),month.getMonth(),1).toISOString(),end:new Date(month.getFullYear(),month.getMonth()+1,1).toISOString(),selected})};
+$('previous').addEventListener('click', () => {month = new Date(month.getFullYear(),month.getMonth()-1,1);selected=dateKey(month);render();});
+$('next').addEventListener('click', () => {month = new Date(month.getFullYear(),month.getMonth()+1,1);selected=dateKey(month);render();});
+$('today').addEventListener('click', () => {const now=new Date();selected=dateKey(now);month=new Date(now.getFullYear(),now.getMonth(),1);render();});
+window.journalCalendar = {render,range:()=>({start:new Date(month.getFullYear(),month.getMonth(),1).toISOString(),end:new Date(month.getFullYear(),month.getMonth()+1,1).toISOString(),month:dateKey(month).slice(0,7),selected})};
 render();
 if (!cloud || cloud.ready) loadAccount();
 if (cloud?.ready) workout.ready();

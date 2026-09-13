@@ -1,5 +1,6 @@
-import { validProfile } from './profile.js?v=20260913-7';
-import { validAvatar } from './avatar.js?v=20260913-7';
+import { validProfile } from './profile.js?v=20260914-1';
+import { validAvatar } from './avatar.js?v=20260914-1';
+import { createDailyHistory } from './daily-history.js?v=20260914-1';
 
 const client = window.realmClient;
 const panel = document.getElementById('daily-panel');
@@ -23,6 +24,7 @@ let recovery = location.hash.includes('type=recovery') || new URLSearchParams(lo
 let active = false;
 const eligible = () => !!user && !recovery && validProfile(user.user_metadata?.realm_profile) && validAvatar(user.user_metadata?.realm_avatar)
   && !document.body.classList.contains('session-checking') && document.body.dataset.view === 'calendar';
+const historyView = createDailyHistory({panel,client,getUser:() => user,getState:() => state,isActive:() => active && eligible()});
 function icons() { window.lucide?.createIcons(); }
 function unlockLogout() { logoutSnapshot.forEach(([node,disabled]) => { node.disabled = disabled; }); logoutSnapshot = []; }
 function level(value) { document.querySelectorAll('[data-player-level]').forEach(node => { node.textContent = 'LV. ' + value; }); }
@@ -39,7 +41,7 @@ function errorText(error) {
 function controls() {
   const locked = busy || loading;
   panel.setAttribute('aria-busy', String(locked));
-  panel.querySelectorAll('button,input').forEach(node => { node.disabled = locked; });
+  $('daily-live').querySelectorAll('button,input').forEach(node => { node.disabled = locked; });
   $('daily-add').disabled = locked || draft.length >= 20;
   $('daily-save').disabled = locked || blocked || !state;
   $('daily-edit').disabled = locked || blocked || !state;
@@ -80,6 +82,7 @@ function render() {
   }));
   if (state) level(state.level);
   controls(); icons();
+  historyView.render();
 }
 function startEdit() {
   editing = true; dirty = false;
@@ -101,10 +104,12 @@ function accept(next) {
   clearTimeout(timer); timer = setTimeout(() => refresh(), Math.max(1000,deadline-performance.now()+150));
   render();
   panel.classList.toggle('daily-awarded', !!increased);
+  historyView.sync(true);
 }
 function evaluate() {
   const entered = !active && eligible();
   active = eligible(); panel.hidden = !active;
+  if (active) historyView.sync();
   if (active && (entered || (!state && !loading && !failure))) refresh();
 }
 async function refresh(force = false) {
@@ -172,6 +177,7 @@ function account(next) {
     epoch++; clearTimeout(timer); state = null; busy = false; loading = false; editing = false; dirty = false;
     draft = []; notice = ''; failure = ''; blocked = false; deadline = 0;
     active = false; panel.hidden = true; level(next ? '…' : 1); render();
+    historyView.reset();
   }
   user = next; setTimeout(evaluate,0);
 }
