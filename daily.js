@@ -1,5 +1,5 @@
-import { validProfile } from './profile.js?v=20260913-5';
-import { validAvatar } from './avatar.js?v=20260913-5';
+import { validProfile } from './profile.js?v=20260913-6';
+import { validAvatar } from './avatar.js?v=20260913-6';
 
 const client = window.realmClient;
 const panel = document.getElementById('daily-panel');

@@ -1,7 +1,7 @@
-import {STATIONS} from './stations.js?v=20260913-5';
-import {TAU, createSpin} from './roulette-core.js?v=20260913-5';
-import {validProfile} from './profile.js?v=20260913-5';
-import {validAvatar} from './avatar.js?v=20260913-5';
+import {STATIONS} from './stations.js?v=20260913-6';
+import {TAU, createSpin} from './roulette-core.js?v=20260913-6';
+import {validProfile} from './profile.js?v=20260913-6';
+import {validAvatar} from './avatar.js?v=20260913-6';
 
 const $ = id => document.getElementById(id);
 const colors = {'1호선':'#688cd9','2호선':'#67c990','3호선':'#f7b36c','4호선':'#79c4ec','5호선':'#b1a0dd','6호선':'#d9a17c','7호선':'#c2c575','8호선':'#df8cac','9호선':'#c8b982','경의중앙선':'#91cbbb'};

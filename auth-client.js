@@ -3,7 +3,7 @@
 window.realmClient = window.supabase.createClient(
   'https://rciahwtvrsysxqvjjtuu.supabase.co',
   'sb_publishable__pbxu1HGVdOKSR0QEBG4AQ_JXqHbXS5',
-  {auth:{detectSessionInUrl:!location.pathname.endsWith('/google-callback.html')}}
+  {auth:{detectSessionInUrl:!/^\/google-callback(?:\.html)?\/?$/.test(location.pathname)}}
 );
 window.realmError = error => {
   if (error?.message === 'Invalid login credentials') return '이메일 또는 비밀번호를 확인해 주세요.';
