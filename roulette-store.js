@@ -26,8 +26,10 @@ export function createRouletteStore(client, identity) {
         p_station_id:station.id,p_station_name:station.name,p_lines:station.lines
       });
       check(owner); if (error) throw error;
-      if (!data || data.station_id !== station.id || !/^\d{4}-\d{2}-\d{2}$/.test(data.day)) throw new Error('INVALID_HISTORY');
-      return data;
+      // PostgREST may wrap a composite return value in a one-row array.
+      const choice = Array.isArray(data) && data.length === 1 ? data[0] : data;
+      if (!choice || choice.station_id !== station.id || !/^\d{4}-\d{2}-\d{2}$/.test(choice.day)) throw new Error('INVALID_HISTORY');
+      return choice;
     }
   };
 }

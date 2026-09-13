@@ -61,15 +61,9 @@ The five default choices are 런닝, 케틀벨 스윙, 푸시업, 스쿼트, 플
 
 `node tests/workout.mjs` runs mocked Happy DOM checks for date boundaries, completion undo/failure, legacy records and account-specific choices. `node tests/workout-preview.mjs` serves a local-only fixture at port 4179 for desktop and responsive checks (`tests/workout-responsive.html`). It never accesses production data.
 
-## Dated Tasks
-
-Daily tasks remain stored in `daily_tasks` by user and KST date. The calendar reads the visible month's history through the existing owner-only RLS and shows completion counts on calendar dates. Selecting a prior date displays that day's titles and completion states read-only; switching back to today preserves unsaved input. The existing midnight reward/update procedures are unchanged and still prohibit modifying earlier days. No task-history migration or record rewriting is needed.
-
-`tests/history.mjs` checks historical task persistence, read-only UI and account isolation. It also tests the prepared `supabase/roulette.sql` migration and `roulette-store.js`; the live roulette selection UI is pending approval of that database migration. Until then the existing roulette remains unchanged.
-
 ## Testing
 
-Cloudflare's `_headers` requests `no-cache` revalidation. This works on `pages.dev`, but the custom domain currently rewrites static asset responses to `max-age=14400` and removes `no-cache`. Set its Browser Cache TTL to **Respect Existing Headers** in the dashboard when account access is available. Until then, the release query `v=20260914-1` on app CSS/JS URLs and module imports ensures returning visitors fetch the correct release. Bump it consistently across HTML and imports for every code release; headers alone are not sufficient on this domain. No storage clearing or data migration is needed. See [Pages response headers](https://developers.cloudflare.com/pages/configuration/headers/) and [Browser Cache TTL](https://developers.cloudflare.com/cache/how-to/edge-browser-cache-ttl/set-browser-ttl/).
+Cloudflare's `_headers` requests `no-cache` revalidation. This works on `pages.dev`, but the custom domain currently rewrites static asset responses to `max-age=14400` and removes `no-cache`. Set its Browser Cache TTL to **Respect Existing Headers** in the dashboard when account access is available. Until then, the release query `v=20260914-2` on app CSS/JS URLs and module imports ensures returning visitors fetch the correct release. Bump it consistently across HTML and imports for every code release; headers alone are not sufficient on this domain. No storage clearing or data migration is needed. See [Pages response headers](https://developers.cloudflare.com/pages/configuration/headers/) and [Browser Cache TTL](https://developers.cloudflare.com/cache/how-to/edge-browser-cache-ttl/set-browser-ttl/).
 
 Node plus Playwright and installed Chrome are needed. Set PLAYWRIGHT_MODULE to the absolute Playwright module path when it is not locally installed.
 
@@ -96,4 +90,12 @@ The library, movement, routing, and daily UI unit tests use Happy DOM. Library a
 Experience points and automatic calendar-event completion are not implemented. Google Calendar setup is documented in supabase/google-calendar.md.
 # Roulette Dungeon
 
-`roulette.html` is an authenticated, standalone dungeon reached from the map. It samples 448 distinct stations from lines 1-9 and Gyeongui-Jungang with equal probability, including branches outside Seoul. Transfers are deduplicated; unrelated same-name stations stay separate. Results are temporary, with no Supabase migration or journal changes. Source snapshot and normalization rules: `data/stations.md`. Core checks: `node tests/roulette.mjs`.
+`roulette.html` is an authenticated, standalone dungeon reached from the map. It samples 448 distinct stations from lines 1-9 and Gyeongui-Jungang with equal probability, including branches outside Seoul. Transfers are deduplicated; unrelated same-name stations stay separate. Source snapshot and normalization rules: `data/stations.md`. Core checks: `node tests/roulette.mjs`.
+
+Apply `supabase/roulette.sql` before deploying the selection UI. Spinning is temporary; **선택** records the result in the signed-in user's `roulette_choices` history. The server fixes its KST date and timestamp. Multiple choices on the same day are retained. The `(user_id, station_id)` key prevents repeat selections across devices; idempotent retries return the first date unchanged. Browsers have owner-only read access and a narrow selection RPC, with no update/delete access. This does not grant access to any other journal data. The station name and lines are display snapshots supplied by the client, not independently verified lottery outcomes. History is refreshed before every spin, selected stations are excluded from the remaining equally weighted pool, and a failed history read disables spins. An exhausted pool stays disabled. Choices made simultaneously on another device during an in-flight spin are reconciled on save/refresh. No real account choices are created by tests.
+
+## Dated Tasks
+
+Saved daily tasks already persist in `daily_tasks` by user and KST date. The calendar now reads the visible month's history through existing owner-only RLS and shows completion counts on dates. Selecting a past date swaps the daily panel to a read-only snapshot of that day's titles and completion states; today's editing surface and unsaved draft remain intact when switching dates. Future empty dates are read-only. The existing midnight reward/update procedures are unchanged and still prohibit modifying prior days. No task-history SQL migration or record rewriting is required.
+
+`tests/history.mjs` verifies real PGlite RLS/immutability and the historical task panel. `tests/roulette-history-ui.mjs` checks selection, failures, exhaustion and account isolation. Run with `DOM_MODULE` and `PGLITE_MODULE` if dependencies are not locally installed. `tests/history-preview.mjs` serves a mock-only browser fixture at port 4180; `tests/history-responsive.html` covers 390px and 760px layouts.

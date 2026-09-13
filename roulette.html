@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="포털">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="stylesheet" href="roulette.css?v=20260914-1">
+  <link rel="stylesheet" href="roulette.css?v=20260914-2">
   <link rel="stylesheet" href="pwa.css?v=1">
   <script src="pwa.js?v=1" defer></script>
 </head>
@@ -30,9 +30,13 @@
       <div class="wheel-hub" aria-hidden="true"><i data-lucide="train-front"></i><p id="rolling-name">?</p><div id="rolling-lines" class="line-badges"></div></div>
     </div>
     <p id="roulette-result" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
-    <div class="roulette-actions"><button id="spin" class="primary" disabled><i data-lucide="rotate-cw"></i><span>돌리기</span></button><a id="station-map" class="icon-button" aria-label="선택된 역 지도" title="선택된 역 지도" target="_blank" rel="noopener noreferrer" hidden><i data-lucide="map-pin"></i></a></div>
+    <div class="roulette-actions"><button id="spin" class="primary" disabled><i data-lucide="rotate-cw"></i><span>돌리기</span></button><button id="choose-station" hidden><i data-lucide="check"></i><span>선택</span></button><a id="station-map" class="icon-button" aria-label="선택된 역 지도" title="선택된 역 지도" target="_blank" rel="noopener noreferrer" hidden><i data-lucide="map-pin"></i></a></div>
     <p id="station-note" class="station-note"></p>
     <p id="roulette-error" role="alert"></p>
+    <section class="roulette-history" aria-labelledby="roulette-history-title">
+      <div class="history-heading"><h2 id="roulette-history-title">선택한 역</h2><button id="refresh-choices" class="icon-button" aria-label="선택 내역 새로고침" title="새로고침"><i data-lucide="refresh-cw"></i></button></div>
+      <p id="choices-status" role="status"></p><div id="choices-list"></div>
+    </section>
   </main>
   <dialog id="stations-dialog" aria-labelledby="stations-title">
     <div class="dialog-head"><h2 id="stations-title">역 목록</h2><button id="close-stations" class="icon-button" aria-label="닫기" title="닫기"><i data-lucide="x"></i></button></div>
@@ -42,9 +46,9 @@
     <footer><a href="https://t-data.seoul.go.kr/dataprovide/trafficdataviewfile.do?data_id=36" target="_blank" rel="noopener noreferrer">서울시 T-DATA</a><a href="https://www.korail.com/ticket/train/stationGuide/station/view?stationSeq=10281375" target="_blank" rel="noopener noreferrer">코레일</a><span>2026.09.13 기준</span></footer>
   </dialog>
   <script src="vendor/supabase.js" defer></script>
-  <script src="auth-client.js?v=20260914-1" defer></script>
+  <script src="auth-client.js?v=20260914-2" defer></script>
   <script src="vendor/lucide.js" defer></script>
-  <script type="module" src="journal-gate.js?v=20260914-1"></script>
-  <script type="module" src="roulette.js?v=20260914-1"></script>
+  <script type="module" src="journal-gate.js?v=20260914-2"></script>
+  <script type="module" src="roulette.js?v=20260914-2"></script>
 </body>
 </html>

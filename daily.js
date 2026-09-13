@@ -1,6 +1,6 @@
-import { validProfile } from './profile.js?v=20260914-1';
-import { validAvatar } from './avatar.js?v=20260914-1';
-import { createDailyHistory } from './daily-history.js?v=20260914-1';
+import { validProfile } from './profile.js?v=20260914-2';
+import { validAvatar } from './avatar.js?v=20260914-2';
+import { createDailyHistory } from './daily-history.js?v=20260914-2';
 
 const client = window.realmClient;
 const panel = document.getElementById('daily-panel');

@@ -45,6 +45,15 @@ try {
 } finally {await db.close();}
 assert.equal(remainingStations(STATIONS,[{station_id:STATIONS[0].id}]).length,447);
 assert.equal(remainingStations(STATIONS,STATIONS.map(station=>({station_id:station.id}))).length,0);
+const fixed={station_id:STATIONS[0].id,day:'2026-09-14'};
+for(const data of [fixed,[fixed]]) {
+  const api=createRouletteStore({rpc:async()=>({data})},()=>({id:owner,epoch:1}));
+  assert.deepEqual(await api.choose(STATIONS[0]),fixed);
+}
+for(const data of [[],[fixed,fixed],null]) {
+  const api=createRouletteStore({rpc:async()=>({data})},()=>({id:owner,epoch:1}));
+  await assert.rejects(api.choose(STATIONS[0]),/INVALID_HISTORY/);
+}
 for(const name of ['신촌','양평']) {
   const same=STATIONS.filter(station=>station.name===name);
   assert.equal(remainingStations(same,[{station_id:same[0].id}])[0].id,same[1].id,'different same-name stations remain independent');

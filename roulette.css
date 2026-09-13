@@ -28,7 +28,20 @@ h1 { font-size: 22px; font-weight: 500; margin: 0 0 12px; }
 .line-badges { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; min-height: 22px; }
 .line-badge { font-size: 11px; line-height: 20px; padding: 0 5px; color: #e7eeea; border-bottom: 2px solid var(--line-color); white-space: nowrap; }
 .roulette-actions { min-height: 50px; display: flex; gap: 12px; justify-content: center; align-items: center; position: relative; }
-#station-map { position: absolute; left: calc(50% + 92px); }
+#choose-station { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 50px; padding: 0 16px; }
+.roulette-actions { flex-wrap: wrap; gap: 8px; }
+.roulette-actions .primary { min-width: 136px; padding: 0 18px; }
+.roulette-history { margin: 28px 0 0; padding-top: 22px; border-top: 1px solid #40534c; text-align: left; }
+.history-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+#choices-status { color: #afc1b7; font-size: 13px; min-height: 18px; }
+.choice-day { margin: 22px 0; }
+.choice-day h3 { font-size: 13px; font-weight: 500; color: #c8b690; margin: 0 0 8px; }
+.choice-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; border-bottom: 1px solid #314541; }
+.choice-row>div { min-width: 0; }
+.choice-row strong { display: block; font-size: 16px; font-weight: 500; overflow-wrap: anywhere; margin-bottom: 6px; }
+.choice-row .line-badges { justify-content: flex-start; }
+.choice-row .icon-button { flex-shrink: 0; }
+#station-list li[data-chosen=true] strong::after { content: ' · 선택됨'; font-size: 11px; color: #c8b690; }
 .primary { display: inline-flex; justify-content: center; align-items: center; gap: 10px; min-width: 160px; height: 50px; padding: 0 24px; background: #c5e2cb; border-color: #d7e8cc; color: #132c27; font-weight: 600; }
 .primary:not(:disabled):hover { background: #e0efdc; }
 .station-note { min-height: 38px; margin: 14px 0 0; font-size: 12px; color: #d7c6a0; line-height: 1.6; }
