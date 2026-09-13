@@ -15,9 +15,9 @@
   <meta name="apple-mobile-web-app-title" content="포털">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="preload" as="image" href="assets/realm-gate.webp">
-  <link rel="stylesheet" href="styles.css?v=20260914-3">
-  <link rel="stylesheet" href="dungeon.css?v=20260914-3">
-  <link rel="stylesheet" href="continuity.css?v=20260914-3">
+  <link rel="stylesheet" href="styles.css?v=20260914-4">
+  <link rel="stylesheet" href="dungeon.css?v=20260914-4">
+  <link rel="stylesheet" href="continuity.css?v=20260914-4">
   <link rel="stylesheet" href="pwa.css?v=1">
   <script src="pwa.js?v=1" defer></script>
 </head>
@@ -40,13 +40,12 @@
     <section id="entry" class="stage entry-stage" aria-labelledby="entry-title">
       <div class="entry-copy">
         <h1 id="entry-title" class="sr-only">입장</h1>
-        <button id="enter" class="enter-button"><span>입장</span><i data-lucide="arrow-up-right"></i></button>
+        <div class="entry-cue"><span class="entry-track" aria-hidden="true"><span></span></span><button id="enter" class="scroll-enter" type="button" title="로그인으로 이동" aria-label="로그인으로 이동"><i data-lucide="arrow-down" aria-hidden="true"></i></button></div>
       </div>
     </section>
     <section id="auth" class="stage form-stage" aria-labelledby="auth-title" hidden>
       <div class="form-wrap">
         <h1 id="auth-title" tabindex="-1">로그인</h1>
-        <div class="segmented" role="group" aria-label="계정 작업"><button type="button" data-auth-mode="login" aria-pressed="true">로그인</button><button type="button" data-auth-mode="signup" aria-pressed="false">회원가입</button></div>
         <form id="auth-form">
           <label>이메일<input id="email" type="email" autocomplete="email" placeholder="you@example.com" required maxlength="254"></label>
           <label>비밀번호<span class="password-field"><input id="password" type="password" autocomplete="current-password" placeholder="8자 이상" minlength="8" maxlength="128" required><button class="icon-button" id="show-password" type="button" aria-label="비밀번호 표시" title="비밀번호 표시"><i data-lucide="eye"></i></button></span></label>
@@ -130,10 +129,10 @@
   <p id="global-message" class="global-message" role="status"></p>
   <noscript><p class="noscript">입장하려면 브라우저에서 JavaScript를 켜주세요.</p></noscript>
   <script src="vendor/supabase.js" defer></script>
-  <script src="auth-client.js?v=20260914-3" defer></script>
+  <script src="auth-client.js?v=20260914-4" defer></script>
   <script src="vendor/lucide.js" defer></script>
-  <script type="module" src="realm.js?v=20260914-3"></script>
-  <script type="module" src="player-level.js?v=20260914-3"></script>
-  <script type="module" src="map-wind.js?v=20260914-3"></script>
+  <script type="module" src="realm.js?v=20260914-4"></script>
+  <script type="module" src="player-level.js?v=20260914-4"></script>
+  <script type="module" src="map-wind.js?v=20260914-4"></script>
 </body>
 </html>

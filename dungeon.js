@@ -1,4 +1,4 @@
-import {createRoads,roadSpawn,moveOnRoad,nearbyRoad} from './roads.js?v=20260914-3';
+import {createRoads,roadSpawn,moveOnRoad,nearbyRoad} from './roads.js?v=20260914-4';
 export function createDungeon(stage, isActive) {
   const actor = stage.querySelector('#map-actor');
   const portrait = matchMedia('(max-aspect-ratio: 1/1)');

@@ -1,12 +1,13 @@
-import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js?v=20260914-3';
-import { validProfile } from './profile.js?v=20260914-3';
-import { createDungeon } from './dungeon.js?v=20260914-3';
-import { resolveRealmStage } from './realm-route.js?v=20260914-3';
+import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js?v=20260914-4';
+import { validProfile } from './profile.js?v=20260914-4';
+import { createDungeon } from './dungeon.js?v=20260914-4';
+import { resolveRealmStage } from './realm-route.js?v=20260914-4';
+import { createScrollEntry } from './scroll-entry.js?v=20260914-4';
 
 const $ = id => document.getElementById(id);
 const client = window.realmClient;
 window.lucide?.createIcons();
-let user = null, stage = 'entry', authMode = 'login', epoch = 0, entered = false, flipped = false;
+let user = null, stage = 'entry', epoch = 0, entered = false, flipped = false;
 let sessionReady = false, recovery = false;
 let draft = null, preview = parseAvatar(DEFAULT_PROMPT), frame = 0;
 const settings = $('realm-settings'), settingsPanel = $('settings-panel'), settingsToggle = $('settings-toggle');
@@ -31,7 +32,7 @@ document.addEventListener('keydown', event => {
   setSettings(false, true);
 });
 const dungeon = createDungeon($('map'), () => stage === 'map' && !!user && !$('logout').disabled && settingsPanel.hidden && !document.querySelector('dialog[open]'));
-let portal = { setMotion() {}, setStage() {}, async travel() {} };
+let portal = { setMotion() {}, setStage() {}, setEntryProgress() {} };
 const reducedQuery = matchMedia('(prefers-reduced-motion: reduce)');
 let motionPreference = null;
 try { motionPreference = localStorage.getItem('seungmin-realm-motion'); } catch {}
@@ -55,12 +56,18 @@ $('motion').addEventListener('change', event => {
 });
 reducedQuery.addEventListener('change', () => { if (motionPreference === null) setMotion(!reducedQuery.matches); });
 // Rendering is optional: a failed GPU or module must never block account access.
-import('./portal.js?v=20260914-3').then(({ createPortal }) => {
+import('./portal.js?v=20260914-4').then(({ createPortal }) => {
   portal = createPortal($('portal'), motion);
   portal.setStage(stage);
+  portal.setEntryProgress(entrance.progress);
 }).catch(() => {
   $('portal').hidden = true;
   document.body.dataset.renderer = 'fallback';
+});
+const entrance=createScrollEntry({
+  section:$('entry'),button:$('enter'),isActive:()=>sessionReady && stage==='entry',motion:()=>motion,
+  render(progress){document.body.style.setProperty('--entry-progress',progress);portal.setEntryProgress(progress);},
+  onEnter(){entered=true;routeAccount();}
 });
 
 function show(next, {replace=false} = {}) {
@@ -71,14 +78,14 @@ function show(next, {replace=false} = {}) {
   const hash=next==='entry'?'':'#'+next;
   if(location.hash!==hash)history[replace?'replaceState':'pushState'](null,'',location.pathname+location.search+hash);
   document.querySelectorAll('.stage').forEach(section => { section.hidden = section.id !== next; });
-  document.querySelector('.journey').hidden = ['entry','complete','map'].includes(next);
+  document.querySelector('.journey').hidden = ['entry','auth','complete','map'].includes(next);
   dungeon.reset();
   document.querySelectorAll('[data-step]').forEach(item => {
     if (item.dataset.step === next) item.setAttribute('aria-current', 'step');
     else item.removeAttribute('aria-current');
   });
   portal.setStage(next);
-  document.title = ({entry:'입장',auth:authMode==='signup'?'회원가입':'로그인',profile:'프로필',avatar:'캐릭터',complete:'캐릭터',map:'지도'})[next];
+  document.title = ({entry:'입장',auth:'로그인',profile:'프로필',avatar:'캐릭터',complete:'캐릭터',map:'지도'})[next];
   if (motion && previous !== next) {
     $(next).getAnimations().forEach(animation => animation.cancel());
     $(next).animate([
@@ -87,6 +94,7 @@ function show(next, {replace=false} = {}) {
     ], {duration:650,easing:'cubic-bezier(.22,.61,.36,1)'});
   }
   window.scrollTo({ top: 0, behavior: 'instant' });
+  if(next==='entry')entrance.reset();
   $(next + '-title')?.focus({ preventScroll: true });
   renderAvatar();
   window.dispatchEvent(new CustomEvent('realm-view', {detail:next}));
@@ -155,28 +163,6 @@ const ready = client.auth.getSession().then(({ data, error }) => {
 const restoreRoute=()=>{if(sessionReady)routeAccount();};
 window.addEventListener('hashchange',restoreRoute);
 window.addEventListener('popstate',restoreRoute);
-$('enter').addEventListener('click', async () => {
-  $('enter').disabled = true;
-  try {
-    if (motion) document.body.classList.add('entering');
-    await portal.travel();
-    await ready;
-    entered = true;
-    routeAccount();
-  } finally {
-    document.body.classList.remove('entering');
-    $('enter').disabled = false;
-  }
-});
-document.querySelectorAll('[data-auth-mode]').forEach(button => button.addEventListener('click', () => {
-  authMode = button.dataset.authMode;
-  document.querySelectorAll('[data-auth-mode]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
-  $('auth-submit').querySelector('span').textContent = authMode === 'signup' ? '회원가입' : '로그인';
-  $('auth-title').textContent = authMode === 'signup' ? '회원가입' : '로그인';
-  document.title = $('auth-title').textContent;
-  $('password').autocomplete = authMode === 'signup' ? 'new-password' : 'current-password';
-  $('auth-message').textContent = '';
-}));
 $('show-password').addEventListener('click', () => {
   const showPassword = $('password').type === 'password';
   $('password').type = showPassword ? 'text' : 'password';
@@ -188,13 +174,10 @@ function disable(container, value) { container.querySelectorAll('button, input, 
 $('auth-form').addEventListener('submit', async event => {
   event.preventDefault();
   const credentials = { email: $('email').value.trim(), password: $('password').value };
-  const signup = authMode === 'signup';
   disable($('auth'), true);
   $('auth-message').textContent = '계정 확인 중…';
   try {
-    const { data, error } = signup
-      ? await client.auth.signUp({ ...credentials, options: { emailRedirectTo: 'https://seungmin.xyz/test.html' } })
-      : await client.auth.signInWithPassword(credentials);
+    const { data, error } = await client.auth.signInWithPassword(credentials);
     if (error) throw error;
     $('password').value = '';
     if (!data.session) {

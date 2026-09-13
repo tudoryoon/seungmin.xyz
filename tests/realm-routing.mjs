@@ -3,6 +3,7 @@ import {readFile} from 'node:fs/promises';
 import * as avatars from '../avatar.js';
 import {validProfile} from '../profile.js';
 import {resolveRealmStage} from '../realm-route.js';
+import {createScrollEntry} from '../scroll-entry.js';
 const {Window}=await import(process.env.DOM_MODULE||'happy-dom');
 const user={id:'routing-fixture',email:'fixture@example.com',user_metadata:{realm_profile:{version:1,name:'Fixture',age:31,gender:'unspecified',mbti:'',blood:''},realm_avatar:avatars.parseAvatar('청록색 도포를 입은 도사')}};
 assert.equal(resolveRealmStage(null,'#map'),'auth');
@@ -28,8 +29,8 @@ async function boot(hash,account,error=null,{preference='off',reduced=false}={})
   const callbacks=[],motionValues=[];let finishSession,canMove;
   window.realmClient={auth:{onAuthStateChange(callback){callbacks.push(callback);},getSession:()=>new Promise(resolve=>{finishSession=resolve;}),async signOut(){callbacks.forEach(callback=>callback('SIGNED_OUT',null));return {};}}};
   window.realmError=()=> 'Connection failed';window.lucide={createIcons(){}};
-  window.realmTest={...avatars,paintAvatar(){},validProfile,resolveRealmStage,createDungeon:(_,active)=>{canMove=active;return {reset(){}};},portal:{createPortal:(_,motion)=>{motionValues.push(motion);return {setMotion(value){motionValues.push(value);},setStage(){},travel:async()=>{}};}}};
-  window.eval('(()=>{const {parseAvatar,paintAvatar,validAvatar,avatarTraits,avatarTitle,DEFAULT_PROMPT,validProfile,createDungeon,resolveRealmStage}=window.realmTest;\n'+source+'\n})()');
+  window.realmTest={...avatars,paintAvatar(){},validProfile,resolveRealmStage,createScrollEntry,createDungeon:(_,active)=>{canMove=active;return {reset(){}};},portal:{createPortal:(_,motion)=>{motionValues.push(motion);return {setMotion(value){motionValues.push(value);},setStage(){},setEntryProgress(){}};}}};
+  window.eval('(()=>{const {parseAvatar,paintAvatar,validAvatar,avatarTraits,avatarTitle,DEFAULT_PROMPT,validProfile,createDungeon,resolveRealmStage,createScrollEntry}=window.realmTest;\n'+source+'\n})()');
   assert.equal(window.document.body.classList.contains('session-checking'),true,'session restoration hides the entrance initially');
   finishSession({data:{session:account?{user:account}:null},error});
   await until(()=>!window.document.body.classList.contains('session-checking'));

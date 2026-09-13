@@ -45,9 +45,18 @@ body:not([data-stage=entry]) .world-shade { background: linear-gradient(90deg, #
 body.entering .landscape { transform: scale(5); opacity: 0; }
 body.entering .world canvas { opacity: 1; }
 body[data-stage=map] .world { visibility: visible; }
-.entry-stage { min-height: 600px; }
-.entry-copy { padding-bottom: 115px; }
-.enter-button { background: #0c202cce; border-color: #b5d3d6; }
+.entry-stage { display:block;min-height:0;height:240svh;padding:0; }
+.entry-copy { position:sticky;top:0;height:100svh;padding:0; }
+.entry-cue { position:absolute;bottom:max(30px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:12px;opacity:calc(1 - var(--entry-progress,0)); }
+.entry-track { display:block;width:1px;height:50px;background:#d9bf8540; }
+.entry-track>span { display:block;width:100%;height:100%;background:#d9bf85;transform:scaleY(var(--entry-progress,0));transform-origin:top; }
+.scroll-enter { width:48px;height:48px;min-height:48px;border:0;border-radius:0;background:none;color:#d3e8df; }
+.scroll-enter svg { width:24px;height:24px; }
+.scroll-enter:hover { color:white; }
+body[data-stage=entry] { overscroll-behavior-y:none; }
+body[data-stage=entry] .realm-header { position:fixed; }
+body[data-stage=entry] .landscape { transition:none;transform:scale(calc(1.025 + var(--entry-progress,0) * 3));opacity:max(0,calc(.78 - var(--entry-progress,0) * 1.4)); }
+body[data-stage=entry].reduced-motion .landscape { transform:none;opacity:calc(.78 - var(--entry-progress,0) * .58); }
 .map-stage { background: transparent; }
 .dungeon-art {
   opacity: .88;
@@ -65,6 +74,6 @@ body[data-renderer="fallback"]:not([data-stage="entry"]) .landscape {
 }
 @media(max-width:760px) {
   .realm-header { padding: 20px 22px; }
-  .entry-copy { padding-bottom: 90px; }
+  .entry-copy { padding-bottom: 0; }
   .dungeon-art { mask-image: radial-gradient(ellipse 87% 74% at 50% 50%, #000 39%, #000e 64%, #0000 100%); }
 }

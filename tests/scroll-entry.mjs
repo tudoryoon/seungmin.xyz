@@ -1,0 +1,35 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {createScrollEntry,entryProgress} from '../scroll-entry.js';
+const {Window}=await import(process.env.DOM_MODULE || 'happy-dom');
+assert.equal(entryProgress(-1,100),0);assert.equal(entryProgress(40,100),.4);assert.equal(entryProgress(120,100),1);assert.equal(entryProgress(0,0),0);
+assert.equal(entryProgress(1181.5,1182),1,'fractional mobile scroll reaches the rounded end');
+const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+const realm=await readFile(new URL('../realm.js',import.meta.url),'utf8');
+assert.equal(/data-auth-mode|회원가입/.test(html),false);assert.equal(/signUp\(/.test(realm),false);
+assert.ok(realm.includes('signInWithPassword(credentials)'));
+const w=new Window({url:'http://localhost',settings:{disableCSSFileLoading:true,disableJavaScriptFileLoading:true}});
+w.document.write(html);
+let active=false,motion=true,entered=0,offset=0,lastScroll;
+const renders=[],section=w.document.getElementById('entry'),button=w.document.getElementById('enter');
+Object.defineProperty(section,'offsetHeight',{get:()=>2400});
+Object.defineProperty(section,'offsetTop',{get:()=>0});
+Object.defineProperty(section.querySelector('.entry-copy'),'offsetHeight',{get:()=>1000});
+Object.defineProperty(w,'scrollY',{get:()=>offset});
+w.scrollTo=options=>{lastScroll=options;offset=options.top;w.dispatchEvent(new w.Event('scroll'));};
+const tick=()=>new Promise(resolve=>w.requestAnimationFrame(resolve));
+const entry=createScrollEntry({section,button,isActive:()=>active,motion:()=>motion,render:p=>renders.push(p),onEnter:()=>entered++});
+try {
+  w.scrollTo({top:1400});await tick();assert.equal(entered,0,'session loading cannot enter');
+  offset=0;active=true;entry.reset();
+  w.scrollTo({top:700});await tick();assert.equal(entry.progress,.5);assert.equal(entered,0);
+  w.scrollTo({top:280});await tick();assert.equal(entry.progress,.2,'scroll is reversible before entry');
+  w.scrollTo({top:1390});await tick();assert.equal(entered,0,'partial scroll does not enter');
+  w.scrollTo({top:1400});await tick();assert.equal(entered,1);assert.equal(button.disabled,true);
+  w.dispatchEvent(new w.Event('scroll'));await tick();assert.equal(entered,1,'only enters once');
+  active=false;entry.reset();w.scrollTo({top:1400});await tick();assert.equal(entered,1,'scrolling forms or map does not enter');
+  active=true;motion=false;entry.reset();button.click();await tick();assert.equal(lastScroll.behavior,'instant');assert.equal(entered,2,'keyboard-accessible fallback works without animation');
+  motion=true;entry.reset();button.click();await tick();assert.equal(lastScroll.behavior,'smooth');assert.equal(entered,3);
+  assert.ok(renders.includes(.5));
+  console.log('PASS: native scroll progress/reverse, completion guard, session and stage isolation, keyboard fallback, reduced motion and login-only markup/API.');
+} finally {await w.happyDOM.close();}

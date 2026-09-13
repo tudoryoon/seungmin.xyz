@@ -1,5 +1,5 @@
-import {calendarRequest,connectGoogle,errorMessage} from './google-api.js?v=20260914-3';
-import {occursOn,eventFields,eventPayload,localDate} from './google-calendar-core.js?v=20260914-3';
+import {calendarRequest,connectGoogle,errorMessage} from './google-api.js?v=20260914-4';
+import {occursOn,eventFields,eventPayload,localDate} from './google-calendar-core.js?v=20260914-4';
 const el = id => document.getElementById(id);
 let owner = null, generation = 0, fetchGeneration = 0, listGeneration = 0, connected = false;
 let calendars = [], events = [], selectedCalendars = new Set(), loadedRange = '', editingEvent = null, saving = false, requestId = '';

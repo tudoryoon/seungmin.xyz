@@ -48,7 +48,7 @@ async function setup(options={}) {
       const body=req.postDataJSON(),user=users.get(body.email);
       if(!user||body.password==='wrong-password'){status=400;result={message:'Invalid login credentials'};}
       else result=session(user);
-    } else if(path.endsWith('/signup')) result={user:makeUser('new@example.com','new-user'),session:null};
+    } else if(path.endsWith('/signup')) throw new Error('Public signup is disabled');
     else if(path.endsWith('/user')){
       const bearer=req.headers().authorization?.split(' ')[1];
       const id=JSON.parse(Buffer.from(bearer.split('.')[1],'base64url').toString()).sub;
@@ -97,19 +97,13 @@ try{
   await page.locator('#portal').evaluate(el=>el.style.opacity='');
   await motionSetting(page,true);
   await page.locator('#enter').click();
-  await page.waitForTimeout(800);
-  assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('entering')),true);
-  await page.screenshot({path:'/tmp/realm-warp.png'});
   await page.locator('#auth').waitFor({state:'visible'});
   await page.locator('#auth').evaluate(element=>Promise.all(element.getAnimations().map(animation=>animation.finished)));
   await page.waitForTimeout(1000);
   assert.equal(await worldCanvas.evaluate(element=>element===document.querySelector('#portal')),true,'same renderer canvas after entry');
   assert.equal(await page.locator('#profile').isVisible(),false);
   await page.screenshot({path:'/tmp/realm-auth-desktop.png'});
-  await page.locator('[data-auth-mode=signup]').click();
-  await page.locator('#email').fill('new@example.com');await page.locator('#password').fill('a-test-password');await page.locator('#auth-submit').click();
-  await page.getByText('메일함의 인증 링크를 누른 뒤 로그인해 주세요.').waitFor();
-  await page.locator('[data-auth-mode=login]').click();
+  assert.equal(await page.locator('[data-auth-mode]').count(),0);
   await page.locator('#email').fill('a@example.com');await page.locator('#password').fill('wrong-password');await page.locator('#auth-submit').click();
   await page.getByText('이메일 또는 비밀번호를 확인해 주세요.').waitFor();
   await login(page);await page.locator('#profile').waitFor({state:'visible'});
@@ -216,5 +210,5 @@ try{
     await broken.context.close();
   }
   assert.deepEqual(errors,[]);
-  console.log('PASS: portal nonblank/moving, warp, reduced motion, no-WebGL, signup/login/errors, profile validation/save recovery, actual pixel traits, draft invalidation, avatar save recovery, reload, second-device sync, account isolation, journal gate, desktop/mobile layout.');
+  console.log('PASS: portal nonblank/moving, scroll entrance, reduced motion, no-WebGL, login-only/errors, profile validation/save recovery, actual pixel traits, draft invalidation, avatar save recovery, reload, second-device sync, account isolation, journal gate, desktop/mobile layout.');
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}

@@ -12,7 +12,7 @@ export function createPortal(canvas, motion) {
     renderer = new THREE.WebGLRenderer({canvas,antialias:false,alpha:true,powerPreference:'low-power'});
   } catch {
     useFallback();
-    return {setMotion(){},setStage(){},async travel(){}};
+    return {setMotion(){},setStage(){},setEntryProgress(){}};
   }
   renderer.debug.onShaderError = useFallback;
   const renderRatio = () => Math.min(devicePixelRatio,1.2,Math.sqrt(1600000/(innerWidth*innerHeight)));
@@ -27,13 +27,18 @@ export function createPortal(canvas, motion) {
     entry:[0,0,14,55], auth:[0,1.65,-13,60], profile:[3,2,-19,58],
     avatar:[-3,1,-25,57], complete:[-1,3,-28,57], map:[0,5,-34,64]
   };
-  let stage = 'entry', active = motion, elapsed = 0, lastTime = 0, traveling = false;
-  let transition = null, finishTravel = null, travelTimer = null;
+  let stage = 'entry', active = motion, elapsed = 0, lastTime = 0, entryProgress = 0;
   const base = new THREE.Vector3(0,0,14);
   const target = new THREE.Vector3(0,0,14);
   const pointer = new THREE.Vector2();
   const drift = new THREE.Vector2();
   let targetFov = 55, gateOpacity = 1;
+  function entryPose(){
+    if(stage!=='entry')return;
+    const p=active ? entryProgress : 0,ease=p*p*(3-2*p);
+    target.set(Math.sin(p*Math.PI)*.65,1.65*ease,14-27*ease);
+    targetFov=55+Math.sin(p*Math.PI)*14+p*5;
+  }
 
   const skyMaterial = new THREE.ShaderMaterial({
     depthWrite:false,depthTest:false,
@@ -176,21 +181,14 @@ export function createPortal(canvas, motion) {
     if(active){
       elapsed+=dt;
       drift.lerp(pointer,Math.min(1,dt*2.5));
-      if(!transition) base.lerp(target,Math.min(1,dt*1.6));
-      camera.fov+=(targetFov-camera.fov)*Math.min(1,dt*1.6);
+      base.lerp(target,Math.min(1,dt*(stage==='entry'?7:1.6)));
+      camera.fov+=(targetFov-camera.fov)*Math.min(1,dt*(stage==='entry'?7:1.6));
       stars.rotation.y=elapsed*.0015;
       stars.rotation.z=Math.sin(elapsed*.02)*.012;
       runes.rotation.z=elapsed*.045;
       rings.forEach((ring,i)=>{ring.rotation.z=i*.8+elapsed*(i%2?-.1:.12);});
     }
-    if(transition){
-      const p=Math.min(1,(performance.now()-transition.started)/1800);
-      const ease=p*p*(3-2*p);
-      base.lerpVectors(transition.from,transition.to,ease);
-      camera.fov=55+Math.sin(p*Math.PI)*18+p*5;
-      if(p===1) finishTravel();
-    }
-    const opacityTarget=stage==='entry'||traveling?1:0;
+    const opacityTarget=stage==='entry'?1-THREE.MathUtils.smoothstep(entryProgress,.55,1):0;
     gateOpacity=active?gateOpacity+(opacityTarget-gateOpacity)*Math.min(1,dt*2.5):opacityTarget;
     gold.opacity=gateOpacity*.7;jade.opacity=gateOpacity*.55;
     gate.visible=gateOpacity>.005;
@@ -204,7 +202,7 @@ export function createPortal(canvas, motion) {
   }
   function loop(){
     lastTime=0;
-    renderer.setAnimationLoop((active||traveling)&&!document.hidden&&!canvas.hidden?render:null);
+    renderer.setAnimationLoop(active&&!document.hidden&&!canvas.hidden?render:null);
     render();
   }
   function resize(){
@@ -220,6 +218,7 @@ export function createPortal(canvas, motion) {
     stage=Object.hasOwn(poses,next)?next:'auth';
     const pose=poses[stage];
     target.set(pose[0],pose[1],pose[2]);targetFov=pose[3];
+    entryPose();
     if(!active){base.copy(target);camera.fov=targetFov;drift.set(0,0);}
     loop();
   }
@@ -232,32 +231,16 @@ export function createPortal(canvas, motion) {
   document.addEventListener('visibilitychange',loop);
   canvas.addEventListener('webglcontextlost',event=>{
     event.preventDefault();useFallback();
-    if(traveling)finishTravel();
   });
   resize();loop();
   return {
     setMotion(value){
       active=value;
-      if(!active&&traveling)finishTravel();
+      entryPose();
       if(!active){drift.set(0,0);base.copy(target);camera.fov=targetFov;}
       loop();
     },
     setStage,
-    travel(){
-      if(!active||canvas.hidden){setStage('auth');return Promise.resolve();}
-      traveling=true;
-      transition={from:base.clone(),to:new THREE.Vector3(...poses.auth.slice(0,3)),started:performance.now()};
-      return new Promise(resolve=>{
-        finishTravel=()=>{
-          if(!traveling)return;
-          traveling=false;clearTimeout(travelTimer);
-          base.copy(transition.to);target.copy(transition.to);
-          transition=null;stage='auth';targetFov=60;camera.fov=60;
-          resolve();
-        };
-        travelTimer=setTimeout(finishTravel,2000);
-        loop();
-      });
-    }
+    setEntryProgress(value){entryProgress=Math.max(0,Math.min(1,value));entryPose();if(!active)render();}
   };
 }
