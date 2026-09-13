@@ -8,7 +8,7 @@
 
 The GitHub login to the Supabase dashboard is separate from website authentication.
 The publishable key in cloud.js is intentionally public. Never put secret or service-role keys into website code.
-Google and Naver calendar integrations are not enabled.
+Google Calendar uses the separate Edge Function described in [google-calendar.md](google-calendar.md). Naver is not connected.
 
 For the personal library, also run `library.sql`. This adds a separate private file bucket and owner-only resource table without altering journal records. Keep the bucket private. The browser uses only the existing publishable key and the signed-in user's session; no admin key is needed. Files in the trash remain stored and can be restored.
 

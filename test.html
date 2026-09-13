@@ -13,10 +13,11 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="포털">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="stylesheet" href="journal.css?v=20260913-4">
-  <link rel="stylesheet" href="journal-theme.css?v=20260913-4">
-  <link rel="stylesheet" href="library.css?v=20260913-4">
-  <link rel="stylesheet" href="daily.css?v=20260913-4">
+  <link rel="stylesheet" href="journal.css?v=20260913-5">
+  <link rel="stylesheet" href="journal-theme.css?v=20260913-5">
+  <link rel="stylesheet" href="library.css?v=20260913-5">
+  <link rel="stylesheet" href="daily.css?v=20260913-5">
+  <link rel="stylesheet" href="google-calendar.css?v=20260913-5">
   <link rel="stylesheet" href="pwa.css?v=1">
   <script src="pwa.js?v=1" defer></script>
 </head>
@@ -28,6 +29,7 @@
     <p id="message" role="status"></p>
     <section id="calendar" class="view">
       <div class="section-head"><h1>일정관리</h1><button class="primary" id="add-event">일정 추가</button></div>
+      <div class="google-toolbar"><p id="google-sync-status" role="status"></p><a id="google-setup-link" href="#connections">Google Calendar 연결</a><label id="event-destination-field" hidden>새 일정<select id="event-destination" aria-label="새 일정 저장 위치"><option value="local">내 기록</option></select></label></div>
       <div class="calendar-workspace">
       <div class="calendar-layout">
         <div><div class="month-toolbar"><h2 id="month-title"></h2><div class="actions"><button id="previous" aria-label="이전 달" title="이전 달">←</button><button id="today">오늘</button><button id="next" aria-label="다음 달" title="다음 달">→</button></div></div>
@@ -54,11 +56,22 @@
     </section>
     <section id="connections" class="view" hidden>
       <div class="section-head"><h1>캘린더 연동</h1><a class="map-return" href="#calendar"><i data-lucide="arrow-left"></i>일정관리</a></div>
-      <div class="connection-row"><div><h2>Google Calendar</h2><p>Google 계정 연결</p></div><span class="status">미연결</span></div>
+      <div class="connection-row"><div><h2>Google Calendar</h2><p id="google-account">연결 확인 중…</p></div><div class="actions"><button class="primary" id="google-connect">연결</button><button id="google-disconnect" hidden>연결 해제</button></div></div>
+      <p id="google-connection-error" role="status"></p><div id="google-calendars" class="google-calendars" aria-label="표시할 Google 캘린더"></div>
       <div class="connection-row"><div><h2>네이버 캘린더</h2><p>네이버 일정 연결</p></div><span class="status">미연결</span></div>
-      <p class="connection-note">외부 캘린더 연결은 아직 준비 중입니다.</p>
     </section>
   </main>
+  <dialog id="google-editor"><form id="google-form">
+    <div class="dialog-head"><h2 id="google-editor-title">Google 일정</h2><button type="button" id="google-close" class="google-icon" aria-label="닫기" title="닫기"><i data-lucide="x"></i></button></div>
+    <label>캘린더<select id="google-event-calendar" required></select></label>
+    <label>제목<input id="google-title" maxlength="1000" required autocomplete="off"></label>
+    <div class="form-grid"><label>시작일<input id="google-start-date" type="date" required></label><label>종료일<input id="google-end-date" type="date" required></label></div>
+    <div class="form-grid"><label>시작 시간<input id="google-start-time" type="time" required></label><label>종료 시간<input id="google-end-time" type="time" required></label></div>
+    <label class="check"><input type="checkbox" id="google-all-day">종일</label>
+    <label>장소<input id="google-location" maxlength="1024"></label><label>메모<textarea id="google-notes" rows="4" maxlength="8192"></textarea></label>
+    <p id="google-event-note" class="google-editor-note"></p><p id="google-error" role="alert"></p>
+    <div class="dialog-actions"><button type="submit" class="primary" id="google-save"><i data-lucide="check"></i>Google에 저장</button></div>
+  </form></dialog>
   <dialog id="link-dialog"><form id="link-form">
     <div class="dialog-head"><h2 id="link-editor-title">링크 추가</h2><button type="button" class="library-icon" data-close="link-dialog" aria-label="닫기" title="닫기"><i data-lucide="x"></i></button></div>
     <label id="link-url-field">사이트 주소<input id="link-url" type="text" inputmode="url" placeholder="https://" maxlength="2048" required></label>
@@ -99,12 +112,13 @@
   </form></dialog>
   <dialog id="password-dialog"><form id="password-form"><h2>새 비밀번호</h2><label>비밀번호<input id="new-password" type="password" required minlength="8" autocomplete="new-password"></label><p id="password-message" role="status"></p><button class="primary" type="submit">비밀번호 저장</button></form></dialog>
   <script src="vendor/supabase.js" defer></script>
-  <script src="auth-client.js?v=20260913-4" defer></script>
-  <script type="module" src="journal-gate.js?v=20260913-4"></script>
-  <script src="cloud.js?v=20260913-4" defer></script>
+  <script src="auth-client.js?v=20260913-5" defer></script>
+  <script type="module" src="journal-gate.js?v=20260913-5"></script>
+  <script src="cloud.js?v=20260913-5" defer></script>
   <script src="vendor/lucide.js" defer></script>
-  <script src="journal.js?v=20260913-4" defer></script>
-  <script type="module" src="library.js?v=20260913-4"></script>
-  <script type="module" src="daily.js?v=20260913-4"></script>
+  <script src="journal.js?v=20260913-5" defer></script>
+  <script type="module" src="google-calendar.js?v=20260913-5"></script>
+  <script type="module" src="library.js?v=20260913-5"></script>
+  <script type="module" src="daily.js?v=20260913-5"></script>
 </body>
 </html>

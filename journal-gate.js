@@ -1,5 +1,5 @@
-import { validProfile } from './profile.js?v=20260913-4';
-import { validAvatar } from './avatar.js?v=20260913-4';
+import { validProfile } from './profile.js?v=20260913-5';
+import { validAvatar } from './avatar.js?v=20260913-5';
 let recovery = location.hash.includes('type=recovery') || new URLSearchParams(location.search).get('recovery') === '1' || document.getElementById('password-dialog')?.open;
 window.realmClient.auth.onAuthStateChange((event, session) => {
   if (event === 'PASSWORD_RECOVERY') recovery = true;

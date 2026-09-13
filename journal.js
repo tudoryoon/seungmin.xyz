@@ -142,7 +142,7 @@ function render() {
     const day = i-offset+1;
     if (day < 1 || day > days) { grid.append(make('div', undefined, 'blank')); continue; }
     const key = dateKey(new Date(month.getFullYear(),month.getMonth(),day));
-    const count = allRecords().filter(r => r.kind === 'event' && r.date === key).length;
+    const count = allRecords().filter(r => r.kind === 'event' && r.date === key).length + (window.googleCalendar?.eventsForDate(key).length || 0);
     const button = make('button', undefined, 'day');
     button.classList.toggle('selected', key === selected);
     button.classList.toggle('today', key === today);
@@ -154,10 +154,13 @@ function render() {
   }
   $('selected-date').textContent = `${Number(selected.slice(5,7))}월 ${Number(selected.slice(8))}일`;
   const events = allRecords().filter(r => r.kind === 'event' && r.date === selected).sort((a,b) => (a.start || '').localeCompare(b.start || ''));
-  $('event-list').replaceChildren(...(events.length ? events.map(recordRow) : [make('p',records === null ? '기록을 아직 불러오지 못했습니다.' : '등록된 일정이 없습니다.','empty')]));
+  const googleEvents = window.googleCalendar?.eventsForDate(selected) || [];
+  const eventRows = [...events.map(record => ({start:record.start || '',row:recordRow(record)})),...googleEvents.map(record => ({start:record.start.date ? '' : new Date(record.start.dateTime).toTimeString(),row:window.googleCalendar.recordRow(record)}))].sort((a,b)=>a.start.localeCompare(b.start));
+  $('event-list').replaceChildren(...(eventRows.length ? eventRows.map(item=>item.row) : [make('p',records === null ? '기록을 아직 불러오지 못했습니다.' : '등록된 일정이 없습니다.','empty')]));
   const workouts = allRecords().filter(r => r.kind === 'workout' && r.date.startsWith($('workout-month').value)).sort((a,b) => b.date.localeCompare(a.date));
   $('workout-summary').textContent = `${workouts.length}회 · 총 ${workouts.reduce((sum,r) => sum+Number(r.duration),0)}분`;
   $('workout-list').replaceChildren(...(workouts.length ? workouts.map(recordRow) : [make('p',records === null ? '기록을 아직 불러오지 못했습니다.' : '이번 달 운동 기록이 없습니다.','empty')]));
+  window.dispatchEvent(new Event('journal-calendar-range'));
 }
 function toggleTime() {
   for (const id of ['start-time','end-time']) $(id).disabled = $('all-day').checked;
@@ -181,7 +184,10 @@ function openEditor(type, record = null) {
   toggleTime(); $('editor').showModal(); $('record-title').focus();
 }
 $('all-day').addEventListener('change', toggleTime);
-$('add-event').addEventListener('click', () => openEditor('event'));
+$('add-event').addEventListener('click', () => {
+  if (window.googleCalendar?.openNew(selected)) return;
+  openEditor('event');
+});
 $('add-workout').addEventListener('click', () => openEditor('workout'));
 $('close-editor').addEventListener('click', () => $('editor').close());
 $('record-form').addEventListener('submit', async event => {
@@ -215,5 +221,6 @@ $('previous').addEventListener('click', () => {month = new Date(month.getFullYea
 $('next').addEventListener('click', () => {month = new Date(month.getFullYear(),month.getMonth()+1,1);render();});
 $('today').addEventListener('click', () => {selected=today;month=new Date(new Date().getFullYear(),new Date().getMonth(),1);render();});
 $('workout-month').addEventListener('change', () => {if (!$('workout-month').value) $('workout-month').value=today.slice(0,7);render();});
+window.journalCalendar = {render,range:()=>({start:new Date(month.getFullYear(),month.getMonth(),1).toISOString(),end:new Date(month.getFullYear(),month.getMonth()+1,1).toISOString(),selected})};
 render();
 if (!cloud || cloud.ready) loadAccount();
