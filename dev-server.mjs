@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 const root = new URL('./', import.meta.url);
-const types = { js:'text/javascript', mjs:'text/javascript', css:'text/css', html:'text/html', webp:'image/webp', png:'image/png' };
+const types = { js:'text/javascript', mjs:'text/javascript', css:'text/css', html:'text/html', webp:'image/webp', png:'image/png', svg:'image/svg+xml', ico:'image/x-icon' };
 const server = createServer(async (req, res) => {
   try {
     const path = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
