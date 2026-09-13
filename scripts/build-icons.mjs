@@ -1,4 +1,4 @@
-import {readFile,writeFile} from 'node:fs/promises';
+import {mkdir,readFile,writeFile} from 'node:fs/promises';
 const {default:sharp}=await import(process.env.SHARP_MODULE||'sharp');
 const root=new URL('../',import.meta.url);
 const svg=await readFile(new URL('favicon.svg',root));
@@ -19,3 +19,7 @@ images.forEach((image,i)=>{
 await writeFile(new URL('favicon.ico',root),Buffer.concat([header,...images]));
 await sharp(svg,{density:576}).resize(180,180).flatten({background:'#080f14'}).png().toFile(new URL('apple-touch-icon.png',root).pathname);
 console.log('Generated favicon.ico (16, 32, 48 px) and apple-touch-icon.png (180 px).');
+await mkdir(new URL('assets/',root),{recursive:true});
+for(const size of [192,512])await sharp(svg,{density:1152}).resize(size,size).flatten({background:'#080f14'}).png().toFile(new URL('assets/app-'+size+'.png',root).pathname);
+await sharp(svg,{density:1152}).resize(352,352).flatten({background:'#080f14'}).extend({top:80,bottom:80,left:80,right:80,background:'#080f14'}).png().toFile(new URL('assets/app-maskable-512.png',root).pathname);
+console.log('Generated 192/512 px app icons and a padded 512 px maskable icon.');

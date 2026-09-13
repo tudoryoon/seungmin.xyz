@@ -1,0 +1,35 @@
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+}
+#install-app { width: 100%; justify-content: flex-start; gap: 12px; min-height: 44px; padding: 8px 0; border-top: 1px solid #afcbb62e; border-radius: 0; font-size: 13px; }
+#install-app svg { width: 18px; height: 18px; }
+.realm-header { padding-top: calc(28px + var(--safe-top)); padding-left: max(44px, var(--safe-left)); padding-right: max(44px, var(--safe-right)); }
+.map-stage { min-height: min(600px, 100svh); }
+#map-title { top: calc(124px + var(--safe-top)); left: max(44px, var(--safe-left)); }
+.map-controls { bottom: calc(24px + var(--safe-bottom)); right: max(24px, var(--safe-right)); }
+.map-character { bottom: calc(30px + var(--safe-bottom)); left: max(44px, var(--safe-left)); }
+.topbar { height: calc(72px + var(--safe-top)); padding-top: var(--safe-top); padding-left: max(5%, var(--safe-left)); padding-right: max(5%, var(--safe-right)); }
+.workspace { padding-left: max(28px, var(--safe-left)); padding-right: max(28px, var(--safe-right)); padding-bottom: calc(80px + var(--safe-bottom)); }
+.roulette-header { height: calc(80px + var(--safe-top)); padding-top: calc(16px + var(--safe-top)); padding-left: max(32px, var(--safe-left)); padding-right: max(32px, var(--safe-right)); }
+.roulette-main { padding-bottom: calc(24px + var(--safe-bottom)); padding-left: max(24px, var(--safe-left)); padding-right: max(24px, var(--safe-right)); }
+dialog { max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 32px); }
+@media (display-mode: standalone) { html { overscroll-behavior-y: none; } }
+@media (any-pointer: coarse), (max-width: 760px) {
+  .direction-pad { display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 44px); }
+  .direction-pad button { width: 44px; height: 44px; min-height: 44px; }
+  body[data-stage=map] .map-character { max-width: calc(100% - 184px - var(--safe-left) - var(--safe-right)); }
+  .map-character .map-level { display: none; }
+  .map-character #map-name { min-width: 0; }
+}
+@media (max-width: 760px) {
+  .realm-header { padding: calc(20px + var(--safe-top)) max(22px, var(--safe-right)) 20px max(22px, var(--safe-left)); }
+  #map-title { top: calc(96px + var(--safe-top)); left: max(24px, var(--safe-left)); }
+  .map-character { left: max(22px, var(--safe-left)); bottom: calc(22px + var(--safe-bottom)); }
+  .workspace { padding-left: max(16px, var(--safe-left)); padding-right: max(16px, var(--safe-right)); padding-bottom: calc(48px + var(--safe-bottom)); }
+  .roulette-header { height: calc(68px + var(--safe-top)); padding: calc(12px + var(--safe-top)) max(20px, var(--safe-right)) 12px max(20px, var(--safe-left)); }
+  .roulette-main { padding-left: max(16px, var(--safe-left)); padding-right: max(16px, var(--safe-right)); }
+  input, select, textarea { font-size: 16px; }
+}

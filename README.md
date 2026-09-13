@@ -18,6 +18,16 @@ Profiles and avatar specs are saved with Supabase Auth updateUser in the current
 
 Email verification/reset callbacks retain the previously configured https://seungmin.xyz/test.html URL. That route allows password recovery and otherwise requires a complete account profile/avatar. The Cloudflare Pages directory remains the repo root. There are no server API secrets.
 
+## Mobile App
+
+The same site is installable as the PWA "포털" at https://seungmin.xyz. On iPhone, use Safari's Share > Add to Home Screen > Open as Web App. On Android, use Chrome's Install app menu or the install command in the map settings when the browser offers it. This is a home-screen web app, not an App Store/Play Store listing. No additional server or database is required.
+
+The app opens `/` in standalone mode and uses the existing session/onboarding routing. Sign in with the same account to access the same Supabase records; browser and installed-app login sessions may be separate. Touch direction controls, existing return-to-map links, and safe-area spacing work in the app. The default launcher name is "포털"; UI branding remains unchanged.
+
+`sw.js` is network-only for page navigation, with a cached public `offline.html` fallback. It never caches Supabase requests, signed URLs, auth callback responses, uploaded files, or private records, and does not queue offline writes. The original save/error handling is unchanged. Only caches prefixed `realm-offline-` are managed. Activation does not force-reload open pages or discard drafts. Keep app code release URLs versioned as before. Bump the offline cache version when changing the fallback page. `scripts/build-icons.mjs` rebuilds launcher icons from the favicon (set `SHARP_MODULE` if necessary).
+
+Checks: `node tests/pwa.mjs`, `node tests/pwa-sw.mjs`, and existing auth/routing/movement tests. Actual iOS/Android installation still needs a physical-device check. No push notifications, offline editing, or app-store distribution are enabled.
+
 ## Personal Library
 
 Apply `supabase/library.sql` once using the existing project's SQL Editor. It creates `library_items` with owner-only RLS and a private `library-files` bucket with a 20 MB file limit. Only HTTP(S) links, PDF, JPEG, PNG, WEBP, GIF, and AVIF are supported. File signatures are checked before upload; bucket MIME restrictions and database checks also apply. Files live in `<user-id>/<item-id>.<type>`, not GitHub, Auth metadata, or browser storage.
