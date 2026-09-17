@@ -1,5 +1,5 @@
 // Mobile scroll offsets and layout heights can round to different subpixels.
-export const entryProgress = (offset, distance) => offset>0 && distance-offset<=1 ? 1 : Math.max(0, Math.min(1, offset / Math.max(1, distance)));
+export const entryProgress = (offset, distance) => !Number.isFinite(offset)||!Number.isFinite(distance)?0:offset>0 && distance-offset<=1 ? 1 : Math.max(0, Math.min(1, offset / Math.max(1, distance)));
 
 export function entryScene(progress) {
   const blend=(start,end)=>{const t=Math.max(0,Math.min(1,(progress-start)/(end-start)));return t*t*(3-2*t);};
@@ -28,6 +28,19 @@ export function createScrollEntry({section,button,isActive,motion,render,onEnter
   }
   const schedule=()=>{if(!frame && isActive())frame=view.requestAnimationFrame(update);};
   view.addEventListener('scroll',schedule,{passive:true});
+  view.addEventListener('wheel',event=>{
+    if(isActive() && view.scrollY<=0 && event.deltaY<0 && !event.ctrlKey && event.cancelable)event.preventDefault();
+  },{passive:false});
+  let touchY=null;
+  view.addEventListener('touchstart',event=>{touchY=event.touches.length===1?event.touches[0].clientY:null;},{passive:true});
+  view.addEventListener('touchmove',event=>{
+    if(event.touches.length!==1){touchY=null;return;}
+    const y=event.touches[0].clientY;
+    if(isActive() && view.scrollY<=0 && touchY!==null && y>touchY && event.cancelable)event.preventDefault();
+    touchY=y;
+  },{passive:false});
+  view.addEventListener('touchend',()=>{touchY=null;},{passive:true});
+  view.addEventListener('touchcancel',()=>{touchY=null;},{passive:true});
   view.addEventListener('resize',()=>{
     if(!isActive())return;
     // Keep the form reached when mobile browser chrome or the keyboard changes the viewport.

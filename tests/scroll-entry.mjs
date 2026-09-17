@@ -4,6 +4,8 @@ import {createScrollEntry,entryProgress,entryScene} from '../scroll-entry.js';
 const {Window}=await import(process.env.DOM_MODULE || 'happy-dom');
 assert.equal(entryProgress(-1,100),0);assert.equal(entryProgress(40,100),.4);assert.equal(entryProgress(120,100),1);assert.equal(entryProgress(0,0),0);
 assert.equal(entryProgress(1181.5,1182),1,'fractional mobile scroll reaches the rounded end');
+assert.equal(entryProgress(-400,1400),0,'rubber-band scroll cannot reverse the camera past the start');
+assert.equal(entryProgress(NaN,1400),0);assert.equal(entryProgress(100,Infinity),0);
 assert.equal(entryScene(0)['earth-opacity'],1);assert.equal(entryScene(.5)['korea-opacity'],1);assert.equal(entryScene(1)['seoul-opacity'],1);
 for(let i=0;i<=100;i++){
   const scene=entryScene(i/100);
@@ -29,6 +31,15 @@ const entry=createScrollEntry({section,button,isActive:()=>active,motion:()=>mot
 try {
   w.scrollTo({top:1400});await tick();assert.equal(entered,0,'session loading cannot enter');
   offset=0;active=true;entry.reset();
+  const upward=new w.WheelEvent('wheel',{deltaY:-100,cancelable:true});w.dispatchEvent(upward);assert.equal(upward.defaultPrevented,true,'top overscroll is blocked');
+  const downward=new w.WheelEvent('wheel',{deltaY:100,cancelable:true});w.dispatchEvent(downward);assert.equal(downward.defaultPrevented,false,'normal entry scrolling remains native');
+  const pinch=new w.WheelEvent('wheel',{deltaY:-100,cancelable:true});
+  // Happy DOM's WheelEvent lacks the MouseEvent modifier-key fields.
+  Object.defineProperty(pinch,'ctrlKey',{value:true});w.dispatchEvent(pinch);assert.equal(pinch.defaultPrevented,false,'browser zoom stays available');
+  const touch=(type,points)=>{const e=new w.Event(type,{cancelable:true});Object.defineProperty(e,'touches',{value:points.map(clientY=>({clientY}))});w.dispatchEvent(e);return e;};
+  touch('touchstart',[200]);assert.equal(touch('touchmove',[250]).defaultPrevented,true,'pulling past the top cannot expose a gap');
+  assert.equal(touch('touchmove',[100,200]).defaultPrevented,false,'two-finger zoom is not intercepted');
+  touch('touchend',[]);
   w.scrollTo({top:700});await tick();assert.equal(entry.progress,.5);assert.equal(entered,0);
   w.scrollTo({top:280});await tick();assert.equal(entry.progress,.2,'scroll is reversible before entry');
   w.scrollTo({top:1390});await tick();assert.equal(entered,0,'partial scroll does not enter');

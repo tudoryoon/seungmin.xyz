@@ -1,4 +1,5 @@
 import * as THREE from './vendor/three.module.js';
+import { createEntryParticles } from './entry-particles.js?v=20260918-1';
 
 // One renderer and one star field remain alive across every onboarding stage.
 export function createPortal(canvas, motion) {
@@ -6,19 +7,23 @@ export function createPortal(canvas, motion) {
   function useFallback() {
     canvas.hidden = true;
     document.body.dataset.renderer = 'fallback';
+    document.body.dataset.entryRenderer = 'fallback';
     renderer?.setAnimationLoop(null);
   }
   try {
-    renderer = new THREE.WebGLRenderer({canvas,antialias:false,alpha:true,powerPreference:'low-power'});
+    renderer = new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'default'});
   } catch {
     useFallback();
     return {setMotion(){},setStage(){},setEntryProgress(){}};
   }
   renderer.debug.onShaderError = useFallback;
-  const renderRatio = () => Math.min(devicePixelRatio,1.2,Math.sqrt(1600000/(innerWidth*innerHeight)));
+  const viewport=()=>({width:Math.max(1,canvas.clientWidth||innerWidth),height:Math.max(1,canvas.clientHeight||innerHeight)});
+  const renderRatio = () => {const {width,height}=viewport();return Math.min(devicePixelRatio,2,Math.sqrt((width<760?2400000:5000000)/(width*height)));};
   const pixelRatio = renderRatio();
   renderer.setPixelRatio(pixelRatio);
   renderer.autoClear = false;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=1.05;
   const scene = new THREE.Scene();
   const sky = new THREE.Scene();
   const skyCamera = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
@@ -146,6 +151,7 @@ export function createPortal(canvas, motion) {
   });
   const stars=new THREE.Points(starGeometry,starMaterial);
   scene.add(stars);
+  const entryParticles=createEntryParticles(renderer,loop);
   function applyPose(){
     camera.position.copy(base);
     camera.position.x+=drift.x*.35;
@@ -155,7 +161,8 @@ export function createPortal(canvas, motion) {
     camera.updateProjectionMatrix();
   }
   function render(time=0){
-    if(time && lastTime && time-lastTime<30) return;
+    if(canvas.hidden)return;
+    if(time && lastTime && time-lastTime<(stage==='entry' && innerWidth>=760?14:30)) return;
     const dt=lastTime&&time?Math.min((time-lastTime)/1000,.06):0;
     lastTime=time;
     if(active){
@@ -168,6 +175,7 @@ export function createPortal(canvas, motion) {
     }
     starMaterial.uniforms.uTime.value=elapsed;
     skyMaterial.uniforms.uTime.value=elapsed;
+    if(stage==='entry' && entryParticles.ready){entryParticles.render(entryProgress,elapsed,drift,active);return;}
     applyPose();
     renderer.clear();
     renderer.render(sky,skyCamera);
@@ -180,12 +188,14 @@ export function createPortal(canvas, motion) {
     render();
   }
   function resize(){
+    const {width,height}=viewport();
     const ratio=renderRatio();
     renderer.setPixelRatio(ratio);
     starMaterial.uniforms.uPixelRatio.value=ratio;
-    renderer.setSize(innerWidth,innerHeight,false);
-    camera.aspect=innerWidth/innerHeight;
+    renderer.setSize(width,height,false);
+    camera.aspect=width/height;
     skyMaterial.uniforms.uAspect.value=camera.aspect;
+    entryParticles.resize();
     render();
   }
   function setStage(next){

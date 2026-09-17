@@ -1,8 +1,8 @@
-import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js?v=20260914-5';
-import { validProfile } from './profile.js?v=20260914-5';
-import { createDungeon } from './dungeon.js?v=20260914-5';
-import { resolveRealmStage } from './realm-route.js?v=20260914-5';
-import { createScrollEntry, entryScene } from './scroll-entry.js?v=20260914-5';
+import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js?v=20260918-1';
+import { validProfile } from './profile.js?v=20260918-1';
+import { createDungeon } from './dungeon.js?v=20260918-1';
+import { resolveRealmStage } from './realm-route.js?v=20260918-1';
+import { createScrollEntry, entryScene } from './scroll-entry.js?v=20260918-1';
 
 const $ = id => document.getElementById(id);
 const client = window.realmClient;
@@ -56,7 +56,7 @@ $('motion').addEventListener('change', event => {
 });
 reducedQuery.addEventListener('change', () => { if (motionPreference === null) setMotion(!reducedQuery.matches); });
 // Rendering is optional: a failed GPU or module must never block account access.
-import('./portal.js?v=20260914-5').then(({ createPortal }) => {
+import('./portal.js?v=20260918-1').then(({ createPortal }) => {
   portal = createPortal($('portal'), motion);
   portal.setStage(document.body.classList.contains('entry-flow')?'entry':stage);
   portal.setEntryProgress(entrance.progress);
@@ -90,6 +90,7 @@ function show(next, {replace=false,fromScroll=false} = {}) {
   document.body.dataset.stage = next;
   const entryFlow=!user && ['entry','auth'].includes(next);
   document.body.classList.toggle('entry-flow',entryFlow);
+  document.documentElement.classList.toggle('entry-flow',entryFlow);
   const hash=next==='entry'?'':'#'+next;
   if(location.hash!==hash)history[replace?'replaceState':'pushState'](null,'',location.pathname+location.search+hash);
   document.querySelectorAll('.stage').forEach(section => {

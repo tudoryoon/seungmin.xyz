@@ -30,7 +30,9 @@
 .settings-panel .motion-control input { flex: 0 0 36px; width: 36px; height: 20px; margin: 0; }
 .settings-panel .motion-control input:before { width: 14px; height: 14px; }
 .settings-panel .motion-control input:checked:before { transform: translateX(16px); }
-.world { background: #03070e; visibility: visible; }
+html { background:#03070e; }
+body { isolation:isolate; }
+.world { background: #03070e; visibility: visible; height:100lvh;contain:paint; }
 .world canvas { z-index: 0; opacity: 1; transition: none; }
 .landscape {
   z-index: 1;
@@ -58,14 +60,15 @@ body[data-stage=map] .world { visibility: visible; }
 .scroll-enter { width:48px;height:48px;min-height:48px;border:0;border-radius:0;background:none;color:#d3e8df; }
 .scroll-enter svg { width:24px;height:24px; }
 .scroll-enter:hover { color:white; }
-body.entry-flow { overscroll-behavior-y:none; }
+html.entry-flow,body.entry-flow { overscroll-behavior:none;overflow-x:clip; }
+body.entry-flow[data-entry-renderer=particles] .landscape,body.entry-flow[data-entry-renderer=particles] .arrival-art { visibility:hidden; }
 body.entry-flow .realm-header { position:fixed; }
 body.entry-flow .landscape { transition:none;transform-origin:50% 43%;transform:scale(var(--earth-scale,1));opacity:var(--earth-opacity,1); }
 body.entry-flow .arrival-art { visibility:visible; }
 body.entry-flow .arrival-korea { transform-origin:49% 46%;transform:scale(var(--korea-scale,1));opacity:var(--korea-opacity,0); }
 body.entry-flow .arrival-seoul { transform:scale(var(--seoul-scale,1));opacity:var(--seoul-opacity,0); }
 body.entry-flow.reduced-motion .landscape,body.entry-flow.reduced-motion .arrival-art { transform:none; }
-body.entry-flow .world-shade { background:#030810;opacity:calc(.06 + var(--auth-reveal,0) * .5);transition:none; }
+body.entry-flow .world-shade { background:#030810;opacity:calc(.03 + var(--auth-reveal,0) * .5);transition:none; }
 body.entry-flow #auth {
   position:fixed;
   inset:0;
