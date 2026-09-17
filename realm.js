@@ -1,8 +1,8 @@
-import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js?v=20260918-1';
-import { validProfile } from './profile.js?v=20260918-1';
-import { createDungeon } from './dungeon.js?v=20260918-1';
-import { resolveRealmStage } from './realm-route.js?v=20260918-1';
-import { createScrollEntry, entryScene } from './scroll-entry.js?v=20260918-1';
+import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js?v=20260918-2';
+import { validProfile } from './profile.js?v=20260918-2';
+import { createDungeon } from './dungeon.js?v=20260918-2';
+import { resolveRealmStage } from './realm-route.js?v=20260918-2';
+import { createScrollEntry, entryScene } from './scroll-entry.js?v=20260918-2';
 
 const $ = id => document.getElementById(id);
 const client = window.realmClient;
@@ -56,13 +56,14 @@ $('motion').addEventListener('change', event => {
 });
 reducedQuery.addEventListener('change', () => { if (motionPreference === null) setMotion(!reducedQuery.matches); });
 // Rendering is optional: a failed GPU or module must never block account access.
-import('./portal.js?v=20260918-1').then(({ createPortal }) => {
+import('./portal.js?v=20260918-2').then(({ createPortal }) => {
   portal = createPortal($('portal'), motion);
   portal.setStage(document.body.classList.contains('entry-flow')?'entry':stage);
   portal.setEntryProgress(entrance.progress);
 }).catch(() => {
   $('portal').hidden = true;
   document.body.dataset.renderer = 'fallback';
+  document.body.dataset.entryRenderer = 'fallback';
 });
 const entrance=createScrollEntry({
   section:$('entry'),button:$('enter'),isActive:()=>sessionReady && !user && !recovery && ['entry','auth'].includes(stage),motion:()=>motion,

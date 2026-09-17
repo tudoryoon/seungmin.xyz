@@ -17,7 +17,7 @@ const source=(await readFile(new URL('../realm.js',import.meta.url),'utf8'))
   .replace(/^import .*;\n/gm,'')
   .replace(/import\('\.\/portal\.js\?v=[^']+'\)/,"Promise.resolve(window.realmTest.portal)");
 async function until(test){for(let i=0;i<100;i++){if(test())return;await new Promise(resolve=>setTimeout(resolve,2));}assert.ok(test(),'routing settled');}
-async function boot(hash,account,error=null,{preference='off',reduced=false}={}) {
+async function boot(hash,account,error=null,{preference='off',reduced=false,portalError=false}={}) {
   const window=new Window({url:'http://localhost/index.html'+hash,settings:{disableCSSFileLoading:true,disableJavaScriptFileLoading:true}});
   window.document.write(html);
   // Happy DOM emits hashchange on replaceState; browsers do not. Routes below dispatch explicit events.
@@ -36,12 +36,23 @@ async function boot(hash,account,error=null,{preference='off',reduced=false}={})
   const callbacks=[],motionValues=[];let finishSession,canMove;
   window.realmClient={auth:{onAuthStateChange(callback){callbacks.push(callback);},getSession:()=>new Promise(resolve=>{finishSession=resolve;}),async signOut(){callbacks.forEach(callback=>callback('SIGNED_OUT',null));return {};}}};
   window.realmError=()=> 'Connection failed';window.lucide={createIcons(){}};
-  window.realmTest={...avatars,paintAvatar(){},validProfile,resolveRealmStage,createScrollEntry,entryScene,createDungeon:(_,active)=>{canMove=active;return {reset(){}};},portal:{createPortal:(_,motion)=>{motionValues.push(motion);return {setMotion(value){motionValues.push(value);},setStage(){},setEntryProgress(){}};}}};
+  window.realmTest={...avatars,paintAvatar(){},validProfile,resolveRealmStage,createScrollEntry,entryScene,createDungeon:(_,active)=>{canMove=active;return {reset(){}};},portal:{createPortal:(_,motion)=>{if(portalError){window.document.body.dataset.entryRenderer='particles';throw new Error('Renderer unavailable');}motionValues.push(motion);return {setMotion(value){motionValues.push(value);},setStage(){},setEntryProgress(){}};}}};
   window.eval('(()=>{const {parseAvatar,paintAvatar,validAvatar,avatarTraits,avatarTitle,DEFAULT_PROMPT,validProfile,createDungeon,resolveRealmStage,createScrollEntry,entryScene}=window.realmTest;\n'+source+'\n})()');
   assert.equal(window.document.body.classList.contains('session-checking'),true,'session restoration hides the entrance initially');
   finishSession({data:{session:account?{user:account}:null},error});
   await until(()=>!window.document.body.classList.contains('session-checking'));
   return {window,callbacks,canMove,motionValues,reducedQuery};
+}
+{
+  const {window}=await boot('',null,null,{portalError:true});
+  try {
+    await until(()=>window.document.body.dataset.renderer==='fallback');
+    assert.equal(window.document.body.dataset.entryRenderer,'fallback','a partial renderer failure restores the illustrated fallback');
+    assert.equal(window.document.getElementById('portal').hidden,true);
+    window.document.getElementById('enter').click();
+    await until(()=>window.document.body.dataset.stage==='auth');
+    assert.equal(window.document.getElementById('auth').inert,false,'renderer failure does not block login');
+  }finally{await window.happyDOM.close();}
 }
 for(const route of ['','#map','#profile','#avatar','#complete','#continue']) {
   const {window,callbacks}=await boot(route,user);

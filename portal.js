@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import { createEntryParticles } from './entry-particles.js?v=20260918-1';
+import { createEntryParticles } from './entry-particles.js?v=20260918-2';
 
 // One renderer and one star field remain alive across every onboarding stage.
 export function createPortal(canvas, motion) {

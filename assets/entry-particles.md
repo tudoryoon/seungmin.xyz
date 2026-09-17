@@ -1,6 +1,8 @@
 # Entrance Particles
 
-The entrance uses procedural Three.js point clouds and three helical lines.
+The entrance uses procedural Three.js point clouds and three helical paths,
+each consisting of a main filament and two finer braided filaments.
+The layered galaxy has four arms with bounded scatter and a sparse dust field.
 There are no building meshes, paid APIs or runtime map-service requests.
 
 `earth-2048.webp` is a 2048-pixel-wide derivative of the NASA Blue Marble

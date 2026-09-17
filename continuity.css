@@ -45,6 +45,7 @@ body { isolation:isolate; }
 .arrival-art { position:absolute;inset:0;z-index:1;background:center/cover no-repeat;opacity:0;visibility:hidden; }
 .arrival-korea { background-image:url('assets/entry-korea.webp'); }
 .arrival-seoul { background-image:url('assets/entry-seoul.webp'); }
+body:not([data-entry-renderer]):not([data-renderer=fallback]) .landscape { visibility:hidden; }
 .world-shade { z-index: 2; background: linear-gradient(180deg, #02060b25, transparent 50%, #02060b40); }
 body:not([data-stage=entry]) .world canvas { opacity: 1; }
 body:not([data-stage=entry]) .landscape { opacity: 0; transform: scale(3); }
@@ -52,7 +53,7 @@ body:not([data-stage=entry]) .world-shade { background: linear-gradient(90deg, #
 body.entering .landscape { transform: scale(5); opacity: 0; }
 body.entering .world canvas { opacity: 1; }
 body[data-stage=map] .world { visibility: visible; }
-.entry-stage { display:block;min-height:0;height:360svh;padding:0; }
+.entry-stage { display:block;min-height:0;height:620svh;padding:0; }
 .entry-copy { position:sticky;top:0;height:100svh;padding:0; }
 .entry-cue { position:absolute;bottom:max(30px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:12px;opacity:calc(1 - var(--entry-progress,0)); }
 .entry-track { display:block;width:1px;height:50px;background:#d9bf8540; }

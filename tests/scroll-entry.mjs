@@ -18,9 +18,9 @@ assert.equal(/data-auth-mode|회원가입/.test(html),false);assert.equal(/signU
 assert.ok(realm.includes('signInWithPassword(credentials)'));
 const w=new Window({url:'http://localhost',settings:{disableCSSFileLoading:true,disableJavaScriptFileLoading:true}});
 w.document.write(html);
-let active=false,motion=true,entered=0,left=0,offset=0,height=1000,lastScroll;
+let active=false,motion=true,entered=0,left=0,offset=0,height=1000,sectionHeight=2400,lastScroll;
 const renders=[],section=w.document.getElementById('entry'),button=w.document.getElementById('enter');
-Object.defineProperty(section,'offsetHeight',{get:()=>2400});
+Object.defineProperty(section,'offsetHeight',{get:()=>sectionHeight});
 Object.defineProperty(section,'offsetTop',{get:()=>0});
 Object.defineProperty(section.querySelector('.entry-copy'),'offsetHeight',{get:()=>1000});
 Object.defineProperty(w,'scrollY',{get:()=>offset});
@@ -56,5 +56,10 @@ try {
   active=true;motion=false;entry.reset();button.click();await tick();assert.equal(lastScroll.behavior,'instant');assert.equal(entered,3,'keyboard-accessible fallback works without animation');
   motion=true;entry.reset();button.click();await tick();assert.equal(lastScroll.behavior,'smooth');assert.equal(entered,4);
   assert.ok(renders.includes(.5));
+  sectionHeight=6200;entry.reset();
+  w.scrollTo({top:2600});await tick();assert.equal(entry.progress,.5);assert.equal(entered,4,'long runway cannot enter halfway');
+  w.scrollTo({top:5200});await tick();assert.equal(entry.progress,1);assert.equal(entered,5);
+  height=700;w.dispatchEvent(new w.Event('resize'));await tick();assert.equal(offset,5500);assert.equal(entry.progress,1);
+  w.scrollTo({top:0});await tick();assert.equal(entry.progress,0,'long runway fully reverses after keyboard resize');
   console.log('PASS: native scroll progress/reverse, completion guard, session and stage isolation, keyboard fallback, reduced motion and login-only markup/API.');
 } finally {await w.happyDOM.close();}
