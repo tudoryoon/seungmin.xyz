@@ -1,5 +1,5 @@
-import {validProfile} from './profile.js?v=20260918-2';
-import {validAvatar} from './avatar.js?v=20260918-2';
+import {validProfile} from './profile.js?v=20260919-1';
+import {validAvatar} from './avatar.js?v=20260919-1';
 
 export function resolveRealmStage(user,hash,entered=false) {
   const requested=hash.replace(/^#/,'');

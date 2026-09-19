@@ -4,6 +4,7 @@ export const entryProgress = (offset, distance) => !Number.isFinite(offset)||!Nu
 export function entryScene(progress) {
   const blend=(start,end)=>{const t=Math.max(0,Math.min(1,(progress-start)/(end-start)));return t*t*(3-2*t);};
   return {
+    'place-reveal':blend(.3,.4)*(1-blend(.81,.89)),
     'earth-scale':1+blend(0,.5)*9,
     'earth-opacity':1-blend(.22,.42),
     'korea-scale':1+blend(.25,.78)*5,

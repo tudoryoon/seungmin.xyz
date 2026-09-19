@@ -1,4 +1,5 @@
 import * as THREE from './vendor/three.module.js';
+import {SEOUL,project,globePoint,geographicJourney,buildGeography} from './entry-geography.js?v=20260919-1';
 
 export const ease=(p,a,b)=>{const t=THREE.MathUtils.clamp((p-a)/(b-a),0,1);return t*t*(3-2*t);};
 export function randomSequence(seed=1249){return()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};}
@@ -7,12 +8,6 @@ export function helixPoint(t,arm=0,strand=0){
   const braid=t*Math.PI*16+arm*1.7;
   const radius=6.8+Math.sin(t*Math.PI)*3.8+strand*Math.cos(braid)*.22;
   return [Math.cos(angle)*radius,Math.sin(angle)*radius,-t*195+10+strand*Math.sin(braid)*.22];
-}
-export function galaxyPoint(random,index){
-  const radius=.8+random()**.78*30;
-  const scatter=(random()+random()+random()-1.5)*(.065+radius*.008);
-  const angle=(index%4)*Math.PI/2+Math.log(radius+1)*2.65+scatter;
-  return [Math.cos(angle)*radius,Math.sin(angle)*radius,(random()-.5)*(.35+radius*.07)];
 }
 export function particleCamera(progress,aspect){
   const p=THREE.MathUtils.clamp(Number.isFinite(progress)?progress:0,0,1);
@@ -25,20 +20,23 @@ export function particleCamera(progress,aspect){
     y:Math.sin(travel*Math.PI*3)*bend*.35,
     z:THREE.MathUtils.lerp(fit,-96,travel),
     fov:48+Math.sin(p*Math.PI)*2,
-    earthOpacity:1-ease(p,.13,.34),
-    galaxyOpacity:.38+.62*ease(p,.18,.72),
     strandOpacity:1-.42*ease(p,.76,1)
   };
 }
 
 function pointMaterial(pixelRatio,size=1){
   return new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
-    uniforms:{time:{value:0},opacity:{value:1},ratio:{value:pixelRatio},size:{value:size},surface:{value:0},flow:{value:0}},
-    vertexShader:`attribute vec3 aColor;attribute float aSize;attribute float aPhase;
+    uniforms:{time:{value:0},opacity:{value:1},ratio:{value:pixelRatio},size:{value:size},surface:{value:0},flow:{value:0},geographic:{value:0},flatten:{value:0},globeScale:{value:1},mapScale:{value:1},scatter:{value:0}},
+    vertexShader:`attribute vec3 aColor;attribute float aSize;attribute float aPhase;attribute vec3 aSphere;
       varying vec3 vColor;varying float vLight;uniform float time;uniform float ratio;uniform float size;uniform float surface;uniform float flow;
+      uniform float geographic;uniform float flatten;uniform float globeScale;uniform float mapScale;uniform float scatter;
       void main(){
-        vec4 p=modelViewMatrix*vec4(position,1.);vColor=aColor;
-        float facing=smoothstep(-.08,.65,(normalMatrix*normalize(position)).z);
+        vec3 q=position;
+        if(geographic>.5)q=mix(aSphere*globeScale+vec3(0.,0.,-4.*globeScale),position*mapScale,flatten);
+        q.xy*=1.+scatter*(12.+sin(aPhase)*2.);q.z+=scatter*(8.+aPhase);
+        vec4 p=modelViewMatrix*vec4(q,1.);vColor=aColor;
+        vec3 n=normalMatrix*(position/max(length(position),.00001));
+        float facing=smoothstep(-.08,.65,(n/max(length(n),.00001)).z);
         float pulse=pow(.5+.5*sin(position.z*.19+time*.42),24.);
         vLight=(.88+.12*sin(time*.4+aPhase)+flow*pulse*.65)*mix(1.,.045+.955*facing,surface);
         vLight*=smoothstep(.8,3.,-p.z)*(1.-smoothstep(180.,330.,-p.z));
@@ -66,9 +64,10 @@ function filament(points,color,opacity){
   const geometry=new THREE.BufferGeometry().setFromPoints(points);
   return new THREE.Line(geometry,material);
 }
-function cloud(scene,positions,colors,sizes,phases,ratio,size=1){
+function cloud(scene,positions,colors,sizes,phases,ratio,size=1,spheres=positions){
   const geometry=new THREE.BufferGeometry();
   for(const [name,values,count] of [['position',positions,3],['aColor',colors,3],['aSize',sizes,1],['aPhase',phases,1]])geometry.setAttribute(name,new THREE.Float32BufferAttribute(values,count));
+  geometry.setAttribute('aSphere',new THREE.Float32BufferAttribute(spheres,3));
   const object=new THREE.Points(geometry,pointMaterial(ratio,size));scene.add(object);return object;
 }
 const palette=[0xf2e9d4,0x98cbd0,0xdcc1a0,0xb1c7d4,0xceb6c8].map(color=>new THREE.Color(color).toArray());
@@ -84,8 +83,9 @@ export function createEntryParticles(renderer,onReady){
     colors.push(...tint(random));sizes.push(i%29===0?1.9:.5+random()*.9);phases.push(random()*6.28);
   }
   const stars=cloud(scene,points,colors,sizes,phases,ratio);objects.push(stars);
-  const globeGroup=new THREE.Group();scene.add(globeGroup);globeGroup.position.set(0,.4,-2);
-  const lat=37.566*Math.PI/180,lon=126.978*Math.PI/180;
+  const geographyRoot=new THREE.Group();scene.add(geographyRoot);
+  const globeGroup=new THREE.Group();geographyRoot.add(globeGroup);
+  const lat=SEOUL[1]*Math.PI/180,lon=SEOUL[0]*Math.PI/180;
   const normal=new THREE.Vector3(Math.cos(lat)*Math.cos(lon),Math.sin(lat),-Math.cos(lat)*Math.sin(lon));
   const east=new THREE.Vector3(-Math.sin(lon),0,-Math.cos(lon)),north=normal.clone().cross(east);
   const orientation=new THREE.Matrix4().makeBasis(east,north,normal).invert();
@@ -135,20 +135,33 @@ export function createEntryParticles(renderer,onReady){
     }
   }
   const trails=cloud(spiral,points,colors,sizes,phases,ratio,1.45);objects.push(trails);trails.material.uniforms.flow.value=1;
-  const galaxy=new THREE.Group();galaxy.position.z=-168;galaxy.rotation.x=.24;scene.add(galaxy);
-  points=[];colors=[];sizes=[];phases=[];
-  for(let i=0;i<(mobile?7000:13000);i++){
-    points.push(...galaxyPoint(random,i));
-    colors.push(...tint(random));sizes.push(i%41===0?1.9:.6+random()*.85);phases.push(random()*6.28);
+  const shapes=buildGeography(random,mobile),koreaObjects=[],cityObjects=[];
+  const cityGroup=new THREE.Group();geographyRoot.add(cityGroup);
+  function geographicCloud(parent,coordinates,scale,color,size,spherical=false){
+    const positions=[],spheres=[],colors=[],sizes=[],phases=[],tint=new THREE.Color(color).toArray();
+    coordinates.forEach(p=>{positions.push(...project(p,scale));spheres.push(...globePoint(p));colors.push(...tint);sizes.push(size*(.72+random()*.5));phases.push(random()*6.28);});
+    const object=cloud(parent,positions,colors,sizes,phases,ratio,1,spheres);
+    object.material.uniforms.geographic.value=spherical?1:0;
+    // The vertex shader morphs/scatters beyond the initial geometry bounds.
+    object.frustumCulled=false;objects.push(object);return object;
   }
-  const arms=cloud(galaxy,points,colors,sizes,phases,ratio,2.3);objects.push(arms);
+  koreaObjects.push(geographicCloud(geographyRoot,shapes.korea,1.5,0xc5d9d1,.72,true));
+  koreaObjects.push(geographicCloud(geographyRoot,shapes.coast,1.5,0xe4d4ad,1.05,true));
+  cityObjects.push(geographicCloud(cityGroup,shapes.city,56,0xc0d3ce,.85));
+  cityObjects.push(geographicCloud(cityGroup,shapes.cityCoast,56,0xe4d4ad,1.05));
+  const river=geographicCloud(cityGroup,shapes.river,56,0x88cfd8,1.1);cityObjects.push(river);
+  const marker=geographicCloud(geographyRoot,[SEOUL],1.5,0xffdf9b,3.2);
+  marker.position.z=.15;
   points=[];colors=[];sizes=[];phases=[];
-  for(let i=0;i<(mobile?900:1800);i++){
-    const r=3+random()*30,a=random()*Math.PI*2;
-    points.push(Math.cos(a)*r,Math.sin(a)*r,(random()-.5)*7);
-    colors.push(...tint(random));sizes.push(.45+random()*.4);phases.push(random()*6.28);
+  for(let ray=0;ray<(mobile?65:110);ray++){
+    const angle=random()*Math.PI*2,r=.15+random()*2.5;
+    for(let i=0;i<12;i++){
+      const radius=r+i*.025;
+      points.push(Math.cos(angle)*radius,Math.sin(angle)*radius,0);
+      colors.push(...tint(random));sizes.push(.35+i*.045);phases.push(angle);
+    }
   }
-  const dust=cloud(galaxy,points,colors,sizes,phases,ratio,1.3);objects.push(dust);
+  const burst=cloud(geographyRoot,points,colors,sizes,phases,ratio,1.2);objects.push(burst);burst.frustumCulled=false;
   document.body.dataset.entryRenderer='particles';
   function resize(){
     camera.aspect=(renderer.domElement.clientWidth||innerWidth)/Math.max(1,renderer.domElement.clientHeight||innerHeight);camera.updateProjectionMatrix();
@@ -159,21 +172,33 @@ export function createEntryParticles(renderer,onReady){
     ready:true,resize,
     render(progress,time,pointer,motion){
       const p=THREE.MathUtils.clamp(Number.isFinite(progress)?progress:0,0,1),pose=particleCamera(p,camera.aspect);
+      const arrival=geographicJourney(p,camera.aspect,motion);
       camera.position.set(motion?pose.x+pointer.x*.5:0,motion?pose.y+pointer.y*.3:0,motion?pose.z:particleCamera(0,camera.aspect).z);
       const fov=motion?pose.fov:48;
       if(camera.fov!==fov){camera.fov=fov;camera.updateProjectionMatrix();}
       camera.lookAt(0,0,camera.position.z-55);
-      globeGroup.rotation.y=motion?-.1+time*.008:0;earth.material.uniforms.opacity.value=pose.earthOpacity;
-      globeGroup.visible=pose.earthOpacity>.002;
+      geographyRoot.position.z=camera.position.z-particleCamera(0,camera.aspect).z;
+      globeGroup.position.z=-4*arrival.globeScale;
+      globeGroup.scale.setScalar(arrival.globeScale);
+      earth.material.uniforms.opacity.value=arrival.earthOpacity;
+      globeGroup.visible=arrival.earthOpacity>.002;
+      for(const object of koreaObjects){
+        const u=object.material.uniforms;
+        u.flatten.value=arrival.flatten;u.globeScale.value=arrival.globeScale;u.mapScale.value=arrival.mapScale;
+        u.opacity.value=arrival.koreaOpacity;object.visible=arrival.koreaOpacity>.002;
+      }
+      cityGroup.scale.setScalar(arrival.cityScale);
+      cityGroup.visible=arrival.cityOpacity>.002;
+      for(const object of cityObjects){object.material.uniforms.opacity.value=arrival.cityOpacity;object.material.uniforms.scatter.value=arrival.burst;}
+      river.material.uniforms.opacity.value*=.72;
+      marker.material.uniforms.opacity.value=arrival.markerOpacity;
+      burst.material.uniforms.opacity.value=arrival.burstOpacity*.8;
+      burst.material.uniforms.scatter.value=arrival.burst;
+      burst.visible=arrival.burstOpacity>.002;
       spiral.rotation.z=motion?time*.012+p*1.1:0;
-      galaxy.rotation.z=motion?-time*.008-p*.32:0;
-      galaxy.rotation.x=motion?.24+ease(p,.3,.78)*.24:.24;
       objects.forEach(object=>{object.material.uniforms.time.value=motion?time:0;});
-      // Keep the form quiet while retaining the outer spiral and depth.
-      arms.material.uniforms.opacity.value=pose.galaxyOpacity*(1-ease(p,.82,1)*.28);
-      dust.material.uniforms.opacity.value=pose.galaxyOpacity*.28;
-      trails.material.uniforms.opacity.value=pose.strandOpacity;
-      strands.forEach(strand=>{strand.material.uniforms.opacity.value=strand.userData.opacity*pose.strandOpacity;});
+      trails.material.uniforms.opacity.value=pose.strandOpacity*arrival.spiralOpacity;
+      strands.forEach(strand=>{strand.material.uniforms.opacity.value=strand.userData.opacity*pose.strandOpacity*arrival.spiralOpacity;});
       renderer.setRenderTarget(null);renderer.clear();renderer.render(scene,camera);
     }
   };

@@ -1,8 +1,8 @@
-import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js?v=20260918-2';
-import { validProfile } from './profile.js?v=20260918-2';
-import { createDungeon } from './dungeon.js?v=20260918-2';
-import { resolveRealmStage } from './realm-route.js?v=20260918-2';
-import { createScrollEntry, entryScene } from './scroll-entry.js?v=20260918-2';
+import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js?v=20260919-1';
+import { validProfile } from './profile.js?v=20260919-1';
+import { createDungeon } from './dungeon.js?v=20260919-1';
+import { resolveRealmStage } from './realm-route.js?v=20260919-1';
+import { createScrollEntry, entryScene } from './scroll-entry.js?v=20260919-1';
 
 const $ = id => document.getElementById(id);
 const client = window.realmClient;
@@ -56,7 +56,7 @@ $('motion').addEventListener('change', event => {
 });
 reducedQuery.addEventListener('change', () => { if (motionPreference === null) setMotion(!reducedQuery.matches); });
 // Rendering is optional: a failed GPU or module must never block account access.
-import('./portal.js?v=20260918-2').then(({ createPortal }) => {
+import('./portal.js?v=20260919-1').then(({ createPortal }) => {
   portal = createPortal($('portal'), motion);
   portal.setStage(document.body.classList.contains('entry-flow')?'entry':stage);
   portal.setEntryProgress(entrance.progress);
@@ -70,12 +70,12 @@ const entrance=createScrollEntry({
   render(progress){
     document.body.style.setProperty('--entry-progress',progress);
     for(const [key,value] of Object.entries(entryScene(progress)))document.body.style.setProperty('--'+key,value);
-    document.body.style.setProperty('--auth-reveal',Math.max(0,(progress-.8)/.2));
+    document.body.style.setProperty('--auth-reveal',Math.max(0,(progress-.9)/.1));
     portal.setEntryProgress(progress);
     if(document.body.classList.contains('entry-flow')){
       const auth=$('auth');
       if(progress<1 && auth.contains(document.activeElement))document.activeElement.blur();
-      auth.hidden=progress<=.8;
+      auth.hidden=progress<=.9;
       auth.inert=progress<1;
       auth.setAttribute('aria-hidden',String(progress<1));
     }
