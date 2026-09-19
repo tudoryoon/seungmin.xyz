@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import { createEntryParticles } from './entry-particles.js?v=20260919-1';
+import { createEntryParticles } from './entry-particles.js?v=20260919-2';
 
 // One renderer and one star field remain alive across every onboarding stage.
 export function createPortal(canvas, motion) {
@@ -33,6 +33,7 @@ export function createPortal(canvas, motion) {
     avatar:[-3,1,-25,57], complete:[-1,3,-28,57], map:[0,5,-34,64]
   };
   let stage = 'entry', active = motion, elapsed = 0, lastTime = 0, entryProgress = 0;
+  let entryDisplayProgress = 0, entryProgressInitialized = false;
   const base = new THREE.Vector3(0,0,14);
   const target = new THREE.Vector3(0,0,14);
   const pointer = new THREE.Vector2();
@@ -175,7 +176,11 @@ export function createPortal(canvas, motion) {
     }
     starMaterial.uniforms.uTime.value=elapsed;
     skyMaterial.uniforms.uTime.value=elapsed;
-    if(stage==='entry' && entryParticles.ready){entryParticles.render(entryProgress,elapsed,drift,active);return;}
+    if(stage==='entry' && entryParticles.ready){
+      entryDisplayProgress=active?THREE.MathUtils.damp(entryDisplayProgress,entryProgress,14,dt):entryProgress;
+      if(Math.abs(entryDisplayProgress-entryProgress)<.00001)entryDisplayProgress=entryProgress;
+      entryParticles.render(entryDisplayProgress,elapsed,drift,active);return;
+    }
     applyPose();
     renderer.clear();
     renderer.render(sky,skyCamera);
@@ -225,6 +230,10 @@ export function createPortal(canvas, motion) {
       loop();
     },
     setStage,
-    setEntryProgress(value){entryProgress=Math.max(0,Math.min(1,value));entryPose();if(!active)render();}
+    setEntryProgress(value){
+      entryProgress=Math.max(0,Math.min(1,value));
+      if(!entryProgressInitialized||!active)entryDisplayProgress=entryProgress;
+      entryProgressInitialized=true;entryPose();if(!active)render();
+    }
   };
 }

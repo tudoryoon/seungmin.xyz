@@ -79,9 +79,9 @@ for(const route of ['','#auth']) {
     await scroll(1400);assert.equal(doc.body.dataset.stage,'auth');assert.equal(auth.hidden,false);assert.equal(auth.inert,false);
     doc.getElementById('email').value='draft@example.com';doc.getElementById('password').value='unsent-draft';
     doc.getElementById('email').focus();
-    await scroll(1330);assert.equal(doc.body.dataset.stage,'entry');assert.equal(auth.hidden,false);assert.equal(auth.inert,true);
+    await scroll(1365);assert.equal(doc.body.dataset.stage,'entry');assert.equal(auth.hidden,false);assert.equal(auth.inert,true);
     assert.notEqual(doc.activeElement,doc.getElementById('email'),'rewinding releases form focus');
-    await scroll(1190);assert.equal(auth.hidden,true,'arrival sweep precedes the login form');
+    await scroll(1302);assert.equal(auth.hidden,true,'geographic curl completes before the login form');
     await scroll(0);assert.equal(auth.hidden,true);assert.equal(window.location.hash,'');
     await scroll(1400);assert.equal(doc.body.dataset.stage,'auth');assert.equal(auth.inert,false);
     assert.equal(doc.getElementById('email').value,'draft@example.com');assert.equal(doc.getElementById('password').value,'unsent-draft');

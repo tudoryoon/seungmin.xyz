@@ -1,16 +1,11 @@
 import * as THREE from './vendor/three.module.js';
 import geography from './data/entry-geography-20260919.js';
+import surface from './data/entry-surface-20260919.js';
 
 export const SEOUL=[126.978,37.5665];
 const rad=Math.PI/180,latitude=SEOUL[1]*rad,longitude=SEOUL[0]*rad;
 const normal=new THREE.Vector3(Math.cos(latitude)*Math.cos(longitude),Math.sin(latitude),-Math.cos(latitude)*Math.sin(longitude));
 const east=new THREE.Vector3(-Math.sin(longitude),0,-Math.cos(longitude)),north=normal.clone().cross(east);
-export const project=([lon,lat],scale=1.5)=>[(lon-SEOUL[0])*Math.cos(latitude)*scale,(lat-SEOUL[1])*scale,0];
-function extents(polygons,scale){
-  const points=polygons.flat(2).map(p=>project(p,scale));
-  return {x:Math.max(...points.map(p=>Math.abs(p[0]))),y:Math.max(...points.map(p=>Math.abs(p[1])))};
-}
-export const KOREA_EXTENTS=extents(geography.korea,1.5),CITY_EXTENTS=extents(geography.seoul,56);
 export function globePoint([lon,lat]){
   const p=new THREE.Vector3(Math.cos(lat*rad)*Math.cos(lon*rad),Math.sin(lat*rad),-Math.cos(lat*rad)*Math.sin(lon*rad)).multiplyScalar(4);
   return [p.dot(east),p.dot(north),p.dot(normal)];
@@ -18,21 +13,21 @@ export function globePoint([lon,lat]){
 const ease=(p,a,b)=>{const t=THREE.MathUtils.clamp((p-a)/(b-a),0,1);return t*t*(3-2*t);};
 export function geographicJourney(progress,aspect=1,motion=true){
   const p=THREE.MathUtils.clamp(Number.isFinite(progress)?progress:0,0,1);
-  const zoom=1+20.5*ease(p,.025,.4),halfY=(aspect<.8?32:24)*Math.tan(24*rad);
-  const fit=Math.min(1,halfY*aspect*.88/KOREA_EXTENTS.x,halfY*.8/KOREA_EXTENTS.y);
-  const cityFit=Math.min(1,halfY*aspect*.88/CITY_EXTENTS.x,halfY*.8/CITY_EXTENTS.y);
+  const start=4/(Math.sin(24*rad)*Math.min(1,aspect)*.82)-4;
+  const landing=.022/Math.min(1,aspect/.9),t=THREE.MathUtils.clamp(p/.8,0,1);
+  const travel=t*t*t*(t*(t*6-15)+10);
   return {
-    globeScale:motion?zoom:1,
-    flatten:motion?ease(p,.2,.42):1,
-    mapScale:motion?(zoom/21.5)*(1+15*ease(p,.5,.76))*fit:fit,
-    earthOpacity:1-ease(p,.25,.4),
-    koreaOpacity:ease(p,.06,.29)*(1-ease(p,.64,.77)),
-    cityOpacity:ease(p,.65,.77)*(1-ease(p,.85,.97)),
-    cityScale:(motion?.52+.48*ease(p,.65,.81):1)*cityFit,
-    markerOpacity:ease(p,.29,.4)*(1-ease(p,.82,.9)),
-    burst:motion?ease(p,.84,.975):0,
-    burstOpacity:motion?ease(p,.82,.87)*(1-ease(p,.92,1)):0,
-    spiralOpacity:1-.78*ease(p,.27,.44)+.45*ease(p,.8,.9)-.48*ease(p,.9,1)
+    altitude:motion?Math.exp(THREE.MathUtils.lerp(Math.log(start),Math.log(landing),travel)):start,
+    landing,
+    earthOpacity:motion?1-ease(p,.34,.53):1,
+    regionOpacity:motion?ease(p,.14,.3)*(1-ease(p,.48,.65)):0,
+    koreaOpacity:motion?ease(p,.22,.39)*(1-ease(p,.62,.78)):0,
+    metroOpacity:motion?ease(p,.4,.58)*(1-ease(p,.7,.85)):0,
+    localOpacity:motion?ease(p,.56,.71):0,
+    riverOpacity:motion?ease(p,.51,.69):0,
+    curl:motion?ease(p,.8,.945):0,
+    flight:motion?ease(p,.94,1):0,
+    endOpacity:1-ease(p,.955,1)
   };
 }
 
@@ -74,11 +69,10 @@ function pathSamples(segments,count){
   return result;
 }
 export function buildGeography(random,mobile){
-  const sampleKorea=polygonSampler(geography.korea),sampleSeoul=polygonSampler(geography.seoul);
+  const sampleKorea=polygonSampler(geography.korea);
   const korea=Array.from({length:mobile?5500:9000},()=>sampleKorea(random));
   const coast=pathSamples(boundarySegments(geography.korea),mobile?1400:2400);
-  const city=Array.from({length:mobile?4200:7000},()=>sampleSeoul(random));
-  const cityCoast=pathSamples(boundarySegments(geography.seoul),mobile?650:1000);
   const river=geography.han.flatMap(line=>new THREE.CatmullRomCurve3(line.map(([lon,lat])=>new THREE.Vector3(lon,lat,0)),false,'centripetal').getSpacedPoints(mobile?500:850).map(p=>[p.x,p.y]));
-  return {korea,coast,city,cityCoast,river};
+  const detail=Object.fromEntries(Object.entries(surface).map(([key,points])=>[key,mobile?points.filter((_,i)=>i%2===0):points]));
+  return {...detail,worldCoast:detail.coast,korea,coast,river};
 }

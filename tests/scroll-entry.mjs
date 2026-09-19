@@ -6,15 +6,16 @@ assert.equal(entryProgress(-1,100),0);assert.equal(entryProgress(40,100),.4);ass
 assert.equal(entryProgress(1181.5,1182),1,'fractional mobile scroll reaches the rounded end');
 assert.equal(entryProgress(-400,1400),0,'rubber-band scroll cannot reverse the camera past the start');
 assert.equal(entryProgress(NaN,1400),0);assert.equal(entryProgress(100,Infinity),0);
-assert.equal(entryScene(0)['earth-opacity'],1);assert.equal(entryScene(.5)['korea-opacity'],1);assert.equal(entryScene(1)['seoul-opacity'],1);
+assert.equal(entryScene(0)['earth-opacity'],1);assert.equal(entryScene(.5)['earth-opacity'],1);assert.equal(entryScene(1)['earth-opacity'],0);
 for(let i=0;i<=100;i++){
   const scene=entryScene(i/100);
-  assert.ok(scene['earth-opacity']+scene['korea-opacity']+scene['seoul-opacity']>=.9,'scene crossfades never leave a blank gap');
+  assert.equal(scene['earth-scale'],1,'no-WebGL fallback never switches to separate map photos');
   assert.ok(Object.values(scene).every(Number.isFinite));
 }
 const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
 const realm=await readFile(new URL('../realm.js',import.meta.url),'utf8');
 assert.equal(/data-auth-mode|회원가입/.test(html),false);assert.equal(/signUp\(/.test(realm),false);
+assert.equal(/entry-place|arrival-art/.test(html),false,'no geographic labels or separate arrival images');
 assert.ok(realm.includes('signInWithPassword(credentials)'));
 const w=new Window({url:'http://localhost',settings:{disableCSSFileLoading:true,disableJavaScriptFileLoading:true}});
 w.document.write(html);
