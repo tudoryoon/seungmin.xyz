@@ -1,7 +1,9 @@
 import createDOMPurify from './vendor/dompurify.mjs';
+import snapshot from './data/substack-snapshot.js?v=20260924-9';
 
 const PUBLICATION = 'https://tudoryoon.substack.com';
 const MAX_LENGTH = 3 * 1024 * 1024;
+const CACHE_KEY = 'seungmin-public-substack-v1';
 const dateFormat = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' });
 
 function safeURL(value, article = false) {
@@ -53,10 +55,10 @@ export function sanitizeSubstackBody(html, document) {
   return fragment;
 }
 
-export function createSubstackReader(root, fetchFeed = (...args) => fetch(...args)) {
+export function createSubstackReader(root, fetchFeed = (...args) => fetch(...args), fallback = snapshot) {
   const document = root.ownerDocument, $ = id => document.getElementById(id);
   const list = $('substack-posts'), article = $('substack-article'), status = $('substack-status'), retry = $('substack-retry');
-  let posts = [], pending = null, loadedAt = 0, selected = null, listScroll = 0;
+  let posts = [], pending = null, checkedAt = 0, fetchedAt = 0, selected = null, listScroll = 0;
   const metadata = post => [post.author, post.date && dateFormat.format(new Date(post.date))].filter(Boolean).join(' · ');
   function open(post) {
     selected = post; listScroll = root.scrollTop;
@@ -83,36 +85,56 @@ export function createSubstackReader(root, fetchFeed = (...args) => fetch(...arg
     });
     list.replaceChildren(...elements);
   }
+  function accept(xml, timestamp, source, persist = false) {
+    const next = parseSubstackFeed(xml,document.defaultView.DOMParser);
+    const time = Date.parse(timestamp);
+    if (!Number.isFinite(time) || time < fetchedAt || (!next.length && posts.length)) return false;
+    const focusURL = list.contains(document.activeElement) ? document.activeElement.dataset.post : null;
+    const scroll = root.scrollTop;
+    posts = next; fetchedAt = time; renderList(); root.dataset.feedSource = source;
+    // Updating the list must not interrupt an open article or keyboard focus.
+    root.scrollTop = scroll;
+    if (focusURL) [...list.querySelectorAll('button')].find(button => button.dataset.post === focusURL)?.focus({preventScroll:true});
+    if (persist && posts.length) {
+      try { document.defaultView.localStorage.setItem(CACHE_KEY,JSON.stringify({xml,fetchedAt:new Date(time).toISOString()})); } catch { /* Private browsing/quota must not interrupt reading. */ }
+    }
+    return true;
+  }
+  try { accept(fallback.xml,fallback.fetchedAt,'snapshot'); } catch { /* The live endpoint can still recover. */ }
+  try {
+    const raw = document.defaultView.localStorage.getItem(CACHE_KEY);
+    if (raw && raw.length <= MAX_LENGTH * 2) {
+      const saved = JSON.parse(raw); accept(saved.xml,saved.fetchedAt,'saved');
+    }
+  } catch { /* Ignore damaged or unavailable browser storage. */ }
+  status.textContent = posts.length ? '' : '불러오는 중…';
   $('substack-back').addEventListener('click', () => {
     const url = selected?.url; selected = null;
     article.hidden = true; list.hidden = false; root.scrollTop = listScroll;
     [...list.querySelectorAll('button')].find(button => button.dataset.post === url)?.focus({ preventScroll: true });
   });
-  async function load() {
+  async function load(force = false) {
     if (pending) return pending;
-    if (loadedAt && Date.now() - loadedAt < 60000) return;
+    if (!force && checkedAt && Date.now() - checkedAt < 60000) return;
+    checkedAt = Date.now();
     root.setAttribute('aria-busy', 'true'); retry.hidden = true;
-    status.textContent = loadedAt ? '' : '불러오는 중…';
+    status.textContent = posts.length ? '' : '불러오는 중…';
     pending = (async () => {
       try {
         const response = await fetchFeed('/api/substack', { credentials: 'omit', cache: 'no-store', signal: AbortSignal.timeout(12000) });
         if (!response.ok) throw new Error('Unavailable feed');
-        const next = parseSubstackFeed(await response.text(), document.defaultView.DOMParser);
-        const focusURL = list.contains(document.activeElement) ? document.activeElement.dataset.post : null;
-        const scroll = root.scrollTop;
-        posts = next; loadedAt = Date.now(); renderList();
-        // Background refresh must not move a reader or discard their keyboard focus.
-        root.scrollTop = scroll;
-        if (focusURL) [...list.querySelectorAll('button')].find(button => button.dataset.post === focusURL)?.focus({ preventScroll: true });
+        const source = response.headers.get('X-Feed-State') || 'fresh';
+        accept(await response.text(),response.headers.get('X-Feed-Updated-At') || new Date().toISOString(),source,true);
         status.textContent = posts.length ? '' : '아직 발행한 글이 없습니다.';
+        retry.hidden = source === 'fresh';
       } catch {
-        status.textContent = loadedAt ? '새 글을 확인하지 못했습니다.' : '글을 불러오지 못했습니다.';
+        status.textContent = posts.length ? '' : '글을 불러오지 못했습니다.';
         retry.hidden = false;
       } finally { root.setAttribute('aria-busy', 'false'); pending = null; }
     })();
     return pending;
   }
-  retry.addEventListener('click', () => { loadedAt = 0; void load(); });
+  retry.addEventListener('click', () => { void load(true); });
   return { load };
 }
 
@@ -123,16 +145,18 @@ export function watchSubstack(reader, document) {
   const show = () => {
     view.clearInterval(refresh); refresh = 0;
     if (document.body.dataset.stage === 'substack') {
-      check(); refresh = view.setInterval(check, 5 * 60 * 1000);
+      check(); refresh = view.setInterval(check, 60 * 1000);
     }
   };
   view.addEventListener('realm-view', show);
   view.addEventListener('focus', check);
+  view.addEventListener('online', check);
   document.addEventListener('visibilitychange', check);
   show();
   return () => {
     view.clearInterval(refresh);
     view.removeEventListener('realm-view', show); view.removeEventListener('focus', check);
+    view.removeEventListener('online', check);
     document.removeEventListener('visibilitychange', check);
   };
 }
