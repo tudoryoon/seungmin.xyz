@@ -15,9 +15,9 @@
   <meta name="apple-mobile-web-app-title" content="포털">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="preload" as="image" href="assets/entry-earth.webp">
-  <link rel="stylesheet" href="styles.css?v=20260924-1">
-  <link rel="stylesheet" href="dungeon.css?v=20260924-1">
-  <link rel="stylesheet" href="continuity.css?v=20260924-1">
+  <link rel="stylesheet" href="styles.css?v=20260924-2">
+  <link rel="stylesheet" href="dungeon.css?v=20260924-2">
+  <link rel="stylesheet" href="continuity.css?v=20260924-2">
   <link rel="stylesheet" href="pwa.css?v=1">
   <script src="pwa.js?v=1" defer></script>
 </head>
@@ -47,12 +47,23 @@
     <section id="home" class="stage public-hub" aria-labelledby="home-title" hidden>
       <h1 id="home-title" class="sr-only" tabindex="-1">메뉴</h1>
       <nav id="public-nav" class="public-nav" aria-label="주요 메뉴">
-        <a href="https://substack.com/@tudoryoon" target="_blank" rel="noopener noreferrer" title="Substack (새 탭)">Substack</a>
+        <a href="#substack" data-public-page="substack">Substack</a>
         <a href="#map" data-public-page="auth">개인일정</a>
         <a href="#about" data-public-page="about">About</a>
       </nav>
-      <div class="public-content" aria-live="polite">
-        <p id="substack-content" hidden><a class="text-button" href="https://substack.com/@tudoryoon" target="_blank" rel="noopener noreferrer" title="Substack (새 탭)">Substack 열기</a></p>
+      <div class="public-content">
+        <section id="substack-content" class="substack-reader" aria-label="Substack 포스트" tabindex="0" hidden>
+          <div class="substack-status"><p id="substack-status" role="status">불러오는 중…</p><button id="substack-retry" class="icon-button" type="button" title="다시 불러오기" aria-label="다시 불러오기" hidden><i data-lucide="rotate-cw" aria-hidden="true"></i></button></div>
+          <ul id="substack-posts" class="substack-posts" aria-label="포스트 목록"></ul>
+          <article id="substack-article" class="substack-article" hidden>
+            <button id="substack-back" class="substack-back" type="button"><i data-lucide="arrow-left" aria-hidden="true"></i><span>목록</span></button>
+            <div id="substack-article-meta" class="substack-meta"></div>
+            <h2 id="substack-article-title" tabindex="-1"></h2>
+            <div id="substack-article-body" class="substack-prose"></div>
+            <a id="substack-original" class="substack-original" target="_blank" rel="noopener noreferrer">원문 보기</a>
+          </article>
+          <footer class="substack-footer"><a href="https://substack.com/@tudoryoon" target="_blank" rel="noopener noreferrer" title="Substack (새 탭)">substack.com/@tudoryoon</a></footer>
+        </section>
         <p id="about-content" hidden>개인 페이지입니다.</p>
       </div>
     </section>
@@ -142,10 +153,11 @@
   <p id="global-message" class="global-message" role="status"></p>
   <noscript><p class="noscript">입장하려면 브라우저에서 JavaScript를 켜주세요.</p></noscript>
   <script src="vendor/supabase.js" defer></script>
-  <script src="auth-client.js?v=20260924-1" defer></script>
+  <script src="auth-client.js?v=20260924-2" defer></script>
   <script src="vendor/lucide.js" defer></script>
-  <script type="module" src="realm.js?v=20260924-1"></script>
-  <script type="module" src="player-level.js?v=20260924-1"></script>
-  <script type="module" src="map-wind.js?v=20260924-1"></script>
+  <script type="module" src="realm.js?v=20260924-2"></script>
+  <script type="module" src="substack.js?v=20260924-2"></script>
+  <script type="module" src="player-level.js?v=20260924-2"></script>
+  <script type="module" src="map-wind.js?v=20260924-2"></script>
 </body>
 </html>
