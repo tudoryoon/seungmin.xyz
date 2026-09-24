@@ -13,6 +13,9 @@ for(let i=0;i<=100;i++){
   assert.ok(Object.values(scene).every(Number.isFinite));
 }
 const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+const css=await readFile(new URL('../continuity.css',import.meta.url),'utf8');
+assert.match(css,/html\.entry-flow,body\.entry-flow\s*\{[^}]*scrollbar-width:none/,'native root scrollbars are hidden without disabling scroll');
+assert.match(css,/html\.entry-flow::-webkit-scrollbar,body\.entry-flow::-webkit-scrollbar\s*\{[^}]*display:none/,'WebKit scrollbar fallback is scoped to the public entrance');
 const realm=await readFile(new URL('../realm.js',import.meta.url),'utf8');
 assert.equal(/data-auth-mode|회원가입/.test(html),false);assert.equal(/signUp\(/.test(realm),false);
 assert.equal(/entry-place|arrival-art/.test(html),false,'no geographic labels or separate arrival images');

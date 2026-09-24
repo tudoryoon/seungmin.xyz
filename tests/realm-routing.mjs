@@ -80,6 +80,9 @@ for(const account of [null,user]) {
   try {
     assert.equal(window.scrollY,0);
     assert.equal(entry.hidden,false);assert.equal(doc.body.classList.contains('entry-flow'),true);
+    assert.equal(doc.querySelector('.public-policy-links'),null,'no fixed policy footer remains on the entrance');
+    assert.equal(doc.getElementById('about-content').hidden,true);
+    assert.equal(doc.querySelectorAll('a[href="privacy.html"],a[href="terms.html"]').length,2,'public policy links are not duplicated outside About');
     await scroll(1400);assert.equal(doc.body.dataset.stage,'home');assert.equal(hub.hidden,false);assert.equal(hub.inert,false);assert.equal(auth.hidden,true);
     const substack=doc.querySelector('.public-nav a[data-public-page=substack]');
     assert.equal(substack.getAttribute('href'),'#substack','Substack opens the inline reader');
@@ -95,6 +98,7 @@ for(const account of [null,user]) {
     navigate('#about');assert.equal(doc.getElementById('about-content').hidden,false);
     assert.equal(doc.querySelector('#about-content p').textContent,'개인 페이지입니다.');
     assert.ok(doc.querySelector('#about-content .about-purpose').textContent.includes('포털'));
+    assert.deepEqual([...doc.querySelectorAll('#about-content .policy-links a')].map(a=>a.getAttribute('href')),['privacy.html','terms.html']);
     assert.equal(doc.querySelector('[data-public-page=about]').getAttribute('aria-current'),'page');
     assert.equal(window.scrollY,1400);
     doc.querySelector('[data-public-page=about]').click();assert.equal(doc.body.dataset.stage,'home','active public link collapses its content');

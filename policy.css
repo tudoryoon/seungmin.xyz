@@ -1,14 +1,8 @@
 .policy-links { display:flex;flex-wrap:wrap;justify-content:center;gap:8px 24px;font-size:12px;line-height:1.6;color:#b6c5bf; }
 .policy-links a { display:inline-flex;align-items:center;min-height:44px;color:inherit;text-decoration:underline;text-underline-offset:4px; }
 .policy-links a:focus-visible,.connection-privacy a:focus-visible { outline:2px solid #b7ebd5;outline-offset:4px; }
-.public-policy-links { display:none;position:fixed;z-index:3;bottom:max(8px,env(safe-area-inset-bottom));left:20px;right:20px;text-shadow:0 2px 8px #000; }
-body:is([data-stage=entry],[data-stage=home],[data-stage=about]) .public-policy-links { display:flex; }
-body[data-stage=entry] .public-policy-links { display:grid;grid-template-columns:minmax(0,1fr) 48px minmax(0,1fr);gap:0 12px;pointer-events:none; }
-body[data-stage=entry] .public-policy-links a { pointer-events:auto; }
-body[data-stage=entry] .public-policy-links a:first-child { grid-column:1;justify-self:end; }
-body[data-stage=entry] .public-policy-links a:last-child { grid-column:3;justify-self:start; }
-body[data-stage=about] .public-hub { top:clamp(100px,38svh,320px);bottom:80px;overflow-y:auto; }
-body[data-stage=auth] .public-policy-links { display:flex;position:relative;margin:0 20px 16px;left:auto;right:auto;bottom:auto; }
+.about-policy-links { margin-top:24px; }
+body[data-stage=about] .public-hub { top:clamp(100px,38svh,320px);bottom:max(24px,env(safe-area-inset-bottom));overflow-y:auto; }
 .journal-policy-links { padding:12px 20px max(20px,env(safe-area-inset-bottom)); }
 .connection-privacy { color:#b6c5bf;font-size:13px;line-height:1.8;max-width:640px;margin:12px 0 24px;overflow-wrap:anywhere; }
 .connection-privacy a { color:#b7ebd5;text-decoration:underline;text-underline-offset:3px; }
