@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="포털">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="stylesheet" href="roulette.css?v=20260924-2">
+  <link rel="stylesheet" href="roulette.css?v=20260924-8">
   <link rel="stylesheet" href="pwa.css?v=1">
   <script src="pwa.js?v=1" defer></script>
 </head>
@@ -33,11 +33,22 @@
     <div class="roulette-actions"><button id="spin" class="primary" disabled><i data-lucide="rotate-cw"></i><span>돌리기</span></button><button id="choose-station" hidden><i data-lucide="check"></i><span>선택</span></button><a id="station-map" class="icon-button" aria-label="선택된 역 지도" title="선택된 역 지도" target="_blank" rel="noopener noreferrer" hidden><i data-lucide="map-pin"></i></a></div>
     <p id="station-note" class="station-note"></p>
     <p id="roulette-error" role="alert"></p>
+    <div class="roulette-histories">
     <section class="roulette-history" aria-labelledby="roulette-history-title">
       <div class="history-heading"><h2 id="roulette-history-title">선택한 역</h2><button id="refresh-choices" class="icon-button" aria-label="선택 내역 새로고침" title="새로고침"><i data-lucide="refresh-cw"></i></button></div>
       <p id="choices-status" role="status"></p><div id="choices-list"></div>
     </section>
+    <section class="roulette-history" aria-labelledby="cancelled-history-title">
+      <div class="history-heading"><h2 id="cancelled-history-title">취소 내역</h2><i data-lucide="history" aria-hidden="true"></i></div>
+      <p id="cancelled-status" role="status"></p><div id="cancelled-list"></div>
+    </section>
+    </div>
   </main>
+  <dialog id="cancel-choice-dialog" aria-labelledby="cancel-choice-title" aria-describedby="cancel-choice-description">
+    <div class="dialog-head"><h2 id="cancel-choice-title">선택 취소</h2><button id="close-cancel-choice" class="icon-button" type="button" aria-label="닫기" title="닫기"><i data-lucide="x"></i></button></div>
+    <p id="cancel-choice-name"></p><p id="cancel-choice-description">다시 추첨에 포함되며, 취소 내역은 남습니다.</p>
+    <div class="cancel-choice-actions"><button id="keep-choice" type="button">유지</button><button id="confirm-cancel-choice" type="button">선택 취소</button></div>
+  </dialog>
   <dialog id="stations-dialog" aria-labelledby="stations-title">
     <div class="dialog-head"><h2 id="stations-title">역 목록</h2><button id="close-stations" class="icon-button" aria-label="닫기" title="닫기"><i data-lucide="x"></i></button></div>
     <label class="station-search"><i data-lucide="search"></i><input id="station-search" type="search" placeholder="역 검색" aria-label="역 검색" maxlength="100" autocomplete="off"></label>
@@ -49,6 +60,6 @@
   <script src="auth-client.js?v=20260924-2" defer></script>
   <script src="vendor/lucide.js" defer></script>
   <script type="module" src="journal-gate.js?v=20260924-2"></script>
-  <script type="module" src="roulette.js?v=20260924-2"></script>
+  <script type="module" src="roulette.js?v=20260924-8"></script>
 </body>
 </html>

@@ -12,6 +12,8 @@ try {
     create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
     insert into auth.users values('${owner}'),('${other}');`);
   await db.exec(sql);await db.exec(sql);
+  const cancellationsSql=await readFile(new URL('../supabase/roulette-cancellations.sql',import.meta.url),'utf8');
+  await db.exec(cancellationsSql);await db.exec(cancellationsSql);
   await db.exec(`set role authenticated;set request.jwt.claim.sub='${owner}';`);
   const choose=()=>db.query("select * from public.roulette_choose('seoul','서울역',array['1호선','4호선','경의중앙선'])");
   const first=(await choose()).rows[0],second=(await choose()).rows[0];
@@ -23,12 +25,33 @@ try {
   await assert.rejects(db.exec(`insert into public.roulette_choices(user_id,station_id,station_name,lines) values('${owner}','x','x',array['1호선'])`));
   await assert.rejects(db.query("select public.roulette_choose('x','',array['1호선'])"));
   await assert.rejects(db.query("select public.roulette_choose('x','x',array['unknown'])"));
+  const selectedAt=(await db.query("select selected_at::text from public.roulette_choices where station_id='seoul'")).rows[0].selected_at;
+  const cancel=at=>db.query("select to_jsonb(public.roulette_cancel('seoul',$1::timestamptz)) as choice",[at]);
+  await assert.rejects(cancel(null),/INVALID_CHOICE/);
+  await assert.rejects(cancel('2020-01-01T00:00:00Z'),/CHOICE_CHANGED/);
+  const cancelled=(await cancel(selectedAt)).rows[0].choice;
+  assert.equal(cancelled.station_name,'서울역');assert.equal(cancelled.day,first.day.toISOString().slice(0,10));
+  assert.equal((await db.query('select * from public.roulette_choices')).rows.length,0,'cancelled station returns to the pool');
+  assert.equal((await cancel(selectedAt)).rows[0].choice.cancelled_at,cancelled.cancelled_at,'retry preserves cancellation time');
+  await choose();
+  await cancel(selectedAt);
+  assert.equal((await db.query('select * from public.roulette_choices')).rows.length,1,'old cancel retry cannot delete a newer selection');
+  const selectedAgain=(await db.query("select selected_at::text from public.roulette_choices where station_id='seoul'")).rows[0].selected_at;
+  await cancel(selectedAgain);
+  assert.equal((await db.query('select * from public.roulette_cancellations')).rows.length,2,'repeat cancellations preserve every selection');
+  await assert.rejects(db.exec('delete from public.roulette_cancellations'));
+  await assert.rejects(db.exec("update public.roulette_cancellations set station_name='modified'"));
+  await assert.rejects(db.exec(`insert into public.roulette_cancellations(user_id,station_id,station_name,lines,selected_at) values('${owner}','x','x',array['1호선'],now())`));
   await db.exec(`set request.jwt.claim.sub='${other}';`);
   assert.equal((await db.query('select count(*)::int n from public.roulette_choices')).rows[0].n,0);
+  assert.equal((await db.query('select * from public.roulette_cancellations')).rows.length,0);
+  await assert.rejects(cancel(selectedAt),/CHOICE_CHANGED/,'another account cannot cancel or read this selection');
   await choose();
   assert.equal((await db.query('select count(*)::int n from public.roulette_choices')).rows[0].n,1,'another user has independent choices');
   await db.exec("set role anon;set request.jwt.claim.sub='';");
   await assert.rejects(db.exec('select * from public.roulette_choices'));
+  await assert.rejects(db.exec('select * from public.roulette_cancellations'));
+  await assert.rejects(cancel(selectedAt));
   await assert.rejects(choose());
   // Historical tasks remain in the existing owner-only table and cannot be changed after their day.
   await db.exec('reset role;');
@@ -54,6 +77,22 @@ for(const data of [[],[fixed,fixed],null]) {
   const api=createRouletteStore({rpc:async()=>({data})},()=>({id:owner,epoch:1}));
   await assert.rejects(api.choose(STATIONS[0]),/INVALID_HISTORY/);
 }
+const cancelledFixture={...fixed,selected_at:'2026-09-14T01:00:00Z',cancelled_at:'2026-09-15T02:00:00Z'};
+for(const data of [cancelledFixture,[cancelledFixture]]) {
+  const api=createRouletteStore({rpc:async(name,args)=>{assert.equal(name,'roulette_cancel');assert.equal(args.p_selected_at,cancelledFixture.selected_at);return {data};}},()=>({id:owner,epoch:1}));
+  assert.deepEqual(await api.cancel(cancelledFixture),cancelledFixture);
+}
+for(const data of [null,[],[cancelledFixture,cancelledFixture],{...cancelledFixture,selected_at:'2026-09-16T01:00:00Z'},{...cancelledFixture,cancelled_at:'invalid'}]) {
+  const api=createRouletteStore({rpc:async()=>({data})},()=>({id:owner,epoch:1}));
+  await assert.rejects(api.cancel(cancelledFixture),/INVALID_HISTORY/);
+}
+let cancelIdentity={id:owner,epoch:1},resolveCancel;
+const cancelStore=createRouletteStore({rpc:()=>new Promise(resolve=>{resolveCancel=resolve;})},()=>cancelIdentity);
+const pendingCancel=cancelStore.cancel(cancelledFixture);cancelIdentity={id:other,epoch:2};resolveCancel({data:cancelledFixture});
+await assert.rejects(pendingCancel,/ACCOUNT_CHANGED/);
+let pageStart=0;const archive=Array.from({length:501},(_,i)=>({...cancelledFixture,station_id:String(i)}));
+const archiveStore=createRouletteStore({from(table){assert.equal(table,'roulette_cancellations');return {select(){return this},eq(key,id){assert.equal(key,'user_id');assert.equal(id,owner);return this},order(){return this},range(from,to){assert.equal(to,from+499);pageStart=from;return this},then(resolve){resolve({data:archive.slice(pageStart,pageStart+500)});}};}},()=>({id:owner,epoch:1}));
+assert.equal((await archiveStore.listCancelled()).length,501,'all cancellations are paginated and scoped to the owner');
 for(const name of ['신촌','양평']) {
   const same=STATIONS.filter(station=>station.name===name);
   assert.equal(remainingStations(same,[{station_id:same[0].id}])[0].id,same[1].id,'different same-name stations remain independent');

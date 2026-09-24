@@ -2,13 +2,13 @@ import {STATIONS} from './stations.js?v=20260924-2';
 import {TAU, createSpin} from './roulette-core.js?v=20260924-2';
 import {validProfile} from './profile.js?v=20260924-2';
 import {validAvatar} from './avatar.js?v=20260924-2';
-import {createRouletteStore, remainingStations} from './roulette-store.js?v=20260924-2';
+import {createRouletteStore, remainingStations} from './roulette-store.js?v=20260924-8';
 
 const $ = id => document.getElementById(id);
 const colors = {'1호선':'#688cd9','2호선':'#67c990','3호선':'#f7b36c','4호선':'#79c4ec','5호선':'#b1a0dd','6호선':'#d9a17c','7호선':'#c2c575','8호선':'#df8cac','9호선':'#c8b982','경의중앙선':'#91cbbb'};
 const stations = [...STATIONS].sort((a,b) => a.name.localeCompare(b.name, 'ko') || a.id.localeCompare(b.id));
 let authorized = false, spinning = false, selected = null, lastLabel = 0;
-let user = null, epoch = 0, choices = [], pool = [], spin = null, loaded = false, loading = false, saving = false;
+let user = null, epoch = 0, choices = [], cancellations = [], pool = [], spin = null, loaded = false, loading = false, saving = false, pendingCancel = null;
 const store = createRouletteStore(window.realmClient, () => ({id:user?.id,epoch}));
 function controls() {
   const fixed = selected && choices.some(choice => choice.station_id === selected.id);
@@ -17,6 +17,11 @@ function controls() {
   $('choose-station').disabled = !authorized || !loaded || loading || saving || Boolean(fixed);
   $('choose-station').querySelector('span').textContent = saving ? '저장 중' : fixed ? '선택됨' : '선택';
   $('refresh-choices').disabled = !authorized || loading || saving || spinning;
+  document.querySelectorAll('.choice-cancel').forEach(button => { button.disabled = !authorized || !loaded || loading || saving || spinning; });
+  $('confirm-cancel-choice').disabled = !authorized || !loaded || loading || saving || spinning || !pendingCancel;
+  $('confirm-cancel-choice').textContent = saving && pendingCancel ? '취소 중' : '선택 취소';
+  $('keep-choice').disabled = saving;
+  $('close-cancel-choice').disabled = saving;
   const count = remainingStations(stations, choices).length;
   $('roulette-odds').textContent = !loaded ? '내역 확인 중…' : count ? `${count}역 · 각 1/${count}` : '모든 역을 선택했습니다.';
 }
@@ -94,6 +99,33 @@ function prepareSpin() {
   result:showResult
 });
 }
+const cancelledTime = new Intl.DateTimeFormat('ko-KR', {timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});
+function choiceRow(choice, cancelled = false) {
+  const row = document.createElement('article'), info = document.createElement('div'), name = document.createElement('strong'), lines = document.createElement('div'), actions = document.createElement('div'), link = document.createElement('a');
+  row.className = 'choice-row'; name.textContent = choice.station_name; lines.className = 'line-badges';
+  lines.append(...badges(choice)); info.append(name,lines);
+  actions.className = 'choice-actions';
+  link.className = 'icon-button'; link.href = mapUrl({name:choice.station_name,lines:choice.lines});
+  link.target = '_blank'; link.rel = 'noopener noreferrer'; link.title = `${choice.station_name} 지도`; link.setAttribute('aria-label', link.title);
+  link.innerHTML = '<i data-lucide="map-pin"></i>'; actions.append(link);
+  if (cancelled) {
+    const dates = document.createElement('p'), original = document.createElement('span'), time = document.createElement('time');
+    dates.className = 'choice-dates'; original.textContent = `선택 ${choice.day.replaceAll('-', '.')}`;
+    time.dateTime = choice.cancelled_at; time.textContent = `취소 ${cancelledTime.format(new Date(choice.cancelled_at))}`;
+    dates.append(original,time); info.append(dates);
+  } else {
+    const cancel = document.createElement('button'); cancel.type = 'button'; cancel.className = 'icon-button choice-cancel';
+    cancel.title = `${choice.station_name} 선택 취소`; cancel.setAttribute('aria-label',cancel.title);
+    cancel.innerHTML = '<i data-lucide="trash-2"></i>';
+    cancel.addEventListener('click', () => {
+      if (!authorized || !loaded || loading || saving || spinning) return;
+      pendingCancel = choice; $('cancel-choice-name').textContent = choice.station_name;
+      controls(); $('cancel-choice-dialog').showModal(); $('keep-choice').focus();
+    });
+    actions.append(cancel);
+  }
+  row.append(info,actions); return row;
+}
 function renderChoices() {
   $('choices-list').replaceChildren();
   const days = new Map();
@@ -103,24 +135,21 @@ function renderChoices() {
       section.className = 'choice-day'; heading.textContent = choice.day.replaceAll('-', '.');
       section.append(heading); days.set(choice.day, section); $('choices-list').append(section);
     }
-    const row = document.createElement('article'), info = document.createElement('div'), name = document.createElement('strong'), lines = document.createElement('div'), link = document.createElement('a');
-    row.className = 'choice-row'; name.textContent = choice.station_name; lines.className = 'line-badges';
-    lines.append(...badges(choice)); info.append(name,lines);
-    link.className = 'icon-button'; link.href = mapUrl({name:choice.station_name,lines:choice.lines});
-    link.target = '_blank'; link.rel = 'noopener noreferrer'; link.title = `${choice.station_name} 지도`; link.setAttribute('aria-label', link.title);
-    link.innerHTML = '<i data-lucide="map-pin"></i>'; row.append(info,link); days.get(choice.day).append(row);
+    days.get(choice.day).append(choiceRow(choice));
   }
+  $('cancelled-list').replaceChildren(...[...cancellations].sort((a,b) => b.cancelled_at.localeCompare(a.cancelled_at) || b.selected_at.localeCompare(a.selected_at) || a.station_id.localeCompare(b.station_id)).map(choice => choiceRow(choice,true)));
   $('choices-status').textContent = loading ? '불러오는 중…' : !loaded ? '내역을 불러오지 못했습니다.' : choices.length ? `${choices.length}역 선택` : '선택한 역이 없습니다.';
+  $('cancelled-status').textContent = loading ? '불러오는 중…' : !loaded ? '내역을 불러오지 못했습니다.' : cancellations.length ? `${cancellations.length}건` : '취소 내역이 없습니다.';
   window.lucide?.createIcons(); controls();
 }
 async function loadChoices() {
   if (!authorized || loading || saving || spinning) return false;
   const token = epoch; loading = true; controls();
-  $('choices-status').textContent = '불러오는 중…';
+  $('choices-status').textContent = '불러오는 중…'; $('cancelled-status').textContent = '불러오는 중…';
   try {
-    const rows = await store.list();
+    const [rows, cancelled] = await Promise.all([store.list(),store.listCancelled()]);
     if (token !== epoch) return false;
-    choices = rows; loaded = true; $('roulette-error').textContent = '';
+    choices = rows; cancellations = cancelled; loaded = true; $('roulette-error').textContent = '';
     return true;
   } catch {
     if (token === epoch) {loaded = false; $('roulette-error').textContent = '선택 내역을 확인하지 못했습니다. 새로고침 후 다시 시도해 주세요.';}
@@ -148,13 +177,45 @@ $('choose-station').addEventListener('click', async () => {
   } finally {if (token === epoch) {saving = false; renderChoices();}}
 });
 $('refresh-choices').addEventListener('click', loadChoices);
+function closeCancellation() {
+  if (saving) return;
+  $('cancel-choice-dialog').close(); pendingCancel = null; controls();
+}
+$('keep-choice').addEventListener('click', closeCancellation);
+$('close-cancel-choice').addEventListener('click', closeCancellation);
+$('cancel-choice-dialog').addEventListener('cancel', event => { event.preventDefault(); closeCancellation(); });
+$('confirm-cancel-choice').addEventListener('click', async () => {
+  if (!authorized || !loaded || !pendingCancel || loading || saving || spinning) return;
+  const token = epoch, choice = pendingCancel; saving = true; controls(); $('roulette-error').textContent = '';
+  try {
+    const cancelled = await store.cancel(choice);
+    if (token !== epoch) return;
+    choices = choices.filter(item => item.station_id !== choice.station_id || item.selected_at !== choice.selected_at);
+    cancellations = cancellations.filter(item => item.station_id !== cancelled.station_id || item.selected_at !== cancelled.selected_at).concat(cancelled);
+    if (selected?.id === choice.station_id) {
+      selected = null; $('rolling-name').textContent = '?'; $('rolling-lines').replaceChildren();
+      $('station-map').hidden = true; $('station-note').textContent = '';
+    }
+    $('roulette-result').textContent = `${choice.station_name} 선택 취소됨`;
+  } catch (error) {
+    if (token === epoch) {
+      loaded = false;
+      $('roulette-error').textContent = /CHOICE_CHANGED/.test(error?.message || '') ? '선택 내역이 변경되었습니다. 새로고침해 주세요.' : '취소 여부를 확인하지 못했습니다. 내역을 새로고침해 주세요.';
+    }
+  } finally {
+    if (token === epoch) {
+      saving = false; closeCancellation(); renderChoices(); $('refresh-choices').focus();
+    }
+  }
+});
 function account(session) {
   const metadata=session?.user?.user_metadata;
   const changed = user?.id !== session?.user?.id;
   user = session?.user || null;
   authorized=Boolean(validProfile(metadata?.realm_profile) && validAvatar(metadata?.realm_avatar));
   if(changed || !authorized) {
-    epoch++; spin?.cancel(); selected=null; choices=[]; pool=[]; loaded=false; loading=false; saving=false;
+    epoch++; spin?.cancel(); selected=null; choices=[]; cancellations=[]; pool=[]; loaded=false; loading=false; saving=false;
+    closeCancellation();
     $('rolling-name').textContent='?'; $('rolling-lines').replaceChildren();
     $('station-map').hidden=true; $('station-note').textContent=''; $('roulette-result').textContent='';
     $('roulette-error').textContent=''; renderChoices();

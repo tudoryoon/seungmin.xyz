@@ -10,14 +10,20 @@ const w=new Window({url:'https://seungmin.xyz/roulette',settings:{disableCSSFile
 const $=id=>w.document.getElementById(id);
 async function until(check){for(let i=0;i<200;i++){if(check())return;await new Promise(resolve=>setTimeout(resolve,2));}assert.ok(check(),`UI settles: ${$('roulette-odds')?.textContent}; ${$('roulette-error')?.textContent}; reads=${reads}`);}
 let user={id:'owner',user_metadata:{realm_profile:{version:1,name:'Fixture',age:30,gender:'unspecified',mbti:'',blood:''},realm_avatar:parseAvatar(DEFAULT_PROMPT)}};
-let callback,choices=[],fail=false,saveCount=0,reads=0,defer=false,late;
+let callback,choices=[],cancellations=[],fail=false,saveCount=0,cancelCount=0,reads=0,defer=false,late=[];
 const stations=STATIONS.slice(0,3);
 w.document.write(await readFile(new URL('../roulette.html',import.meta.url),'utf8'));
 w.localStorage.setItem('seungmin-realm-motion','off');w.confirm=()=>true;w.lucide={createIcons(){}};
 w.HTMLCanvasElement.prototype.getContext=()=>null;
 w.realmClient={auth:{onAuthStateChange(cb){callback=cb;},getSession:async()=>({data:{session:{user}}})},
-  from(){return {select(){return this},eq(){return this},order(){return this},range(){return this},then(resolve){reads++;if(defer)late=resolve;else resolve({data:structuredClone(choices),error:fail?Error('offline'):null});}};},
-  async rpc(name,args){assert.equal(name,'roulette_choose');if(fail)return {error:Error('offline')};saveCount++;
+  from(table){return {select(){return this},eq(){return this},order(){return this},range(){return this},then(resolve){reads++;if(defer)late.push(resolve);else resolve({data:structuredClone(table==='roulette_cancellations'?cancellations:choices),error:fail?Error('offline'):null});}};},
+  async rpc(name,args){if(fail)return {error:Error('offline')};
+    if(name==='roulette_cancel') {
+      cancelCount++;const choice=choices.find(c=>c.station_id===args.p_station_id&&c.selected_at===args.p_selected_at);
+      assert.ok(choice);const row={...choice,cancelled_at:'2026-09-24T12:30:00Z'};
+      cancellations.push(row);choices=choices.filter(c=>c!==choice);return {data:[row]};
+    }
+    assert.equal(name,'roulette_choose');saveCount++;
     const existing=choices.find(choice=>choice.station_id===args.p_station_id);
     const row=existing||{station_id:args.p_station_id,station_name:args.p_station_name,lines:args.p_lines,day:'2026-09-14',selected_at:'2026-09-13T15:01:00Z'};
     if(!existing)choices.push(row);return {data:[row]};}
@@ -44,8 +50,24 @@ try {
   $('choose-station').click();await until(()=>saveCount===2&&!$('refresh-choices').disabled);
   $('spin').click();await until(()=>!$('choose-station').disabled);$('choose-station').click();await until(()=>saveCount===3&&!$('refresh-choices').disabled);
   assert.equal($('roulette-odds').textContent,'모든 역을 선택했습니다.');assert.equal($('spin').disabled,true);
-  defer=true;$('refresh-choices').click();await until(()=>late);
-  callback('SIGNED_OUT',null);late({data:choices});await new Promise(resolve=>setTimeout(resolve,10));
+  const cancelButton=()=>$('choices-list').querySelector('.choice-cancel');
+  cancelButton().click();assert.equal($('cancel-choice-dialog').open,true);assert.equal(w.document.activeElement,$('keep-choice'));
+  $('keep-choice').click();assert.equal($('cancel-choice-dialog').open,false);assert.equal(cancelCount,0);
+  cancelButton().click();fail=true;$('confirm-cancel-choice').click();await until(()=>$('roulette-error').textContent.includes('취소 여부'));
+  assert.equal(choices.length,3);assert.equal($('spin').disabled,true);assert.equal($('cancelled-list').children.length,0);
+  fail=false;$('refresh-choices').click();await until(()=>!$('refresh-choices').disabled&&!cancelButton().disabled);
+  const cancelledName=$('choices-list').querySelector('strong').textContent;
+  cancelButton().click();$('confirm-cancel-choice').click();$('confirm-cancel-choice').click();await until(()=>cancelCount===1&&!$('refresh-choices').disabled);
+  assert.equal($('cancel-choice-dialog').open,false);assert.equal($('choices-list').querySelectorAll('.choice-row').length,2);
+  assert.equal($('cancelled-list').querySelector('strong').textContent,cancelledName);
+  assert.equal($('cancelled-list').querySelector('time').dateTime,'2026-09-24T12:30:00Z');
+  assert.match($('cancelled-list').textContent,/선택 2026.09.14/);
+  assert.equal($('roulette-odds').textContent,'1역 · 각 1/1');assert.equal($('spin').disabled,false);
+  $('refresh-choices').click();await until(()=>!$('refresh-choices').disabled);assert.equal($('cancelled-list').children.length,1,'history survives reload');
+  $('spin').click();await until(()=>!$('choose-station').disabled);assert.equal($('rolling-name').textContent,cancelledName,'cancelled station can be drawn again');
+  defer=true;$('refresh-choices').click();await until(()=>late.length===2);
+  callback('SIGNED_OUT',null);late.forEach(resolve=>resolve({data:choices}));await new Promise(resolve=>setTimeout(resolve,10));
   assert.equal($('choices-list').children.length,0);assert.equal($('rolling-name').textContent,'?');assert.equal($('spin').disabled,true);
-  console.log('PASS: choose-only persistence, fixed dated history, exclusion and remaining odds, pre-spin refresh, double-click guard, failed-save recovery, exhausted pool, logout and late responses.');
+  assert.equal($('cancelled-list').children.length,0);
+  console.log('PASS: dated choices, cancellation confirmation/dismissal, failures, duplicate clicks, persistent audit history, restored pool, remaining odds, stale loads and account isolation.');
 } finally {await w.happyDOM.close();}

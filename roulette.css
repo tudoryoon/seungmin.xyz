@@ -15,7 +15,7 @@ svg { width: 20px; height: 20px; flex-shrink: 0; }
 .icon-button { width: 44px; height: 44px; display: inline-grid; place-items: center; padding: 0; }
 .roulette-header { display: flex; justify-content: space-between; align-items: center; height: 80px; padding: 16px 32px; }
 .roulette-header>a { display: inline-flex; gap: 10px; align-items: center; min-height: 44px; font-size: 14px; }
-.roulette-main { width: min(100%, 640px); margin: 0 auto; padding: 8px 24px 24px; text-align: center; }
+.roulette-main { width: min(100%, 1024px); margin: 0 auto; padding: 8px 24px 24px; text-align: center; }
 h1 { font-size: 22px; font-weight: 500; margin: 0 0 12px; }
 .roulette-scope { font-size: 13px; color: #bccbc4; margin: 0 0 6px; }
 .roulette-odds { font-size: 12px; font-variant-numeric: tabular-nums; color: #c8b690; margin: 0; min-height: 18px; }
@@ -32,8 +32,20 @@ h1 { font-size: 22px; font-weight: 500; margin: 0 0 12px; }
 .roulette-actions { flex-wrap: wrap; gap: 8px; }
 .roulette-actions .primary { min-width: 136px; padding: 0 18px; }
 .roulette-history { margin: 28px 0 0; padding-top: 22px; border-top: 1px solid #40534c; text-align: left; }
+.roulette-histories { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 32px; }
+.roulette-history { min-width: 0; }
 .history-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
-#choices-status { color: #afc1b7; font-size: 13px; min-height: 18px; }
+.history-heading { min-height: 44px; }
+#choices-status, #cancelled-status { color: #afc1b7; font-size: 13px; min-height: 18px; }
+.choice-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.choice-cancel { color: #e5b5ae; }
+.choice-dates { display: grid; gap: 4px; margin: 8px 0 0; color: #aebeb7; font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+#cancelled-list .choice-row strong { color: #bbc9c2; }
+#cancel-choice-name { font-size: 20px; overflow-wrap: anywhere; }
+#cancel-choice-description { color: #b5c8bd; font-size: 14px; line-height: 1.6; }
+.cancel-choice-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+.cancel-choice-actions button { padding: 0 16px; }
+#confirm-cancel-choice { border-color: #ad847c; color: #efc3bc; }
 .choice-day { margin: 22px 0; }
 .choice-day h3 { font-size: 13px; font-weight: 500; color: #c8b690; margin: 0 0 8px; }
 .choice-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; border-bottom: 1px solid #314541; }
@@ -61,6 +73,7 @@ input { background: transparent; border: 0; color: inherit; min-width: 0; width:
 footer { display: flex; flex-wrap: wrap; gap: 12px; padding-top: 16px; color: #a4b3ac; font-size: 11px; }
 footer a { text-decoration: underline; text-underline-offset: 3px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media(max-width: 720px) { .roulette-histories { grid-template-columns: minmax(0,1fr); gap: 0; } }
 @media(max-width: 540px) {
   .roulette-header { padding: 12px 20px; height: 68px; }
   .roulette-main { padding: 16px 16px 24px; }
