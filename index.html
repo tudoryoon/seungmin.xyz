@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="description" content="일정과 운동 기록.">
+  <meta name="description" content="개인 페이지입니다.">
   <title>입장</title>
   <link rel="icon" href="favicon.ico?v=1" sizes="16x16 32x32 48x48">
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1" sizes="any">
@@ -15,15 +15,16 @@
   <meta name="apple-mobile-web-app-title" content="포털">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="preload" as="image" href="assets/entry-earth.webp">
-  <link rel="stylesheet" href="styles.css?v=20260919-2">
-  <link rel="stylesheet" href="dungeon.css?v=20260919-2">
-  <link rel="stylesheet" href="continuity.css?v=20260919-2">
+  <link rel="stylesheet" href="styles.css?v=20260924-1">
+  <link rel="stylesheet" href="dungeon.css?v=20260924-1">
+  <link rel="stylesheet" href="continuity.css?v=20260924-1">
   <link rel="stylesheet" href="pwa.css?v=1">
   <script src="pwa.js?v=1" defer></script>
 </head>
 <body data-stage="entry" class="session-checking">
   <div class="world" aria-hidden="true"><div class="landscape"></div><canvas id="portal"></canvas><div class="world-shade"></div></div>
   <header class="realm-header">
+    <a id="home-link" class="icon-button home-link" href="#home" title="메뉴로 돌아가기" aria-label="메뉴로 돌아가기" hidden><i data-lucide="arrow-left" aria-hidden="true"></i></a>
     <div class="header-actions">
       <div id="realm-settings" class="realm-settings">
         <button id="settings-toggle" class="icon-button" type="button" title="설정" aria-label="설정" aria-expanded="false" aria-controls="settings-panel"><i data-lucide="settings" aria-hidden="true"></i></button>
@@ -40,7 +41,19 @@
     <section id="entry" class="stage entry-stage" aria-labelledby="entry-title">
       <div class="entry-copy">
         <h1 id="entry-title" class="sr-only">입장</h1>
-        <div class="entry-cue"><span class="entry-track" aria-hidden="true"><span></span></span><button id="enter" class="scroll-enter" type="button" title="로그인으로 이동" aria-label="로그인으로 이동"><i data-lucide="arrow-down" aria-hidden="true"></i></button></div>
+        <div class="entry-cue"><span class="entry-track" aria-hidden="true"><span></span></span><button id="enter" class="scroll-enter" type="button" title="메뉴로 이동" aria-label="메뉴로 이동"><i data-lucide="arrow-down" aria-hidden="true"></i></button></div>
+      </div>
+    </section>
+    <section id="home" class="stage public-hub" aria-labelledby="home-title" hidden>
+      <h1 id="home-title" class="sr-only" tabindex="-1">메뉴</h1>
+      <nav id="public-nav" class="public-nav" aria-label="주요 메뉴">
+        <a href="#substack" data-public-page="substack">Substack</a>
+        <a href="#map" data-public-page="auth">개인일정</a>
+        <a href="#about" data-public-page="about">About</a>
+      </nav>
+      <div class="public-content" aria-live="polite">
+        <p id="substack-content" hidden>준비 중</p>
+        <p id="about-content" hidden>개인 페이지입니다.</p>
       </div>
     </section>
     <section id="auth" class="stage form-stage" aria-labelledby="auth-title" hidden>
@@ -129,10 +142,10 @@
   <p id="global-message" class="global-message" role="status"></p>
   <noscript><p class="noscript">입장하려면 브라우저에서 JavaScript를 켜주세요.</p></noscript>
   <script src="vendor/supabase.js" defer></script>
-  <script src="auth-client.js?v=20260919-2" defer></script>
+  <script src="auth-client.js?v=20260924-1" defer></script>
   <script src="vendor/lucide.js" defer></script>
-  <script type="module" src="realm.js?v=20260919-2"></script>
-  <script type="module" src="player-level.js?v=20260919-2"></script>
-  <script type="module" src="map-wind.js?v=20260919-2"></script>
+  <script type="module" src="realm.js?v=20260924-1"></script>
+  <script type="module" src="player-level.js?v=20260924-1"></script>
+  <script type="module" src="map-wind.js?v=20260924-1"></script>
 </body>
 </html>

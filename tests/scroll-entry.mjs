@@ -6,7 +6,7 @@ assert.equal(entryProgress(-1,100),0);assert.equal(entryProgress(40,100),.4);ass
 assert.equal(entryProgress(1181.5,1182),1,'fractional mobile scroll reaches the rounded end');
 assert.equal(entryProgress(-400,1400),0,'rubber-band scroll cannot reverse the camera past the start');
 assert.equal(entryProgress(NaN,1400),0);assert.equal(entryProgress(100,Infinity),0);
-assert.equal(entryScene(0)['earth-opacity'],1);assert.equal(entryScene(.5)['earth-opacity'],1);assert.equal(entryScene(1)['earth-opacity'],0);
+assert.equal(entryScene(0)['earth-opacity'],1);assert.equal(entryScene(.5)['earth-opacity'],1);assert.ok(Math.abs(entryScene(1)['earth-opacity']-.2)<1e-9);
 for(let i=0;i<=100;i++){
   const scene=entryScene(i/100);
   assert.equal(scene['earth-scale'],1,'no-WebGL fallback never switches to separate map photos');

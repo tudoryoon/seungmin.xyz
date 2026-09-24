@@ -8,7 +8,8 @@ const {Window}=await import(process.env.DOM_MODULE||'happy-dom');
 const user={id:'routing-fixture',email:'fixture@example.com',user_metadata:{realm_profile:{version:1,name:'Fixture',age:31,gender:'unspecified',mbti:'',blood:''},realm_avatar:avatars.parseAvatar('청록색 도포를 입은 도사')}};
 assert.equal(resolveRealmStage(null,'#map'),'auth');
 assert.equal(resolveRealmStage(null,''),'entry');
-assert.equal(resolveRealmStage(user,''),'map');
+assert.equal(resolveRealmStage(user,''),'entry');
+for(const account of [null,user,{...user,user_metadata:{}}])for(const route of ['home','substack','about'])assert.equal(resolveRealmStage(account,'#'+route),route);
 assert.equal(resolveRealmStage(user,'#unknown'),'map');
 assert.equal(resolveRealmStage({...user,user_metadata:{}},'#map'),'profile');
 assert.equal(resolveRealmStage({...user,user_metadata:{realm_profile:user.user_metadata.realm_profile}},'#complete'),'avatar');
@@ -50,11 +51,11 @@ async function boot(hash,account,error=null,{preference='off',reduced=false,port
     assert.equal(window.document.body.dataset.entryRenderer,'fallback','a partial renderer failure restores the illustrated fallback');
     assert.equal(window.document.getElementById('portal').hidden,true);
     window.document.getElementById('enter').click();
-    await until(()=>window.document.body.dataset.stage==='auth');
-    assert.equal(window.document.getElementById('auth').inert,false,'renderer failure does not block login');
+    await until(()=>window.document.body.dataset.stage==='home');
+    assert.equal(window.document.getElementById('home').inert,false,'renderer failure does not block navigation');
   }finally{await window.happyDOM.close();}
 }
-for(const route of ['','#map','#profile','#avatar','#complete','#continue']) {
+for(const route of ['#map','#profile','#avatar','#complete','#continue','#auth']) {
   const {window,callbacks}=await boot(route,user);
   try {
     const expected=['#profile','#avatar','#complete'].includes(route)?route.slice(1):'map';
@@ -69,37 +70,56 @@ for(const route of ['','#map','#profile','#avatar','#complete','#continue']) {
     window.location.hash='#map';window.dispatchEvent(new window.Event('hashchange'));assert.equal(window.document.body.dataset.stage,'auth','back cannot reopen a signed-out map');
   }finally{await window.happyDOM.close();}
 }
-for(const route of ['','#auth']) {
-  const {window,callbacks}=await boot(route,null);
-  const doc=window.document,auth=doc.getElementById('auth'),entry=doc.getElementById('entry');
+for(const account of [null,user]) {
+  const {window,callbacks}=await boot('',account);
+  const doc=window.document,auth=doc.getElementById('auth'),entry=doc.getElementById('entry'),hub=doc.getElementById('home');
   const scroll=async top=>{window.scrollTo({top});await until(()=>Number(doc.body.style.getPropertyValue('--entry-progress'))===top/1400);};
+  const navigate=hash=>{window.location.hash=hash;window.dispatchEvent(new window.Event('hashchange'));};
   try {
-    assert.equal(window.scrollY,route?1400:0);
+    assert.equal(window.scrollY,0);
     assert.equal(entry.hidden,false);assert.equal(doc.body.classList.contains('entry-flow'),true);
-    await scroll(1400);assert.equal(doc.body.dataset.stage,'auth');assert.equal(auth.hidden,false);assert.equal(auth.inert,false);
-    doc.getElementById('email').value='draft@example.com';doc.getElementById('password').value='unsent-draft';
-    doc.getElementById('email').focus();
-    await scroll(1365);assert.equal(doc.body.dataset.stage,'entry');assert.equal(auth.hidden,false);assert.equal(auth.inert,true);
-    assert.notEqual(doc.activeElement,doc.getElementById('email'),'rewinding releases form focus');
-    await scroll(1302);assert.equal(auth.hidden,true,'geographic curl completes before the login form');
-    await scroll(0);assert.equal(auth.hidden,true);assert.equal(window.location.hash,'');
-    await scroll(1400);assert.equal(doc.body.dataset.stage,'auth');assert.equal(auth.inert,false);
-    assert.equal(doc.getElementById('email').value,'draft@example.com');assert.equal(doc.getElementById('password').value,'unsent-draft');
+    await scroll(1400);assert.equal(doc.body.dataset.stage,'home');assert.equal(hub.hidden,false);assert.equal(hub.inert,false);assert.equal(auth.hidden,true);
+    doc.querySelector('[data-public-page]').focus();
+    await scroll(1365);assert.equal(doc.body.dataset.stage,'entry');assert.equal(hub.hidden,false);assert.equal(hub.inert,true);
+    assert.notEqual(doc.activeElement,doc.querySelector('[data-public-page]'),'rewinding releases menu focus');
+    await scroll(1302);assert.equal(hub.hidden,true,'geographic curl completes before navigation');
+    await scroll(0);assert.equal(hub.hidden,true);assert.equal(window.location.hash,'');
+    await scroll(1400);assert.equal(doc.body.dataset.stage,'home');assert.equal(hub.inert,false);
+    navigate('#about');assert.equal(doc.getElementById('about-content').hidden,false);
+    assert.equal(doc.getElementById('about-content').textContent,'개인 페이지입니다.');
+    assert.equal(doc.querySelector('[data-public-page=about]').getAttribute('aria-current'),'page');
+    assert.equal(window.scrollY,1400);
+    doc.querySelector('[data-public-page=about]').click();assert.equal(doc.body.dataset.stage,'home','active public link collapses its content');
+    navigate('#substack');assert.equal(doc.getElementById('substack-content').hidden,false);assert.equal(doc.getElementById('about-content').hidden,true);
+    navigate('#map');assert.equal(doc.body.dataset.stage,account?'map':'auth');
+    assert.equal(entry.hidden,true);assert.equal(doc.body.classList.contains('entry-flow'),false);
+    if(!account){
+      doc.getElementById('email').value='draft@example.com';doc.getElementById('password').value='unsent-draft';
+      navigate('#about');navigate('#auth');
+      assert.equal(doc.getElementById('email').value,'draft@example.com');assert.equal(doc.getElementById('password').value,'unsent-draft');
+      assert.equal(auth.hidden,false);assert.equal(hub.inert,false);
+    }
     window.history.replaceState(null,'','/index.html');window.dispatchEvent(new window.Event('popstate'));
     assert.equal(doc.body.dataset.stage,'entry');assert.equal(window.scrollY,0,'back to empty hash returns to the beginning');
-    callbacks.forEach(cb=>cb('SIGNED_IN',{user}));await until(()=>doc.body.dataset.stage==='map');
-    assert.equal(doc.body.classList.contains('entry-flow'),false);assert.equal(entry.hidden,true);
-    window.scrollTo({top:0});await new Promise(resolve=>window.requestAnimationFrame(resolve));assert.equal(doc.body.dataset.stage,'map');
+    navigate('#about');callbacks.forEach(cb=>cb('SIGNED_IN',{user}));
+    await new Promise(resolve=>setTimeout(resolve,10));assert.equal(doc.body.dataset.stage,'about','auth in another tab does not redirect a public page');
+    navigate('#map');assert.equal(doc.body.dataset.stage,'map');
     callbacks.forEach(cb=>cb('SIGNED_OUT',null));await until(()=>doc.body.dataset.stage==='auth');
-    assert.equal(window.scrollY,1400);await scroll(0);assert.equal(doc.body.dataset.stage,'entry','logout can also rewind');
+    assert.equal(doc.getElementById('map-name').textContent,'');
+    navigate('#home');await scroll(0);assert.equal(doc.body.dataset.stage,'entry','returning to public menu can rewind');
   }finally{await window.happyDOM.close();}
+}
+for(const account of [null,user,{...user,user_metadata:{}}])for(const route of ['home','about','substack']){
+  const {window}=await boot('#'+route,account);
+  try{assert.equal(window.document.body.dataset.stage,route);assert.equal(window.scrollY,1400);assert.equal(window.document.getElementById('home').inert,false);}
+  finally{await window.happyDOM.close();}
 }
 for(const [route,account,error,expected] of [['',null,null,'entry'],['#map',null,null,'auth'],['#map',{...user,user_metadata:{}},null,'profile'],['#complete',{...user,user_metadata:{realm_profile:user.user_metadata.realm_profile}},null,'avatar'],['#map',null,new Error('offline'),'auth']]) {
   const {window}=await boot(route,account,error);
   try{assert.equal(window.document.body.dataset.stage,expected);if(error)assert.equal(window.document.getElementById('global-message').textContent,'Connection failed');}finally{await window.happyDOM.close();}
 }
 for(const account of [null,user]) {
-  const {window,canMove,motionValues}=await boot('',account);
+  const {window,canMove,motionValues}=await boot(account?'#map':'',account);
   const doc=window.document,toggle=doc.getElementById('settings-toggle'),panel=doc.getElementById('settings-panel'),motion=doc.getElementById('motion');
   try {
     assert.equal(panel.hidden,true);assert.equal(toggle.getAttribute('aria-expanded'),'false');
@@ -140,4 +160,4 @@ for(const [preference,reduced,expected] of [[null,true,false],[null,false,true],
     assert.equal(motion.checked,chosen,'a manual preference survives later OS changes');
   }finally{await window.happyDOM.close();}
 }
-console.log('PASS: session routing/history/guards, settings disclosure/focus/dismissal, map pause guard, saved motion preferences and reduced-motion defaults.');
+console.log('PASS: public routes/menu/reverse scroll, private session routing/history/guards, auth changes, retained drafts, settings/focus, map pause guard and motion preferences.');

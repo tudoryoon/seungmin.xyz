@@ -5,7 +5,7 @@ export function entryScene(progress) {
   const blend=(start,end)=>{const t=Math.max(0,Math.min(1,(progress-start)/(end-start)));return t*t*(3-2*t);};
   return {
     'earth-scale':1,
-    'earth-opacity':1-blend(.9,1)
+    'earth-opacity':1-.8*blend(.9,1)
   };
 }
 
@@ -39,7 +39,7 @@ export function createScrollEntry({section,button,isActive,motion,render,onEnter
   view.addEventListener('touchcancel',()=>{touchY=null;},{passive:true});
   view.addEventListener('resize',()=>{
     if(!isActive())return;
-    // Keep the form reached when mobile browser chrome or the keyboard changes the viewport.
+    // Keep the menu reached when mobile browser chrome changes the viewport.
     if(atEnd)view.scrollTo({top:section.offsetTop+distance(),behavior:'instant'});
     schedule();
   },{passive:true});

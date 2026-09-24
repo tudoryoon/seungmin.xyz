@@ -8,7 +8,7 @@ import {dailyFixture} from './daily-fixture.mjs';
 const {chromium} = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const root = process.env.TEST_ROOT || fileURLToPath(new URL('../',import.meta.url));
 const repo = process.env.SOURCE_REPO || root;
-const version = '20260919-2';
+const version = '20260924-1';
 const user = {id:'cache-test-user',user_metadata:{
   realm_profile:{version:1,name:'테스트',age:30,gender:'unspecified',mbti:'',blood:''},
   realm_avatar:parseAvatar('청록색 도포를 입은 도사. 지팡이.')
@@ -51,6 +51,8 @@ try {
       deployed = true;
       await page.goto('about:blank');
       await page.goto(base);
+      await page.locator('#enter').click();
+      await page.getByRole('link',{name:'개인일정',exact:true}).click();
       await page.locator('#map').waitFor({state:'visible',timeout:5000});
       await page.locator('#map-character').click();
       await page.locator('#open-map').click();

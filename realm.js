@@ -1,13 +1,14 @@
-import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js?v=20260919-2';
-import { validProfile } from './profile.js?v=20260919-2';
-import { createDungeon } from './dungeon.js?v=20260919-2';
-import { resolveRealmStage } from './realm-route.js?v=20260919-2';
-import { createScrollEntry, entryScene } from './scroll-entry.js?v=20260919-2';
+import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js?v=20260924-1';
+import { validProfile } from './profile.js?v=20260924-1';
+import { createDungeon } from './dungeon.js?v=20260924-1';
+import { resolveRealmStage } from './realm-route.js?v=20260924-1';
+import { createScrollEntry, entryScene } from './scroll-entry.js?v=20260924-1';
 
 const $ = id => document.getElementById(id);
 const client = window.realmClient;
 window.lucide?.createIcons();
-let user = null, stage = 'entry', epoch = 0, entered = false, flipped = false;
+let user = null, stage = 'entry', epoch = 0, flipped = false;
+const publicStages = ['entry','home','substack','about'];
 let sessionReady = false, recovery = false;
 let draft = null, preview = parseAvatar(DEFAULT_PROMPT), frame = 0;
 const settings = $('realm-settings'), settingsPanel = $('settings-panel'), settingsToggle = $('settings-toggle');
@@ -56,7 +57,7 @@ $('motion').addEventListener('change', event => {
 });
 reducedQuery.addEventListener('change', () => { if (motionPreference === null) setMotion(!reducedQuery.matches); });
 // Rendering is optional: a failed GPU or module must never block account access.
-import('./portal.js?v=20260919-2').then(({ createPortal }) => {
+import('./portal.js?v=20260924-1').then(({ createPortal }) => {
   portal = createPortal($('portal'), motion);
   portal.setStage(document.body.classList.contains('entry-flow')?'entry':stage);
   portal.setEntryProgress(entrance.progress);
@@ -66,22 +67,22 @@ import('./portal.js?v=20260919-2').then(({ createPortal }) => {
   document.body.dataset.entryRenderer = 'fallback';
 });
 const entrance=createScrollEntry({
-  section:$('entry'),button:$('enter'),isActive:()=>sessionReady && !user && !recovery && ['entry','auth'].includes(stage),motion:()=>motion,
+  section:$('entry'),button:$('enter'),isActive:()=>sessionReady && !recovery && publicStages.includes(stage),motion:()=>motion,
   render(progress){
     document.body.style.setProperty('--entry-progress',progress);
     for(const [key,value] of Object.entries(entryScene(progress)))document.body.style.setProperty('--'+key,value);
-    document.body.style.setProperty('--auth-reveal',Math.max(0,Math.min(1,(progress-.955)/.045)));
+    document.body.style.setProperty('--hub-reveal',Math.max(0,Math.min(1,(progress-.955)/.045)));
     portal.setEntryProgress(progress);
     if(document.body.classList.contains('entry-flow')){
-      const auth=$('auth');
-      if(progress<1 && auth.contains(document.activeElement))document.activeElement.blur();
-      auth.hidden=progress<=.955;
-      auth.inert=progress<1;
-      auth.setAttribute('aria-hidden',String(progress<1));
+      const hub=$('home');
+      if(progress<1 && hub.contains(document.activeElement))document.activeElement.blur();
+      hub.hidden=progress<=.955;
+      hub.inert=progress<1;
+      hub.setAttribute('aria-hidden',String(progress<1));
     }
   },
-  onEnter(){entered=true;show('auth',{replace:true,fromScroll:true});},
-  onLeave(){entered=false;show('entry',{replace:true,fromScroll:true});}
+  onEnter(){show('home',{replace:true,fromScroll:true});},
+  onLeave(){show('entry',{replace:true,fromScroll:true});}
 });
 
 function show(next, {replace=false,fromScroll=false} = {}) {
@@ -89,23 +90,31 @@ function show(next, {replace=false,fromScroll=false} = {}) {
   const previous = stage;
   stage = next;
   document.body.dataset.stage = next;
-  const entryFlow=!user && ['entry','auth'].includes(next);
+  const entryFlow=publicStages.includes(next);
+  const sectionId=['substack','about'].includes(next)?'home':next;
   document.body.classList.toggle('entry-flow',entryFlow);
   document.documentElement.classList.toggle('entry-flow',entryFlow);
   const hash=next==='entry'?'':'#'+next;
   if(location.hash!==hash)history[replace?'replaceState':'pushState'](null,'',location.pathname+location.search+hash);
   document.querySelectorAll('.stage').forEach(section => {
-    if(entryFlow && section.id==='auth' && fromScroll)return;
-    section.hidden = section.id !== next && !(entryFlow && section.id==='entry');
+    if(entryFlow && section.id==='home' && fromScroll)return;
+    section.hidden = section.id !== sectionId && !(entryFlow && section.id==='entry') && !(next==='auth' && section.id==='home');
   });
-  document.querySelector('.journey').hidden = ['entry','auth','complete','map'].includes(next);
+  if(!entryFlow){$('home').inert=false;$('home').removeAttribute('aria-hidden');}
+  $('home-link').hidden=entryFlow;
+  for(const page of ['substack','about'])$(page+'-content').hidden=next!==page;
+  document.querySelectorAll('[data-public-page]').forEach(link=>{
+    if(link.dataset.publicPage===next)link.setAttribute('aria-current','page');
+    else link.removeAttribute('aria-current');
+  });
+  document.querySelector('.journey').hidden = [...publicStages,'auth','complete','map'].includes(next);
   dungeon.reset();
   document.querySelectorAll('[data-step]').forEach(item => {
     if (item.dataset.step === next) item.setAttribute('aria-current', 'step');
     else item.removeAttribute('aria-current');
   });
   portal.setStage(entryFlow?'entry':next);
-  document.title = ({entry:'입장',auth:'로그인',profile:'프로필',avatar:'캐릭터',complete:'캐릭터',map:'지도'})[next];
+  document.title = ({entry:'입장',home:'메뉴',substack:'Substack',about:'About',auth:'로그인',profile:'프로필',avatar:'캐릭터',complete:'캐릭터',map:'지도'})[next];
   if (motion && previous !== next && !entryFlow) {
     $(next).getAnimations().forEach(animation => animation.cancel());
     $(next).animate([
@@ -113,11 +122,11 @@ function show(next, {replace=false,fromScroll=false} = {}) {
       {opacity:1,transform:next === 'map' ? 'scale(1)' : 'translateY(0)'}
     ], {duration:650,easing:'cubic-bezier(.22,.61,.36,1)'});
   }
-  // The signed-out runway remains mounted so native scrolling can rewind it.
+  // Public pages share the runway; private routes never depend on scroll position.
   if(!fromScroll){
-    if(entryFlow)entrance.reset(next==='auth'?1:0);
+    if(entryFlow)entrance.reset(next==='entry'?0:1);
     else window.scrollTo({ top: 0, behavior: 'instant' });
-    $(next + '-title')?.focus({ preventScroll: true });
+    $(sectionId + '-title')?.focus({ preventScroll: true });
   }
   renderAvatar();
   window.dispatchEvent(new CustomEvent('realm-view', {detail:next}));
@@ -140,8 +149,8 @@ function prepareAvatar() {
 }
 function routeAccount() {
   if(recovery)return;
-  const next=resolveRealmStage(user,location.hash,entered);
-  if(user){entered=true;fillProfile();prepareAvatar();}
+  const next=resolveRealmStage(user,location.hash);
+  if(user && !publicStages.includes(next)){fillProfile();prepareAvatar();}
   if(next==='map')showMap({replace:true});
   else if(next==='complete')complete({replace:true});
   else show(next,{replace:true});
@@ -166,7 +175,6 @@ client.auth.onAuthStateChange((event, session) => {
   // Keep the callback synchronous; auth API calls inside it can deadlock.
   if (event === 'PASSWORD_RECOVERY') {recovery=true;location.replace('test.html?recovery=1');return;}
   if (changed && sessionReady) {
-    entered=true;
     setTimeout(() => routeAccount(), 0);
   }
 });
@@ -176,16 +184,22 @@ const ready = client.auth.getSession().then(({ data, error }) => {
   if(epoch===initialEpoch)user = data.session?.user || null;
   $('logout').hidden = !user;
 }).catch(error => {
-  user=null;entered=true;$('logout').hidden=true;
+  user=null;$('logout').hidden=true;
   $('global-message').textContent = window.realmError(error);
 }).finally(()=>{
   sessionReady=true;routeAccount();
   document.body.classList.remove('session-checking');
   document.querySelector('main').setAttribute('aria-busy','false');
 });
-const restoreRoute=()=>{if(sessionReady){if(!user && !location.hash)entered=false;routeAccount();}};
+const restoreRoute=()=>{if(sessionReady)routeAccount();};
 window.addEventListener('hashchange',restoreRoute);
 window.addEventListener('popstate',restoreRoute);
+document.querySelectorAll('[data-public-page]').forEach(link=>link.addEventListener('click',event=>{
+  if(event.button!==0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)return;
+  if(link.dataset.publicPage===stage && ['substack','about'].includes(stage)){
+    event.preventDefault();show('home');
+  }
+}));
 $('show-password').addEventListener('click', () => {
   const showPassword = $('password').type === 'password';
   $('password').type = showPassword ? 'text' : 'password';

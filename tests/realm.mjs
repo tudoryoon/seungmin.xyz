@@ -97,6 +97,7 @@ try{
   await page.locator('#portal').evaluate(el=>el.style.opacity='');
   await motionSetting(page,true);
   await page.locator('#enter').click();
+  await page.getByRole('link',{name:'개인일정',exact:true}).click();
   await page.locator('#auth').waitFor({state:'visible'});
   await page.locator('#auth').evaluate(element=>Promise.all(element.getAnimations().map(animation=>animation.finished)));
   await page.waitForTimeout(1000);
@@ -159,7 +160,7 @@ try{
   await other.page.waitForTimeout(500);
   assert.ok(changed(mobilePortal,await pixels(other.page.locator('#portal')))>20,'mobile portal animates');
   await motionSetting(other.page,false);
-  await other.page.locator('#enter').click();await login(other.page);
+  await other.page.locator('#enter').click();await other.page.getByRole('link',{name:'개인일정',exact:true}).click();await login(other.page);
   await other.page.locator('#map').waitFor({state:'visible'});
   await other.page.locator('#map-character').click();
   await other.page.locator('#complete').waitFor({state:'visible'});
@@ -183,7 +184,7 @@ try{
   // No GPU: account flow still works.
   const fallback=await setup({viewport:{width:320,height:740},reducedMotion:'reduce'});
   await fallback.page.addInitScript(()=>{const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return type.startsWith('webgl')?null:original.call(this,type,...args);};});
-  await fallback.page.goto(base);await fallback.page.locator('#enter').click();await fallback.page.locator('#auth').waitFor({state:'visible'});await noOverflow(fallback.page);
+  await fallback.page.goto(base);await fallback.page.locator('#enter').click();await fallback.page.getByRole('link',{name:'개인일정',exact:true}).click();await fallback.page.locator('#auth').waitFor({state:'visible'});await noOverflow(fallback.page);
   await fallback.page.waitForFunction(()=>document.body.dataset.renderer==='fallback');
   assert.equal(await fallback.page.locator('.landscape').evaluate(el=>getComputedStyle(el).opacity),'0.2');
   const fallbackPixels=await pixels(fallback.page.locator('.world'));
@@ -204,6 +205,7 @@ try{
     if(failure==='context') await broken.page.locator('#portal').evaluate(canvas=>canvas.getContext('webgl2').getExtension('WEBGL_lose_context').loseContext());
     await broken.page.waitForFunction(()=>document.body.dataset.renderer==='fallback');
     await broken.page.locator('#enter').click();
+    await broken.page.getByRole('link',{name:'개인일정',exact:true}).click();
     await broken.page.locator('#auth').waitFor({state:'visible'});
     assert.equal(await broken.page.locator('#portal').isVisible(),false);
     assert.equal(await broken.page.locator('#auth-submit').isEnabled(),true);

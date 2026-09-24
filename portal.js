@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import { createEntryParticles } from './entry-particles.js?v=20260919-2';
+import { createEntryParticles } from './entry-particles.js?v=20260924-1';
 
 // One renderer and one star field remain alive across every onboarding stage.
 export function createPortal(canvas, motion) {
@@ -176,9 +176,11 @@ export function createPortal(canvas, motion) {
     }
     starMaterial.uniforms.uTime.value=elapsed;
     skyMaterial.uniforms.uTime.value=elapsed;
-    if(stage==='entry' && entryParticles.ready){
-      entryDisplayProgress=active?THREE.MathUtils.damp(entryDisplayProgress,entryProgress,14,dt):entryProgress;
-      if(Math.abs(entryDisplayProgress-entryProgress)<.00001)entryDisplayProgress=entryProgress;
+    if(['entry','auth'].includes(stage) && entryParticles.ready){
+      // Keep the arrival spiral alive behind the public menu and login.
+      const progress=stage==='entry'?Math.min(entryProgress,.945):.945;
+      entryDisplayProgress=active?THREE.MathUtils.damp(entryDisplayProgress,progress,14,dt):progress;
+      if(Math.abs(entryDisplayProgress-progress)<.00001)entryDisplayProgress=progress;
       entryParticles.render(entryDisplayProgress,elapsed,drift,active);return;
     }
     applyPose();

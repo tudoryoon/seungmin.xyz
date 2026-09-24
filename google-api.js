@@ -1,4 +1,4 @@
-import {errorMessage} from './google-calendar-core.js?v=20260919-2';
+import {errorMessage} from './google-calendar-core.js?v=20260924-1';
 export async function calendarRequest(action, values = {}) {
   const client = window.realmClient;
   const {data:{session},error} = await client.auth.getSession();

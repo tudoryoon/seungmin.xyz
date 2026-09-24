@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {globePoint,geographicJourney,buildGeography} from './entry-geography.js?v=20260919-2';
+import {globePoint,geographicJourney,buildGeography} from './entry-geography.js?v=20260924-1';
 
 export const ease=(p,a,b)=>{const t=THREE.MathUtils.clamp((p-a)/(b-a),0,1);return t*t*(3-2*t);};
 export function randomSequence(seed=1249){return()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};}
