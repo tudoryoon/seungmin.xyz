@@ -7,7 +7,7 @@
   const soundKey = 'journal-page-sound-v1';
   const audio = $('notebook-audio');
   audio.volume = 0.4;
-  let opened = false, soundEnabled = true, flipTimer = 0, touch = null, filtersOpen = false;
+  let opened = false, soundEnabled = true, flipTimer = 0, touch = null, filtersOpen = false, gridSelection = null;
   document.querySelector('.notebook-binding').replaceChildren(...Array.from({length:13}, () => document.createElement('span')));
   try { soundEnabled = localStorage.getItem(soundKey) !== 'off'; } catch {}
   const selection = () => window.journalCalendar.range().selected;
@@ -37,6 +37,7 @@
     $('notebook-next').disabled = day >= '2100-12-31';
   }
   function show(value, focus = false) {
+    gridSelection = null;
     if (value && !opened) { filtersOpen = $('google-visibility').open; $('google-visibility').open = false; }
     else if (!value && opened) $('google-visibility').open = filtersOpen;
     opened = value; document.body.dataset.scheduleMode = value ? 'notebook' : 'calendar';
@@ -77,8 +78,15 @@
   $('calendar-mode').addEventListener('click', () => show(false, true));
   $('notebook-calendar').addEventListener('click', () => { show(false, true); $('calendar').scrollIntoView({block:'start',behavior:'instant'}); });
   $('notebook-mode').addEventListener('click', () => show(true, true));
-  window.addEventListener('journal-date-open', () => show(true, true));
-  window.addEventListener('journal-calendar-range', sync);
+  window.addEventListener('journal-date-select', event => {
+    if (gridSelection === event.detail) show(true, true);
+    else gridSelection = event.detail;
+  });
+  window.addEventListener('journal-calendar-range', () => {
+    if (gridSelection !== selection()) gridSelection = null;
+    sync();
+  });
+  for (const id of ['previous','next','today']) $(id).addEventListener('click', () => { gridSelection = null; });
   $('notebook-previous').addEventListener('click', () => turn(-1));
   $('notebook-next').addEventListener('click', () => turn(1));
   $('notebook-today').addEventListener('click', () => turnTo(localToday()));
@@ -112,7 +120,7 @@
     if (Math.abs(dx) > 64 && Math.abs(dx) > Math.abs(dy)*1.6) turn(dx < 0 ? 1 : -1);
   });
   book.addEventListener('pointercancel', () => { touch = null; });
-  window.addEventListener('journal-account', () => { if (!window.journalCloud?.user) { show(false); audio?.pause(); } });
-  window.addEventListener('journal-view', event => { if (event.detail !== 'calendar') audio.pause(); });
+  window.addEventListener('journal-account', () => { gridSelection = null; if (!window.journalCloud?.user) { show(false); audio?.pause(); } });
+  window.addEventListener('journal-view', event => { if (event.detail !== 'calendar') { gridSelection = null; audio.pause(); } });
   soundState(); sync();
 })();

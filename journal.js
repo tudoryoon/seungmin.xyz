@@ -176,7 +176,11 @@ function render() {
       marker.title = `할 일 ${tasks.completed}/${tasks.total}개 완료`;
       const icon = make('i'); icon.dataset.lucide = 'list-checks'; marker.prepend(icon); button.append(marker);
     }
-    button.addEventListener('click', () => { selectCalendarDate(key); window.dispatchEvent(new Event('journal-date-open')); });
+    button.addEventListener('click', () => {
+      selectCalendarDate(key);
+      grid.querySelector(`[data-date="${key}"]`)?.focus({preventScroll:true});
+      window.dispatchEvent(new CustomEvent('journal-date-select', {detail:key}));
+    });
     grid.append(button);
   }
   $('selected-date').textContent = `${Number(selected.slice(5,7))}월 ${Number(selected.slice(8))}일`;
