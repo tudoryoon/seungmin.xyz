@@ -28,7 +28,7 @@ export async function onRequest(context) {
     source.searchParams.set('refresh', String(Math.floor(Date.now() / 300000)));
     const upstream = await fetch(source.href, {
       headers: { Accept: 'application/rss+xml, application/xml, text/xml' },
-      redirect: 'error', signal: controller.signal
+      redirect: 'manual', signal: controller.signal
     });
     failure = `upstream-${upstream.status}`;
     if (!upstream.ok) throw new Error('Unavailable feed');
