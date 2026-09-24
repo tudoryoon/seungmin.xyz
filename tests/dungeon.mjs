@@ -43,7 +43,7 @@ async function setup(viewport) {
   await page.goto(base + '/index.html#map');
   await page.locator('#auth').waitFor({state:'visible'});
   assert.equal(await page.locator('#map').isVisible(),false,'signed-out accounts cannot see map');
-  await page.locator('#email').fill(user.email);await page.locator('#password').fill('test-password');
+  await page.locator('#password').fill('test-password');
   await page.locator('#auth-submit').click();await page.locator('#map').waitFor({state:'visible'});
   await page.waitForFunction(()=>document.querySelector('.dungeon-art img').complete && document.querySelector('.dungeon-art img').naturalWidth>900);
   return page;

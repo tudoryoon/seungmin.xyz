@@ -39,8 +39,8 @@ window.journalCloud = {
 const cloudElement = id => document.getElementById(id);
 window.cloudError = error => {
   if (['PGRST205','42501','42P01'].includes(error?.code)) return '온라인 저장소 설정이 필요합니다. Supabase에서 테이블과 접근 규칙을 적용해 주세요.';
-  if (error?.message === 'Invalid login credentials') return '이메일 또는 비밀번호를 확인해 주세요.';
-  if (error?.message === 'Email not confirmed') return '이메일 인증 링크를 먼저 확인해 주세요.';
+  if (error?.message === 'Invalid login credentials') return '접속 비밀번호를 확인해 주세요.';
+  if (error?.message === 'Email not confirmed') return '소유자 이메일 인증이 필요합니다.';
   if (error?.status === 429) return '요청이 많습니다. 잠시 후 다시 시도해 주세요.';
   return '요청을 완료하지 못했습니다. 인터넷 연결과 계정 설정을 확인하고 다시 시도해 주세요.';
 };
@@ -59,17 +59,14 @@ cloudElement('close-auth').addEventListener('click', () => cloudElement('auth-di
 cloudElement('auth-form').addEventListener('submit', async event => {
   event.preventDefault();
   const form = event.currentTarget;
-  const signup = event.submitter?.value === 'signup';
+  if (form.querySelector('button[type="submit"]').disabled) return;
   const buttons = form.querySelectorAll('button'); buttons.forEach(b => b.disabled = true);
   cloudElement('auth-message').textContent = '처리 중…';
   try {
-    const credentials = {email:cloudElement('auth-email').value.trim(),password:cloudElement('auth-password').value};
-    const {data,error} = signup
-      ? await journalClient.auth.signUp({...credentials,options:{emailRedirectTo:'https://seungmin.xyz/test.html'}})
-      : await journalClient.auth.signInWithPassword(credentials);
+    const {data,error} = await window.realmAccess.signIn(cloudElement('auth-password').value);
     if (error) throw error;
     cloudElement('auth-password').value = '';
-    cloudElement('auth-message').textContent = signup && !data.session ? '메일함의 인증 링크를 누른 뒤 로그인해 주세요.' : '로그인되었습니다.';
+    cloudElement('auth-message').textContent = data.session ? '접속되었습니다.' : '접속을 완료하지 못했습니다. 다시 시도해 주세요.';
     if (data.session) cloudElement('auth-dialog').close();
   } catch(error) {cloudElement('auth-message').textContent = window.cloudError(error);}
   finally {buttons.forEach(b => b.disabled = false);}
@@ -79,13 +76,12 @@ cloudElement('sign-out').addEventListener('click', async () => {
   if (error) cloudElement('message').textContent = window.cloudError(error);
 });
 cloudElement('forgot-password').addEventListener('click', async () => {
-  const email = cloudElement('auth-email');
-  if (!email.reportValidity()) return;
+  if (cloudElement('forgot-password').disabled) return;
   cloudElement('forgot-password').disabled = true;
   try {
-    const {error} = await journalClient.auth.resetPasswordForEmail(email.value.trim(),{redirectTo:'https://seungmin.xyz/test.html'});
+    const {error} = await window.realmAccess.requestReset();
     if (error) throw error;
-    cloudElement('auth-message').textContent = '재설정 메일을 요청했습니다. 메일함을 확인해 주세요.';
+    cloudElement('auth-message').textContent = '소유자 이메일로 재설정 메일을 요청했습니다.';
   } catch(error) {cloudElement('auth-message').textContent = window.cloudError(error);}
   finally {cloudElement('forgot-password').disabled = false;}
 });

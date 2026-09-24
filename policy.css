@@ -1,0 +1,49 @@
+.policy-links { display:flex;flex-wrap:wrap;justify-content:center;gap:8px 24px;font-size:12px;line-height:1.6;color:#b6c5bf; }
+.policy-links a { display:inline-flex;align-items:center;min-height:44px;color:inherit;text-decoration:underline;text-underline-offset:4px; }
+.policy-links a:focus-visible,.connection-privacy a:focus-visible { outline:2px solid #b7ebd5;outline-offset:4px; }
+.public-policy-links { display:none;position:fixed;z-index:3;bottom:max(8px,env(safe-area-inset-bottom));left:20px;right:20px;text-shadow:0 2px 8px #000; }
+body:is([data-stage=entry],[data-stage=home],[data-stage=about]) .public-policy-links { display:flex; }
+body[data-stage=entry] .entry-cue { bottom:calc(72px + env(safe-area-inset-bottom,0px)); }
+body[data-stage=about] .public-hub { top:clamp(100px,38svh,320px);bottom:80px;overflow-y:auto; }
+body[data-stage=auth] .public-policy-links { display:flex;position:relative;margin:0 20px 16px;left:auto;right:auto;bottom:auto; }
+.journal-policy-links { padding:12px 20px max(20px,env(safe-area-inset-bottom)); }
+.connection-privacy { color:#b6c5bf;font-size:13px;line-height:1.8;max-width:640px;margin:12px 0 24px;overflow-wrap:anywhere; }
+.connection-privacy a { color:#b7ebd5;text-decoration:underline;text-underline-offset:3px; }
+body.policy-page { margin:0;min-width:0;background:#101413;color:#e3e9e5;font:15px/1.9 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color-scheme:dark; }
+.policy-page * { box-sizing:border-box;letter-spacing:0; }
+.policy-page a { color:#b7ebd5;text-underline-offset:4px;overflow-wrap:anywhere; }
+.policy-page a:focus-visible { outline:2px solid #d9bf85;outline-offset:5px; }
+.policy-shell { max-width:800px;margin:auto;padding:0 32px; }
+.policy-header { display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:96px;border-bottom:1px solid #34413b; }
+.policy-brand { display:flex;align-items:center;gap:12px;text-decoration:none;font-weight:600; }
+.policy-brand img { width:28px;height:28px; }
+.policy-header>a:last-child { font-size:13px;min-height:44px;display:flex;align-items:center; }
+.policy-page main { padding:48px 0;overflow-wrap:anywhere; }
+.policy-page h1 { margin:0;font-size:32px;line-height:1.5;font-weight:600; }
+.policy-date { margin:8px 0 28px;color:#d9bf85;font-size:12px; }
+.policy-intro { color:#bdc9c1; }
+.policy-nav { justify-content:flex-start;padding:12px 0 28px;border-bottom:1px solid #34413b; }
+.policy-nav [aria-current] { color:#e3e9e5;text-decoration:none; }
+.policy-page section { padding-top:28px;scroll-margin-top:24px; }
+.policy-page h2 { font-size:18px;font-weight:600;margin:0 0 12px;line-height:1.7; }
+.policy-page p { margin:0 0 14px; }
+.policy-page .policy-date { margin:8px 0 28px; }
+.policy-page ul,.policy-page ol { padding-left:22px;margin:0 0 14px; }
+.policy-page li { margin:8px 0; }
+.policy-page strong { color:#f1f3ee;font-weight:600; }
+.policy-page footer { border-top:1px solid #34413b;padding:24px 0 max(32px,env(safe-area-inset-bottom));color:#bdc9c1;font-size:13px; }
+.policy-page footer p { margin:0 0 8px; }
+.policy-page .policy-links { gap:8px 24px; }
+@media(max-width:600px) {
+  .policy-shell { padding:0 22px; }
+  .policy-header { min-height:80px; }
+  .policy-page main { padding:32px 0; }
+  .policy-page h1 { font-size:26px; }
+  .policy-page h2 { font-size:17px; }
+}
+@media print {
+  body.policy-page { background:white;color:black; }
+  .policy-page a,.policy-page strong,.policy-date,.policy-intro { color:inherit; }
+  .policy-page .policy-nav,.policy-header { display:none; }
+  .policy-shell { max-width:none; }
+}

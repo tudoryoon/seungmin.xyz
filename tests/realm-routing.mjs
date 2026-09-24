@@ -14,6 +14,7 @@ assert.equal(resolveRealmStage(user,'#unknown'),'map');
 assert.equal(resolveRealmStage({...user,user_metadata:{}},'#map'),'profile');
 assert.equal(resolveRealmStage({...user,user_metadata:{realm_profile:user.user_metadata.realm_profile}},'#complete'),'avatar');
 const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+const authSource=await readFile(new URL('../auth-client.js',import.meta.url),'utf8');
 const source=(await readFile(new URL('../realm.js',import.meta.url),'utf8'))
   .replace(/^import .*;\n/gm,'')
   .replace(/import\('\.\/portal\.js\?v=[^']+'\)/,"Promise.resolve(window.realmTest.portal)");
@@ -36,6 +37,7 @@ async function boot(hash,account,error=null,{preference='off',reduced=false,port
   window.HTMLCanvasElement.prototype.getContext=()=>({clearRect(){}});
   const callbacks=[],motionValues=[];let finishSession,canMove;
   window.realmClient={auth:{onAuthStateChange(callback){callbacks.push(callback);},getSession:()=>new Promise(resolve=>{finishSession=resolve;}),async signOut(){callbacks.forEach(callback=>callback('SIGNED_OUT',null));return {};}}};
+  window.supabase={createClient:()=>window.realmClient};window.eval(authSource);
   window.realmError=()=> 'Connection failed';window.lucide={createIcons(){}};
   window.realmTest={...avatars,paintAvatar(){},validProfile,resolveRealmStage,createScrollEntry,entryScene,createDungeon:(_,active)=>{canMove=active;return {reset(){}};},portal:{createPortal:(_,motion)=>{if(portalError){window.document.body.dataset.entryRenderer='particles';throw new Error('Renderer unavailable');}motionValues.push(motion);return {setMotion(value){motionValues.push(value);},setStage(){},setEntryProgress(){}};}}};
   window.eval('(()=>{const {parseAvatar,paintAvatar,validAvatar,avatarTraits,avatarTitle,DEFAULT_PROMPT,validProfile,createDungeon,resolveRealmStage,createScrollEntry,entryScene}=window.realmTest;\n'+source+'\n})()');
@@ -91,7 +93,8 @@ for(const account of [null,user]) {
     await scroll(0);assert.equal(hub.hidden,true);assert.equal(window.location.hash,'');
     await scroll(1400);assert.equal(doc.body.dataset.stage,'home');assert.equal(hub.inert,false);
     navigate('#about');assert.equal(doc.getElementById('about-content').hidden,false);
-    assert.equal(doc.getElementById('about-content').textContent,'개인 페이지입니다.');
+    assert.equal(doc.querySelector('#about-content p').textContent,'개인 페이지입니다.');
+    assert.ok(doc.querySelector('#about-content .about-purpose').textContent.includes('포털'));
     assert.equal(doc.querySelector('[data-public-page=about]').getAttribute('aria-current'),'page');
     assert.equal(window.scrollY,1400);
     doc.querySelector('[data-public-page=about]').click();assert.equal(doc.body.dataset.stage,'home','active public link collapses its content');
@@ -165,4 +168,35 @@ for(const [preference,reduced,expected] of [[null,true,false],[null,false,true],
     assert.equal(motion.checked,chosen,'a manual preference survives later OS changes');
   }finally{await window.happyDOM.close();}
 }
-console.log('PASS: public routes/menu/reverse scroll, private session routing/history/guards, auth changes, retained drafts, settings/focus, map pause guard and motion preferences.');
+{
+  const {window,callbacks}=await boot('#auth',null);
+  const doc=window.document,$=id=>doc.getElementById(id),calls=[];
+  const submit=()=>$('auth-form').dispatchEvent(new window.Event('submit',{cancelable:true}));
+  try {
+    assert.equal($('email').type,'hidden');
+    assert.equal($('auth-form').querySelectorAll('input:not([type=hidden])').length,1);
+    assert.equal($('auth-form').querySelector('[value=signup]'),null);
+    assert.ok($('auth-submit').textContent.includes('입장'));
+    $('email').value='not-the-owner@example.com';$('password').value='private-fixture-password';
+    let finish;
+    window.realmClient.auth.signInWithPassword=credentials=>{calls.push(credentials);return new Promise(resolve=>{finish=resolve;});};
+    submit();submit();assert.equal(calls.length,1,'only one request is sent while pending');
+    assert.equal(calls[0].email,'tmdals2008@gmail.com','hidden field cannot select another account');
+    assert.equal(calls[0].password,'private-fixture-password');
+    finish({error:{message:'Invalid login credentials'}});
+    await until(()=>!$('auth-submit').disabled);
+    assert.equal(doc.body.dataset.stage,'auth');assert.equal($('auth-message').textContent,'Connection failed');
+    window.realmClient.auth.resetPasswordForEmail=async(email,options)=>{calls.push({email,options});return {};};
+    $('reset-password').click();await until(()=>!$('reset-password').disabled);
+    assert.equal(calls.at(-1).email,'tmdals2008@gmail.com');
+    assert.equal(calls.at(-1).options.redirectTo,'https://seungmin.xyz/test.html');
+    $('show-password').click();assert.equal($('password').type,'text');
+    window.realmClient.auth.signInWithPassword=async credentials=>{calls.push(credentials);callbacks.forEach(cb=>cb('SIGNED_IN',{user}));return {data:{user,session:{user}}};};
+    submit();await until(()=>doc.body.dataset.stage==='map');
+    assert.equal($('password').value,'');assert.equal($('password').type,'password');
+    assert.equal($('show-password').getAttribute('aria-pressed'),'false');
+    $('logout').click();await until(()=>doc.body.dataset.stage==='auth');
+    assert.equal($('password').value,'');assert.equal($('map-name').textContent,'');
+  } finally {await window.happyDOM.close();}
+}
+console.log('PASS: public routes/menu/reverse scroll, private session routing/history/guards, password-only sign-in/retry/reset/lock, retained drafts, settings/focus, map pause guard and motion preferences.');

@@ -16,7 +16,7 @@ const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
 const realm=await readFile(new URL('../realm.js',import.meta.url),'utf8');
 assert.equal(/data-auth-mode|회원가입/.test(html),false);assert.equal(/signUp\(/.test(realm),false);
 assert.equal(/entry-place|arrival-art/.test(html),false,'no geographic labels or separate arrival images');
-assert.ok(realm.includes('signInWithPassword(credentials)'));
+assert.ok(realm.includes('window.realmAccess.signIn(password)'));
 const w=new Window({url:'http://localhost',settings:{disableCSSFileLoading:true,disableJavaScriptFileLoading:true}});
 w.document.write(html);
 let active=false,motion=true,entered=0,left=0,offset=0,height=1000,sectionHeight=2400,lastScroll;

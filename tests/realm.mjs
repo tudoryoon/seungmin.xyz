@@ -38,6 +38,7 @@ users.set('b@example.com',makeUser('b@example.com','00000000-0000-4000-8000-0000
 const session=user=>({access_token:['eyJhbGciOiJIUzI1NiJ9',Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600,role:'authenticated'})).toString('base64url'),'sig'].join('.'),refresh_token:'test-refresh',expires_in:3600,token_type:'bearer',user});
 let failUpdate=false,updates=0;
 async function setup(options={}) {
+  let fixtureEmail='a@example.com';
   const context=await browser.newContext({viewport:{width:1440,height:1000},...options});
   const page=await context.newPage();
   page.on('pageerror',e=>errors.push(e.message));
@@ -45,7 +46,8 @@ async function setup(options={}) {
     const req=route.request(),path=new URL(req.url()).pathname;
     let result={},status=200;
     if(path.endsWith('/token')){
-      const body=req.postDataJSON(),user=users.get(body.email);
+      const body=req.postDataJSON(),user=users.get(fixtureEmail);
+      assert.equal(body.email,'tmdals2008@gmail.com','password-only entry uses the configured owner');
       if(!user||body.password==='wrong-password'){status=400;result={message:'Invalid login credentials'};}
       else result=session(user);
     } else if(path.endsWith('/signup')) throw new Error('Public signup is disabled');
@@ -62,10 +64,10 @@ async function setup(options={}) {
     else if(path.endsWith('/daily_plan_state')) result=dailyFixture();
     await route.fulfill({status,contentType:'application/json',body:status===204?'':JSON.stringify(result)});
   });
-  return {page,context};
+  return {page,context,useFixture(email){fixtureEmail=email;}};
 }
-async function login(page,email='a@example.com'){
-  await page.locator('#email').fill(email);await page.locator('#password').fill('a-test-password');
+async function login(page){
+  await page.locator('#password').fill('a-test-password');
   await page.locator('#auth-submit').click();
 }
 async function pixels(locator){
@@ -105,8 +107,9 @@ try{
   assert.equal(await page.locator('#profile').isVisible(),false);
   await page.screenshot({path:'/tmp/realm-auth-desktop.png'});
   assert.equal(await page.locator('[data-auth-mode]').count(),0);
-  await page.locator('#email').fill('a@example.com');await page.locator('#password').fill('wrong-password');await page.locator('#auth-submit').click();
-  await page.getByText('이메일 또는 비밀번호를 확인해 주세요.').waitFor();
+  assert.equal(await page.locator('#email').getAttribute('type'),'hidden');
+  await page.locator('#password').fill('wrong-password');await page.locator('#auth-submit').click();
+  await page.getByText('접속 비밀번호를 확인해 주세요.').waitFor();
   await login(page);await page.locator('#profile').waitFor({state:'visible'});
   await page.locator('#profile-name').fill('승민');await page.locator('#profile-age').fill('31');
   await page.locator('#profile-gender').selectOption('male');await page.locator('#profile-mbti').selectOption('ENTP');await page.locator('#profile-blood').selectOption('AB');
@@ -168,7 +171,8 @@ try{
   await other.page.locator('#edit-avatar').click();
   await other.page.screenshot({path:'/tmp/realm-avatar-mobile.png',fullPage:true});await noOverflow(other.page);
   await other.page.locator('#logout').click();await other.page.locator('#auth').waitFor({state:'visible'});
-  await login(other.page,'b@example.com');await other.page.locator('#profile').waitFor({state:'visible'});
+  other.useFixture('b@example.com');
+  await login(other.page);await other.page.locator('#profile').waitFor({state:'visible'});
   assert.equal(await other.page.locator('#profile-name').inputValue(),'');
   assert.equal(await other.page.locator('#character-prompt').inputValue(),'');
   await other.page.screenshot({path:'/tmp/realm-profile-mobile.png',fullPage:true});

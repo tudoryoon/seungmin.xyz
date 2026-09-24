@@ -114,7 +114,7 @@ function show(next, {replace=false,fromScroll=false} = {}) {
     else item.removeAttribute('aria-current');
   });
   portal.setStage(entryFlow?'entry':next);
-  document.title = ({entry:'입장',home:'메뉴',substack:'Substack',about:'About',auth:'로그인',profile:'프로필',avatar:'캐릭터',complete:'캐릭터',map:'지도'})[next];
+  document.title = ({entry:'입장',home:'메뉴',substack:'Substack',about:'About',auth:'개인일정',profile:'프로필',avatar:'캐릭터',complete:'캐릭터',map:'지도'})[next];
   if (motion && previous !== next && !entryFlow) {
     $(next).getAnimations().forEach(animation => animation.cancel());
     $(next).animate([
@@ -158,6 +158,10 @@ function routeAccount() {
 function clearAccount() {
   $('profile-form').reset();
   $('auth-form').reset();
+  $('password').type = 'password';
+  $('show-password').setAttribute('aria-pressed', 'false');
+  $('show-password').setAttribute('aria-label', '비밀번호 표시');
+  $('show-password').title = '비밀번호 표시';
   $('avatar-form').reset();
   ['auth-message','profile-message','avatar-message','global-message','saved-name','saved-class','map-name'].forEach(id => { $(id).textContent = ''; });
   dungeon.reset();
@@ -210,15 +214,16 @@ $('show-password').addEventListener('click', () => {
 function disable(container, value) { container.querySelectorAll('button, input, select, textarea').forEach(element => { element.disabled = value; }); }
 $('auth-form').addEventListener('submit', async event => {
   event.preventDefault();
-  const credentials = { email: $('email').value.trim(), password: $('password').value };
+  if ($('auth-submit').disabled) return;
+  const password = $('password').value;
   disable($('auth'), true);
-  $('auth-message').textContent = '계정 확인 중…';
+  $('auth-message').textContent = '확인 중…';
   try {
-    const { data, error } = await client.auth.signInWithPassword(credentials);
+    const { data, error } = await window.realmAccess.signIn(password);
     if (error) throw error;
     $('password').value = '';
     if (!data.session) {
-      $('auth-message').textContent = '메일함의 인증 링크를 누른 뒤 로그인해 주세요.';
+      $('auth-message').textContent = '접속을 완료하지 못했습니다. 다시 시도해 주세요.';
     } else {
       user = data.user; routeAccount();
     }
@@ -226,12 +231,12 @@ $('auth-form').addEventListener('submit', async event => {
   finally { disable($('auth'), false); }
 });
 $('reset-password').addEventListener('click', async () => {
-  if (!$('email').reportValidity()) return;
+  if ($('reset-password').disabled) return;
   $('reset-password').disabled = true;
   try {
-    const { error } = await client.auth.resetPasswordForEmail($('email').value.trim(), { redirectTo: 'https://seungmin.xyz/test.html' });
+    const { error } = await window.realmAccess.requestReset();
     if (error) throw error;
-    $('auth-message').textContent = '재설정 메일을 요청했습니다. 메일함을 확인해 주세요.';
+    $('auth-message').textContent = '소유자 이메일로 재설정 메일을 요청했습니다.';
   } catch (error) { $('auth-message').textContent = window.realmError(error); }
   finally { $('reset-password').disabled = false; }
 });

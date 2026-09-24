@@ -17,7 +17,8 @@
   <link rel="preload" as="image" href="assets/entry-earth.webp">
   <link rel="stylesheet" href="styles.css?v=20260924-2">
   <link rel="stylesheet" href="dungeon.css?v=20260924-2">
-  <link rel="stylesheet" href="continuity.css?v=20260924-2">
+  <link rel="stylesheet" href="continuity.css?v=20260924-5">
+  <link rel="stylesheet" href="policy.css?v=20260924-5">
   <link rel="stylesheet" href="pwa.css?v=1">
   <script src="pwa.js?v=1" defer></script>
 </head>
@@ -33,7 +34,7 @@
           <button id="install-app" type="button" hidden><i data-lucide="download" aria-hidden="true"></i><span>앱 설치</span></button>
         </div>
       </div>
-      <button id="logout" class="icon-button" title="로그아웃" aria-label="로그아웃" hidden><i data-lucide="log-out"></i></button>
+      <button id="logout" class="icon-button" title="잠금" aria-label="잠금" hidden><i data-lucide="lock-keyhole"></i></button>
     </div>
   </header>
   <p id="session-status" role="status">불러오는 중…</p>
@@ -64,17 +65,17 @@
           </article>
           <footer class="substack-footer"><a href="https://substack.com/@tudoryoon" target="_blank" rel="noopener noreferrer" title="Substack (새 탭)">substack.com/@tudoryoon</a></footer>
         </section>
-        <p id="about-content" hidden>개인 페이지입니다.</p>
+        <div id="about-content" hidden><p>개인 페이지입니다.</p><p class="about-purpose">포털은 운영자의 일정과 기록을 관리하는 개인용 공간입니다.</p></div>
       </div>
     </section>
     <section id="auth" class="stage form-stage" aria-labelledby="auth-title" hidden>
       <div class="form-wrap">
-        <h1 id="auth-title" tabindex="-1">로그인</h1>
+        <h1 id="auth-title" tabindex="-1">개인일정</h1>
         <form id="auth-form">
-          <label>이메일<input id="email" type="email" autocomplete="email" placeholder="you@example.com" required maxlength="254"></label>
-          <label>비밀번호<span class="password-field"><input id="password" type="password" autocomplete="current-password" placeholder="8자 이상" minlength="8" maxlength="128" required><button class="icon-button" id="show-password" type="button" aria-label="비밀번호 표시" title="비밀번호 표시"><i data-lucide="eye"></i></button></span></label>
+          <input id="email" type="hidden" autocomplete="username" value="tmdals2008@gmail.com">
+          <label>접속 비밀번호<span class="password-field"><input id="password" type="password" name="password" autocomplete="current-password" minlength="8" maxlength="128" required><button class="icon-button" id="show-password" type="button" aria-label="비밀번호 표시" title="비밀번호 표시" aria-pressed="false"><i data-lucide="eye"></i></button></span></label>
           <p id="auth-message" class="feedback" role="status"></p>
-          <button class="primary wide" id="auth-submit" type="submit"><span>로그인</span><i data-lucide="arrow-right"></i></button>
+          <button class="primary wide" id="auth-submit" type="submit"><span>입장</span><i data-lucide="arrow-right"></i></button>
           <button type="button" class="text-button reset-password" id="reset-password">비밀번호를 잊었나요?</button>
         </form>
       </div>
@@ -149,13 +150,14 @@
       <button type="button" class="map-character" id="map-character" title="캐릭터 보기" aria-label="캐릭터 보기"><i data-lucide="user-round"></i><span id="map-name"></span><span class="map-level" data-player-level>LV. …</span><i data-lucide="chevron-right"></i></button>
     </section>
   </main>
+  <footer class="public-policy-links policy-links" aria-label="사이트 정책"><a href="privacy.html">개인정보처리방침</a><a href="terms.html">이용약관</a></footer>
   <nav class="journey" aria-label="생성 진행 상황" hidden><ol><li data-step="auth"><span>01</span>계정</li><li data-step="profile"><span>02</span>프로필</li><li data-step="avatar"><span>03</span>캐릭터</li></ol></nav>
   <p id="global-message" class="global-message" role="status"></p>
   <noscript><p class="noscript">입장하려면 브라우저에서 JavaScript를 켜주세요.</p></noscript>
   <script src="vendor/supabase.js" defer></script>
-  <script src="auth-client.js?v=20260924-2" defer></script>
+  <script src="auth-client.js?v=20260924-5" defer></script>
   <script src="vendor/lucide.js" defer></script>
-  <script type="module" src="realm.js?v=20260924-2"></script>
+  <script type="module" src="realm.js?v=20260924-5"></script>
   <script type="module" src="substack.js?v=20260924-2"></script>
   <script type="module" src="player-level.js?v=20260924-2"></script>
   <script type="module" src="map-wind.js?v=20260924-2"></script>
