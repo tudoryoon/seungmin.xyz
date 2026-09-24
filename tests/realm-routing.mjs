@@ -79,6 +79,13 @@ for(const account of [null,user]) {
     assert.equal(window.scrollY,0);
     assert.equal(entry.hidden,false);assert.equal(doc.body.classList.contains('entry-flow'),true);
     await scroll(1400);assert.equal(doc.body.dataset.stage,'home');assert.equal(hub.hidden,false);assert.equal(hub.inert,false);assert.equal(auth.hidden,true);
+    const substack=doc.querySelector('.public-nav a[href="https://substack.com/@tudoryoon"]');
+    assert.ok(substack,'the Substack menu points to the supplied profile');
+    assert.equal(substack.target,'_blank');
+    assert.ok(substack.relList.contains('noopener'));assert.ok(substack.relList.contains('noreferrer'));
+    assert.equal(substack.hasAttribute('data-public-page'),false,'external links bypass the public-panel click handler');
+    assert.equal(doc.getElementById('substack-content').querySelector('a').href,substack.href,'legacy routes retain a working link');
+    assert.equal(doc.getElementById('substack-content').textContent.includes('준비 중'),false);
     doc.querySelector('[data-public-page]').focus();
     await scroll(1365);assert.equal(doc.body.dataset.stage,'entry');assert.equal(hub.hidden,false);assert.equal(hub.inert,true);
     assert.notEqual(doc.activeElement,doc.querySelector('[data-public-page]'),'rewinding releases menu focus');
