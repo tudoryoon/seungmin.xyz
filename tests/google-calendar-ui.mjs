@@ -10,6 +10,9 @@ w.document.write(await readFile(new URL('../test.html',import.meta.url),'utf8'))
 w.lucide={createIcons(){}};w.confirm=()=>true;
 w.Option=function(text,value){const option=w.document.createElement('option');option.textContent=text;option.value=value;return option;};
 let failSave=false,savePending=null,eventPending=null,pendingReads=false,readCount=0,failedCalendar=null;
+let poll;
+w.setInterval=fn=>{poll=fn;return 1;};
+w.HTMLElement.prototype.scrollIntoView=()=>{};
 const local={id:'local',kind:'event',title:'Local record',date:core.localDate(new Date()),start:'12:00'};
 const event={id:'google1',etag:'v1',title:'Google <b>record</b>',start:{date:local.date},end:{date:core.nextDate(local.date)},notes:'<b>Safe note</b>',location:'',editable:true,htmlLink:'https://calendar.google.com/calendar/event?eid=example'};
 const calls=[];
@@ -28,6 +31,7 @@ w.calendarRequest=async(action,args={})=>{
 try {
   w.eval(await readFile(new URL('../workout.js',import.meta.url),'utf8'));
   w.eval(await readFile(new URL('../journal.js',import.meta.url),'utf8'));
+  w.eval(await readFile(new URL('../notebook.js',import.meta.url),'utf8'));
   const source=(await readFile(new URL('../google-calendar.js',import.meta.url),'utf8')).replace(/^import[^\n]+\n/gm,'');
   w.eval(`(()=>{const {occursOn,eventFields,eventPayload,localDate,errorMessage}=window.testCore;const calendarRequest=window.calendarRequest;const connectGoogle=async()=>{};${source}\n})()`);
   await until(()=>$('google-sync-status').textContent==='Google 일정 동기화됨');
@@ -67,7 +71,11 @@ try {
   assert.equal($('event-list').querySelector('b'),null,'provider text cannot inject markup');
   assert.equal($('event-list').querySelector('.notes').textContent,'Safe note');
   assert.equal($('event-destination').value,'primary');
+  $('notebook-mode').click();assert.equal($('event-list').closest('#notebook-agenda-page'),$('notebook-agenda-page'));
+  const readsBeforePoll=readCount,now=w.Date.now;w.Date.now=()=>now()+65000;await poll();await synced();
+  assert.ok(readCount>readsBeforePoll,'active notebook refreshes Google automatically');w.Date.now=now;
   $('add-event').click();assert.ok($('google-editor').open);assert.equal($('editor').open,false);
+  const readsWithEditor=readCount;w.Date.now=()=>now()+130000;await poll();assert.equal(readCount,readsWithEditor,'background sync does not interrupt a draft');w.Date.now=now;
   $('google-title').value='New Google';failSave=true;
   $('google-form').dispatchEvent(new w.Event('submit',{cancelable:true}));
   await until(()=>$('google-error').textContent.includes('Google에서 변경'));

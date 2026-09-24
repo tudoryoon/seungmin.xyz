@@ -109,6 +109,26 @@ Experience points and automatic calendar-event completion are not implemented. G
 
 Apply `supabase/roulette.sql` before deploying the selection UI. Spinning is temporary; **선택** records the result in the signed-in user's `roulette_choices` history. The server fixes its KST date and timestamp. Multiple choices on the same day are retained. The `(user_id, station_id)` key prevents repeat selections across devices; idempotent retries return the first date unchanged. Browsers have owner-only read access and a narrow selection RPC, with no update/delete access. This does not grant access to any other journal data. The station name and lines are display snapshots supplied by the client, not independently verified lottery outcomes. History is refreshed before every spin, selected stations are excluded from the remaining equally weighted pool, and a failed history read disables spins. An exhausted pool stays disabled. Choices made simultaneously on another device during an in-flight spin are reconciled on save/refresh. No real account choices are created by tests.
 
+## Schedule Notebook
+
+Click a calendar date or the notebook view control to open the selected day's
+spiral notebook. Desktop shows events and daily tasks on facing pages; mobile
+uses schedule/task tabs. Arrows, the native date picker, and horizontal touch
+swipes change the selected date. Keyboard arrows work only when the book itself
+is focused, so text editing keeps its normal keys. The calendar remains available.
+
+`notebook.js` moves the existing agenda and task elements instead of duplicating
+their data or save handlers. Drafts survive view/date changes, historical tasks
+remain read-only, and Google event create/update forms use the existing API.
+Google calendars refresh every five minutes while visible and on return/online,
+but never interrupt an open editor. No schema or OAuth permission changes.
+
+Page turns use a local CC0 recording (`assets/audio/LICENSE.md`). The sound toggle
+persists per browser, playback only follows user navigation, and playback failure
+cannot block navigation. Reduced-motion preferences remove the page animation.
+`node tests/notebook.mjs` and `node tests/google-calendar-ui.mjs` cover these paths
+with Happy DOM (`DOM_MODULE` may point to its module).
+
 ## Dated Tasks
 
 Saved daily tasks already persist in `daily_tasks` by user and KST date. The calendar now reads the visible month's history through existing owner-only RLS and shows completion counts on dates. Selecting a past date swaps the daily panel to a read-only snapshot of that day's titles and completion states; today's editing surface and unsaved draft remain intact when switching dates. Future empty dates are read-only. The existing midnight reward/update procedures are unchanged and still prohibit modifying prior days. No task-history SQL migration or record rewriting is required.

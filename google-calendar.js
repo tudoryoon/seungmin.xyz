@@ -4,6 +4,7 @@ const el = id => document.getElementById(id);
 let owner = null, generation = 0, fetchGeneration = 0, listGeneration = 0, connected = false;
 let calendars = [], events = [], selectedCalendars = new Set(), loadedRange = '', editingEvent = null, saving = false, requestId = '';
 let lastSync = 0;
+let refreshing = false;
 let hiddenCalendars = new Set();
 const current = () => owner && owner === window.journalCloud?.user?.id;
 const active = () => ['calendar','connections'].includes(document.body.dataset.view);
@@ -170,5 +171,13 @@ window.addEventListener('journal-account',loadAccount);
 window.addEventListener('journal-calendar-range',()=>loadEvents());
 window.addEventListener('journal-view',()=>{if(active()){if(!connected)loadAccount();else loadCalendars();}});
 el('refresh-records').addEventListener('click',()=>{if(active()){if(!connected)loadAccount();else loadCalendars();}});
-document.addEventListener('visibilitychange',()=>{if(!document.hidden && active() && Date.now()-lastSync>60000)loadEvents(true);});
+async function refreshVisibleCalendar() {
+  if(document.hidden || !active() || !current() || !connected || saving || refreshing || Date.now()-lastSync<60000 || el('google-editor').open || el('editor').open)return;
+  refreshing=true;
+  try {await loadCalendars();} finally {refreshing=false;}
+}
+document.addEventListener('visibilitychange',refreshVisibleCalendar);
+window.addEventListener('focus',refreshVisibleCalendar);
+window.addEventListener('online',refreshVisibleCalendar);
+window.setInterval(refreshVisibleCalendar,5*60*1000);
 if(window.journalCloud?.ready)loadAccount();

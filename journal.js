@@ -176,7 +176,7 @@ function render() {
       marker.title = `할 일 ${tasks.completed}/${tasks.total}개 완료`;
       const icon = make('i'); icon.dataset.lucide = 'list-checks'; marker.prepend(icon); button.append(marker);
     }
-    button.addEventListener('click', () => { selected = key; render(); grid.querySelector(`[data-date="${key}"]`)?.focus(); });
+    button.addEventListener('click', () => { selectCalendarDate(key); window.dispatchEvent(new Event('journal-date-open')); });
     grid.append(button);
   }
   $('selected-date').textContent = `${Number(selected.slice(5,7))}월 ${Number(selected.slice(8))}일`;
@@ -262,7 +262,13 @@ $('delete-record').addEventListener('click', async () => {
 $('previous').addEventListener('click', () => {month = new Date(month.getFullYear(),month.getMonth()-1,1);selected=dateKey(month);render();});
 $('next').addEventListener('click', () => {month = new Date(month.getFullYear(),month.getMonth()+1,1);selected=dateKey(month);render();});
 $('today').addEventListener('click', () => {const now=new Date();selected=dateKey(now);month=new Date(now.getFullYear(),now.getMonth(),1);render();});
-window.journalCalendar = {render,range:()=>({start:new Date(month.getFullYear(),month.getMonth(),1).toISOString(),end:new Date(month.getFullYear(),month.getMonth()+1,1).toISOString(),month:dateKey(month).slice(0,7),selected})};
+function selectCalendarDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || value < '1900-01-01' || value > '2100-12-31') return false;
+  const [year,monthNumber,day] = value.split('-').map(Number), date = new Date(year,monthNumber-1,day);
+  if (dateKey(date) !== value) return false;
+  selected = value; month = new Date(year,monthNumber-1,1); render(); return true;
+}
+window.journalCalendar = {render,selectDate:selectCalendarDate,range:()=>({start:new Date(month.getFullYear(),month.getMonth(),1).toISOString(),end:new Date(month.getFullYear(),month.getMonth()+1,1).toISOString(),month:dateKey(month).slice(0,7),selected})};
 render();
 if (!cloud || cloud.ready) loadAccount();
 if (cloud?.ready) workout.ready();

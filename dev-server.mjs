@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { onRequest as substackFeed } from './functions/api/substack.js';
 const root = new URL('./', import.meta.url);
-const types = { js:'text/javascript', mjs:'text/javascript', css:'text/css', html:'text/html', webp:'image/webp', png:'image/png', svg:'image/svg+xml', ico:'image/x-icon', webmanifest:'application/manifest+json' };
+const types = { js:'text/javascript', mjs:'text/javascript', css:'text/css', html:'text/html', wav:'audio/wav', webp:'image/webp', png:'image/png', svg:'image/svg+xml', ico:'image/x-icon', webmanifest:'application/manifest+json' };
 const server = createServer(async (req, res) => {
   try {
     const path = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);

@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="daily.css?v=20260924-2">
   <link rel="stylesheet" href="google-calendar.css?v=20260924-2">
   <link rel="stylesheet" href="workout.css?v=20260924-2">
+  <link rel="stylesheet" href="notebook.css?v=20260924-3">
   <link rel="stylesheet" href="pwa.css?v=1">
   <script src="pwa.js?v=1" defer></script>
 </head>
@@ -29,10 +30,10 @@
     <div class="import-bar" id="import-bar" hidden><span>이 브라우저에 남아 있는 기록</span><button id="import-local">내 계정으로 가져오기</button></div>
     <p id="message" role="status"></p>
     <section id="calendar" class="view">
-      <div class="section-head"><h1>일정관리</h1><button class="primary" id="add-event">일정 추가</button></div>
+      <div class="section-head"><h1>일정관리</h1><div class="schedule-actions"><div class="schedule-views" role="group" aria-label="일정 보기"><button id="calendar-mode" type="button" aria-pressed="true" title="캘린더 보기"><i data-lucide="calendar-days"></i><span>캘린더</span></button><button id="notebook-mode" type="button" aria-pressed="false" title="노트 보기"><i data-lucide="notebook-pen"></i><span>노트</span></button></div><button class="primary" id="add-event"><i data-lucide="plus"></i><span>일정 추가</span></button></div></div>
       <div class="google-toolbar"><p id="google-sync-status" role="status"></p><a id="google-setup-link" href="#connections">Google Calendar 연결</a><label id="event-destination-field" hidden>새 일정<select id="event-destination" aria-label="새 일정 저장 위치"><option value="local">내 기록</option></select></label></div>
       <details id="google-visibility" class="google-visibility" open hidden><summary>표시할 캘린더</summary><div id="google-calendar-filters" class="google-calendars" aria-label="표시할 Google 캘린더"></div></details>
-      <div class="calendar-workspace">
+      <div id="calendar-workspace" class="calendar-workspace">
       <div class="calendar-layout">
         <div><div class="month-toolbar"><h2 id="month-title"></h2><div class="actions"><button id="previous" aria-label="이전 달" title="이전 달">←</button><button id="today">오늘</button><button id="next" aria-label="다음 달" title="다음 달">→</button></div></div>
           <div class="weekdays" aria-hidden="true"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
@@ -42,6 +43,21 @@
       </div>
       <aside id="daily-panel" class="daily-panel" aria-labelledby="daily-title" hidden></aside>
       </div>
+      <section id="schedule-notebook" class="schedule-notebook" aria-label="일정 노트" hidden>
+        <div class="notebook-toolbar">
+          <div class="notebook-date-heading"><span id="notebook-day" aria-hidden="true"></span><div><h2 id="notebook-date" tabindex="-1"></h2><input id="notebook-date-picker" type="date" aria-label="노트 날짜 선택" min="1900-01-01" max="2100-12-31"></div></div>
+          <div class="notebook-controls"><button id="notebook-calendar" class="notebook-icon" type="button" aria-label="캘린더로 돌아가기" title="캘린더로 돌아가기"><i data-lucide="calendar-days"></i></button><button id="notebook-sound" class="notebook-icon" type="button" aria-label="종이 넘김 소리" title="종이 넘김 소리" aria-pressed="true"><i data-lucide="volume-2"></i></button><button id="notebook-today" type="button">오늘</button><button id="notebook-previous" class="notebook-icon" type="button" aria-label="이전 날짜" title="이전 날짜"><i data-lucide="chevron-left"></i></button><button id="notebook-next" class="notebook-icon" type="button" aria-label="다음 날짜" title="다음 날짜"><i data-lucide="chevron-right"></i></button></div>
+        </div>
+        <div class="notebook-tabs" role="tablist" aria-label="노트 페이지"><button id="notebook-agenda-tab" type="button" role="tab" aria-selected="true" aria-controls="notebook-agenda-page">일정</button><button id="notebook-tasks-tab" type="button" role="tab" aria-selected="false" aria-controls="notebook-tasks-page" tabindex="-1">할 일</button></div>
+        <div id="notebook-book" class="notebook-book" data-page="agenda" tabindex="0" aria-label="일정 노트 페이지">
+          <div id="notebook-agenda-page" class="notebook-page notebook-agenda-page"><div class="notebook-page-label" aria-hidden="true">01 / SCHEDULE</div><div id="notebook-agenda-slot" class="notebook-page-content"></div></div>
+          <div class="notebook-binding" aria-hidden="true"></div>
+          <div id="notebook-tasks-page" class="notebook-page notebook-tasks-page"><div class="notebook-page-label" aria-hidden="true">02 / TO DO</div><div id="notebook-tasks-slot" class="notebook-page-content"></div></div>
+          <div id="notebook-leaf" class="notebook-leaf" aria-hidden="true"></div>
+        </div>
+        <p id="notebook-announcement" class="sr-only" role="status"></p>
+        <audio id="notebook-audio" src="assets/audio/page-turn.wav" preload="none" hidden></audio>
+      </section>
     </section>
     <section id="workout" class="view" hidden>
       <div class="section-head"><h1>운동계획</h1><div class="actions"><button id="add-workout-type" class="workout-icon" aria-label="운동 항목 추가" title="운동 항목 추가"><i data-lucide="list-plus"></i></button><button class="primary" id="add-workout"><i data-lucide="plus"></i>운동 추가</button></div></div>
@@ -136,8 +152,9 @@
   <script src="cloud.js?v=20260924-2" defer></script>
   <script src="vendor/lucide.js" defer></script>
   <script src="workout.js?v=20260924-2" defer></script>
-  <script src="journal.js?v=20260924-2" defer></script>
-  <script type="module" src="google-calendar.js?v=20260924-2"></script>
+  <script src="journal.js?v=20260924-3" defer></script>
+  <script src="notebook.js?v=20260924-3" defer></script>
+  <script type="module" src="google-calendar.js?v=20260924-3"></script>
   <script type="module" src="library.js?v=20260924-2"></script>
   <script type="module" src="daily.js?v=20260924-2"></script>
 </body>
