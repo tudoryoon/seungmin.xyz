@@ -33,7 +33,7 @@ function errorText(error) {
   if (message === 'POLICY_PENDING') return '자정 정산 설정을 아직 적용하지 못했습니다.';
   if (/DAY_CHANGED/.test(message)) return '날짜가 바뀌었습니다. 오늘 목록을 다시 불러와 주세요.';
   if (/PLAN_CHANGED|ALREADY_COMPLETED/.test(message)) return '다른 화면에서 목록이 변경되었습니다. 다시 불러와 주세요.';
-  if (/INVALID_TASKS/.test(message)) return '할 일을 1~20개, 각 160자 이내로 적어 주세요.';
+  if (/INVALID_TASKS/.test(message)) return '할 일은 최대 20개, 각 160자 이내로 적어 주세요.';
   if (/TASKS_REMAIN/.test(message)) return '아직 완료하지 않은 할 일이 있습니다.';
   if (error?.code === 'PGRST202' || /does not exist/.test(message)) return '오늘 할 일 저장소가 아직 준비되지 않았습니다.';
   return '저장 상태를 확인하지 못했습니다. 연결을 확인하고 다시 불러와 주세요.';
@@ -69,14 +69,15 @@ function render() {
   }));
   $('daily-inputs').replaceChildren(...draft.map((task,index) => {
     const row = document.createElement('div'), input = document.createElement('input'), remove = document.createElement('button');
-    row.className = 'daily-input-row'; input.type = 'text'; input.maxLength = 160; input.required = true; input.value = task.title;
+    row.className = 'daily-input-row'; input.type = 'text'; input.maxLength = 160; input.value = task.title;
     input.setAttribute('aria-label', `할 일 ${index+1}`); input.placeholder = `할 일 ${index+1}`; input.dataset.draftId = task.id;
     input.addEventListener('input', () => { task.title = input.value; dirty = true; });
     remove.type = 'button'; remove.className = 'daily-icon'; remove.title = '할 일 삭제'; remove.setAttribute('aria-label',`할 일 ${index+1} 삭제`);
     remove.innerHTML = '<i data-lucide="minus"></i>';
     remove.addEventListener('click', () => {
-      if (draft.length === 1) { draft[0].title = ''; } else draft.splice(index,1);
-      dirty = true; render(); $('daily-inputs').querySelectorAll('input')[Math.min(index,draft.length-1)]?.focus();
+      draft.splice(index,1);
+      dirty = true; render();
+      ($('daily-inputs').querySelectorAll('input')[Math.min(index,draft.length-1)] || $('daily-add')).focus();
     });
     row.append(input,remove); return row;
   }));
@@ -86,7 +87,8 @@ function render() {
 }
 function startEdit() {
   editing = true; dirty = false;
-  draft = state.tasks.length ? state.tasks.map(({id,title}) => ({id,title})) : [{id:crypto.randomUUID(),title:''}];
+  draft = state.tasks.map(({id,title}) => ({id,title}));
+  if (!draft.length && state.revision === 0) draft.push({id:crypto.randomUUID(),title:''});
 }
 function accept(next) {
   if (next?.reward_policy !== 'kst_midnight') throw new Error('POLICY_PENDING');
@@ -154,11 +156,12 @@ async function mutate(action, values = {}, focusId) {
 }
 $('daily-cancel').addEventListener('click',() => { if (dirty && !confirm('작성 중인 변경 내용을 버릴까요?')) return; editing = false; dirty = false; draft = []; render(); });
 $('daily-add').addEventListener('click',() => { if (draft.length >= 20) return; draft.push({id:crypto.randomUUID(),title:''}); dirty = true; render(); $('daily-inputs').lastElementChild.querySelector('input').focus(); });
-$('daily-edit').addEventListener('click',() => { startEdit(); render(); $('daily-inputs').querySelector('input').focus(); });
+$('daily-edit').addEventListener('click',() => { startEdit(); render(); ($('daily-inputs').querySelector('input') || $('daily-add')).focus(); });
 $('daily-form').addEventListener('submit',event => {
   event.preventDefault();
-  if (!draft.length || draft.some(task => !task.title.trim())) { failure = errorText({message:'INVALID_TASKS'}); controls(); return; }
-  mutate('save',{p_tasks:draft.map(task => ({id:task.id,title:task.title.trim()}))});
+  const tasks = draft.map(task => ({id:task.id,title:task.title.trim()})).filter(task => task.title);
+  if (tasks.length > 20 || tasks.some(task => task.title.length > 160)) { failure = errorText({message:'INVALID_TASKS'}); controls(); return; }
+  mutate('save',{p_tasks:tasks});
 });
 $('daily-retry').addEventListener('click',() => { if (dirty && !confirm('작성 중인 변경 내용을 버리고 다시 불러올까요?')) return; refresh(true); });
 window.addEventListener('beforeunload',event => { if (dirty || busy) { event.preventDefault(); event.returnValue = ''; } });

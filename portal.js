@@ -1,24 +1,25 @@
 import * as THREE from './vendor/three.module.js';
-import { createEntryParticles } from './entry-particles.js?v=20260924-2';
+import { createEntryParticles } from './entry-particles.js?v=20260924-7';
 
 // One renderer and one star field remain alive across every onboarding stage.
 export function createPortal(canvas, motion) {
-  let renderer;
-  function useFallback() {
+  let renderer, contextLost = false, failed = false, suspended = false;
+  function useFallback(reason = 'unavailable') {
     canvas.hidden = true;
     document.body.dataset.renderer = 'fallback';
     document.body.dataset.entryRenderer = 'fallback';
+    canvas.dataset.renderState = reason;
     renderer?.setAnimationLoop(null);
   }
   try {
-    renderer = new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'default'});
+    renderer = new THREE.WebGLRenderer({canvas,antialias:innerWidth>=760,alpha:true,powerPreference:'default'});
   } catch {
     useFallback();
     return {setMotion(){},setStage(){},setEntryProgress(){}};
   }
-  renderer.debug.onShaderError = useFallback;
+  renderer.debug.onShaderError = () => { failed = true; useFallback('shader-error'); };
   const viewport=()=>({width:Math.max(1,canvas.clientWidth||innerWidth),height:Math.max(1,canvas.clientHeight||innerHeight)});
-  const renderRatio = () => {const {width,height}=viewport();return Math.min(devicePixelRatio,2,Math.sqrt((width<760?2400000:5000000)/(width*height)));};
+  const renderRatio = () => {const {width,height}=viewport();return Math.min(devicePixelRatio,2,Math.sqrt((width<760?1400000:5000000)/(width*height)));};
   const pixelRatio = renderRatio();
   renderer.setPixelRatio(pixelRatio);
   renderer.autoClear = false;
@@ -162,7 +163,7 @@ export function createPortal(canvas, motion) {
     camera.updateProjectionMatrix();
   }
   function render(time=0){
-    if(canvas.hidden)return;
+    if(canvas.hidden || contextLost || failed || suspended || document.hidden)return;
     if(time && lastTime && time-lastTime<(stage==='entry' && innerWidth>=760?14:30)) return;
     const dt=lastTime&&time?Math.min((time-lastTime)/1000,.06):0;
     lastTime=time;
@@ -176,25 +177,36 @@ export function createPortal(canvas, motion) {
     }
     starMaterial.uniforms.uTime.value=elapsed;
     skyMaterial.uniforms.uTime.value=elapsed;
-    if(['entry','auth'].includes(stage) && entryParticles.ready){
-      // Keep the arrival spiral alive behind the public menu and login.
-      const progress=stage==='entry'?Math.min(entryProgress,.945):.945;
-      entryDisplayProgress=active?THREE.MathUtils.damp(entryDisplayProgress,progress,14,dt):progress;
-      if(Math.abs(entryDisplayProgress-progress)<.00001)entryDisplayProgress=progress;
-      entryParticles.render(entryDisplayProgress,elapsed,drift,active);return;
+    try {
+      if(['entry','auth'].includes(stage) && entryParticles.ready){
+        // Keep the arrival spiral alive behind the public menu and login.
+        const progress=stage==='entry'?Math.min(entryProgress,.945):.945;
+        entryDisplayProgress=active?THREE.MathUtils.damp(entryDisplayProgress,progress,14,dt):progress;
+        if(Math.abs(entryDisplayProgress-progress)<.00001)entryDisplayProgress=progress;
+        entryParticles.render(entryDisplayProgress,elapsed,drift,active);
+      } else {
+        applyPose();
+        renderer.clear();
+        renderer.render(sky,skyCamera);
+        renderer.clearDepth();
+        renderer.render(scene,camera);
+      }
+      if (!contextLost && !failed) {
+        document.body.dataset.renderer = 'webgl';
+        document.body.dataset.entryRenderer = 'particles';
+        canvas.dataset.renderState = 'ready';
+      }
+    } catch {
+      failed = true; useFallback('render-error');
     }
-    applyPose();
-    renderer.clear();
-    renderer.render(sky,skyCamera);
-    renderer.clearDepth();
-    renderer.render(scene,camera);
   }
   function loop(){
     lastTime=0;
-    renderer.setAnimationLoop(active&&!document.hidden&&!canvas.hidden?render:null);
+    renderer.setAnimationLoop(active&&!document.hidden&&!canvas.hidden&&!contextLost&&!failed&&!suspended?render:null);
     render();
   }
   function resize(){
+    if (contextLost || failed || suspended || document.hidden) return;
     const {width,height}=viewport();
     const ratio=renderRatio();
     renderer.setPixelRatio(ratio);
@@ -219,9 +231,22 @@ export function createPortal(canvas, motion) {
   },{passive:true});
   window.addEventListener('blur',()=>pointer.set(0,0));
   window.addEventListener('resize',resize);
-  document.addEventListener('visibilitychange',loop);
+  function resume() {
+    suspended = false;
+    resize(); loop();
+  }
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)loop();else resume();});
+  window.addEventListener('pagehide',()=>{suspended=true;renderer.setAnimationLoop(null);});
+  window.addEventListener('pageshow',resume);
   canvas.addEventListener('webglcontextlost',event=>{
-    event.preventDefault();useFallback();
+    event.preventDefault();contextLost=true;useFallback('context-lost');
+  });
+  canvas.addEventListener('webglcontextrestored',()=>{
+    // Three.js rebuilds GPU resources first; restore our canvas and render loop afterward.
+    contextLost=false;
+    if (failed) return;
+    canvas.hidden=false;
+    resize(); loop();
   });
   resize();loop();
   return {

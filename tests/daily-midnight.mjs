@@ -30,7 +30,15 @@ try {
   const update=async(s,action,tasks=null,id=null,done=null)=>(await db.query('select public.daily_plan_update($1::date,$2::bigint,$3::text,$4::jsonb,$5::uuid,$6::boolean) as data',[s.day,s.revision,action,tasks&&JSON.stringify(tasks),id,done])).rows[0].data;
   let s=await state();assert.equal(s.day,'2026-09-12');assert.equal(s.level,2,'only eligible closed legacy days settle');
   assert.equal(Date.parse(s.ends_at),Date.parse('2026-09-12T15:00:00Z'),'KST midnight is the boundary');
-  await assert.rejects(update(s,'save',[]),/INVALID_TASKS/);
+  s=await update(s,'save',[]);assert.deepEqual(s.tasks,[]);assert.equal(s.revision,1);
+  for(const bad of [null,{},[{id:a,title:''}],[{id:a,title:'A'},{id:a,title:'B'}]]) await assert.rejects(update(s,'save',bad),/INVALID_TASKS/);
+  s=await update(s,'save',[{id:a,title:'A'},{id:b,title:'B'}]);
+  s=await update(s,'check',null,a,true);s=await update(s,'check',null,b,true);
+  const beforeClear=s;s=await update(s,'save',[]);
+  assert.deepEqual((await state()).tasks,[],'clearing all tasks persists an empty list');
+  assert.equal(s.level,2,'clearing a completed list cannot award a level');
+  await assert.rejects(update(beforeClear,'save',[{id:a,title:'Stale'}]),/PLAN_CHANGED/);
+  await assert.rejects(update(s,'check',null,a,true),/TASK_NOT_FOUND/);
   s=await update(s,'save',[{id:a,title:'A'},{id:b,title:'B'}]);
   s=await update(s,'check',null,a,true);s=await update(s,'check',null,b,true);
   assert.equal(s.level,2);assert.equal(s.awarded,false,'all checked does not award before midnight');
@@ -49,14 +57,14 @@ try {
   await db.exec(`set request.jwt.claim.sub='${other}';`);
   assert.equal((await state()).level,1);
   let t=await update(await state(),'save',[{id:a,title:'Other'}]);
-  t=await update(t,'check',null,a,true);t=await update(t,'check',null,a,false);
+  t=await update(t,'check',null,a,true);t=await update(t,'save',[]);
   await db.exec("reset role;update test.clock set value='2026-09-12T15:00:00Z';");
   await db.exec(`set role authenticated;set request.jwt.claim.sub='${owner}';`);
   let next=await state();assert.equal(next.day,'2026-09-13');assert.equal(next.level,3);assert.deepEqual(next.tasks,[]);
   assert.equal((await state()).level,3,'refresh cannot duplicate midnight settlement');
   await assert.rejects(update(s,'check',null,a,false),/DAY_CHANGED/);
   await db.exec(`set request.jwt.claim.sub='${other}';`);
-  assert.equal((await state()).level,1,'unchecked before midnight earns no level');
+  assert.equal((await state()).level,1,'a list cleared before midnight earns no level');
   assert.equal((await db.query('select * from daily_rewards')).rows.length,0,'settlement remains owner-private');
   for(const q of ['update daily_rewards set settled_at=now()','insert into daily_rewards(user_id,day) values($1,current_date)']) {
     await assert.rejects(db.query(q,q.includes('$1')?[other]:[]),e=>e.code==='42501');
@@ -72,4 +80,4 @@ try {
   await assert.rejects(state(),e=>e.code==='42501');
   await assert.rejects(db.query('select * from daily_rewards'),e=>e.code==='42501');
 } finally {await db.close();}
-console.log('PASS: KST midnight boundary, no instant reward, undo/edit before midnight, legacy correction, stale writes, offline settlements, idempotency and private permissions.');
+console.log('PASS: empty-list saves/reload, no reward for cleared days, KST midnight boundary, no instant reward, undo/edit, legacy correction, stale writes, offline settlements, idempotency and private permissions.');

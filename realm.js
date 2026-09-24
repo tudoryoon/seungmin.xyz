@@ -57,7 +57,7 @@ $('motion').addEventListener('change', event => {
 });
 reducedQuery.addEventListener('change', () => { if (motionPreference === null) setMotion(!reducedQuery.matches); });
 // Rendering is optional: a failed GPU or module must never block account access.
-import('./portal.js?v=20260924-2').then(({ createPortal }) => {
+import('./portal.js?v=20260924-7').then(({ createPortal }) => {
   portal = createPortal($('portal'), motion);
   portal.setStage(document.body.classList.contains('entry-flow')?'entry':stage);
   portal.setEntryProgress(entrance.progress);

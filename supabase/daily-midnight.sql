@@ -59,7 +59,7 @@ begin
   if p_revision is distinct from v_revision then raise exception 'PLAN_CHANGED'; end if;
   if p_action='save' then
     if p_tasks is null or jsonb_typeof(p_tasks)<>'array' then raise exception 'INVALID_TASKS'; end if;
-    if jsonb_array_length(p_tasks) not between 1 and 20 or octet_length(p_tasks::text)>30000 then raise exception 'INVALID_TASKS'; end if;
+    if jsonb_array_length(p_tasks) > 20 or octet_length(p_tasks::text)>30000 then raise exception 'INVALID_TASKS'; end if;
     for v_task in select value from jsonb_array_elements(p_tasks) loop
       if jsonb_typeof(v_task)<>'object' or jsonb_typeof(v_task->'title') is distinct from 'string'
         or char_length(btrim(v_task->>'title')) not between 1 and 160 then raise exception 'INVALID_TASKS'; end if;

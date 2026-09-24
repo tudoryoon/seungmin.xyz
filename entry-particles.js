@@ -100,7 +100,6 @@ export function createEntryParticles(renderer,onReady){
     const line=new THREE.Line(geometry,new THREE.LineBasicMaterial({color:[0x8fb8b7,0xc8bda4,0xabbfd1][arm],transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending}));
     line.userData.strength=strand===0?.25:.07;scene.add(line);lines.push(line);
   }
-  document.body.dataset.entryRenderer='particles';
   function resize(){
     camera.aspect=(renderer.domElement.clientWidth||innerWidth)/Math.max(1,renderer.domElement.clientHeight||innerHeight);camera.updateProjectionMatrix();
     objects.forEach(object=>object.material.uniforms.ratio.value=renderer.getPixelRatio());

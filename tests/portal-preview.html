@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Portal lifecycle preview</title>
+<link rel="stylesheet" href="../styles.css"><link rel="stylesheet" href="../continuity.css">
+<style>body{margin:0;min-height:100vh}#controls{position:fixed;bottom:12px;left:12px;right:12px;z-index:9;display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:#101413;padding:12px;font:12px sans-serif}#progress{width:130px}#result{width:100%;color:white}</style></head>
+<body data-stage="entry" class="entry-flow"><div class="world"><div class="landscape"></div><canvas id="portal"></canvas><div class="world-shade"></div></div>
+<div id="controls"><label>Progress <input id="progress" type="range" min="0" max="94" value="0"></label><label><input id="motion" type="checkbox" checked> Motion</label><button id="lose">Lose GPU</button><button id="restore">Restore GPU</button><button id="suspend">Suspend</button><button id="resume">Resume</button><button id="sample">Sample pixels</button><output id="result">Loading</output></div>
+<script type="module">
+import {createPortal} from '../portal.js';
+const canvas=document.getElementById('portal'),$=id=>document.getElementById(id);
+const portal=createPortal(canvas,true),gl=canvas.getContext('webgl2'),loss=gl?.getExtension('WEBGL_lose_context');
+$('progress').oninput=()=>portal.setEntryProgress(Number($('progress').value)/100);
+$('motion').onchange=()=>portal.setMotion($('motion').checked);
+$('lose').onclick=()=>loss?.loseContext();$('restore').onclick=()=>loss?.restoreContext();
+$('suspend').onclick=()=>window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:true}));
+$('resume').onclick=()=>window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true}));
+$('sample').onclick=()=>{
+  const surface=document.createElement('canvas');surface.width=canvas.width;surface.height=canvas.height;
+  const context=surface.getContext('2d');
+  requestAnimationFrame(()=>{
+    window.dispatchEvent(new Event('resize'));
+    context.drawImage(canvas,0,0);
+    const pixels=context.getImageData(0,0,surface.width,surface.height).data;
+    let lit=0,hash=2166136261;
+    for(let i=0;i<pixels.length;i+=4){if(Math.max(pixels[i],pixels[i+1],pixels[i+2])>45)lit++;hash=Math.imul(hash^pixels[i]^pixels[i+1]^pixels[i+2],16777619);}
+    $('result').textContent=JSON.stringify({state:canvas.dataset.renderState,width:canvas.width,height:canvas.height,lit,hash:hash>>>0,renderer:document.body.dataset.entryRenderer});
+  });
+};
+</script></body></html>

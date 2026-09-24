@@ -64,6 +64,25 @@ app=await setup({saved:{...seed(),tasks:[{id:'complete',title:'Done',completed:t
   assert.equal(app.$('daily-status').textContent,'','a completed plan reloads without pending copy');
   assert.equal(app.$('daily-list').querySelector('input').checked,true);
 } finally {await app.w.happyDOM.close();}
+app=await setup({saved:{...seed(),revision:1,tasks:[{id:'a',title:'A',completed:true},{id:'b',title:'B',completed:false}]}});try {
+  const {w,$,saved}=app;await until(()=>!$('daily-edit').disabled);
+  $('daily-edit').click();
+  $('daily-inputs').querySelector('button').click();$('daily-inputs').querySelector('button').click();
+  assert.equal($('daily-inputs').children.length,0);assert.equal(w.document.activeElement,$('daily-add'));
+  assert.equal($('daily-form').checkValidity(),true,'zero rows can be submitted');
+  $('daily-form').dispatchEvent(new w.Event('submit',{cancelable:true}));
+  await until(()=>saved.tasks.length===0&&!$('daily-save').disabled);
+  assert.equal($('daily-progress').textContent,'0 / 0');assert.equal($('daily-limit').textContent,'0 / 20');
+  assert.equal(saved.level,1);assert.equal($('daily-error').textContent,'');
+  $('refresh-records').click();await until(()=>!$('daily-save').disabled);
+  assert.equal($('daily-inputs').children.length,0,'empty list remains empty after refresh');
+  $('daily-add').click();const input=$('daily-inputs').querySelector('input');
+  input.value='New';input.dispatchEvent(new w.Event('input'));
+  $('daily-form').dispatchEvent(new w.Event('submit',{cancelable:true}));await until(()=>saved.tasks.length===1&&!$('daily-edit').disabled);
+  $('daily-edit').click();const cleared=$('daily-inputs').querySelector('input');cleared.value='   ';cleared.dispatchEvent(new w.Event('input'));
+  assert.equal($('daily-form').checkValidity(),true,'erasing the final title can also clear the list');
+  $('daily-form').dispatchEvent(new w.Event('submit',{cancelable:true}));await until(()=>saved.tasks.length===0&&!$('daily-save').disabled);
+} finally {await app.w.happyDOM.close();}
 for(const view of ['workout','library','connections']) {
   app=await setup({view});try {
     await new Promise(r=>setTimeout(r,15));assert.equal(app.$('daily-panel').hidden,true);assert.equal(app.rpcs(),0,'non-calendar views do not fetch daily tasks');
