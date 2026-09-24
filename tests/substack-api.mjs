@@ -5,7 +5,8 @@ import { emptyFeed } from './substack-fixture.mjs';
 const originalFetch=globalThis.fetch, originalCaches=globalThis.caches;
 let calls=0,mode='ok',stored=null,putDone;
 globalThis.fetch=async(url,options)=>{
-  calls++;assert.equal(url,'https://tudoryoon.substack.com/feed');
+  calls++;const source=new URL(url);assert.equal(source.origin+source.pathname,'https://tudoryoon.substack.com/feed');
+  assert.equal(source.searchParams.get('refresh'),String(Math.floor(Date.now()/300000)));
   assert.equal(options.redirect,'error');assert.equal(options.headers.Cookie,undefined);assert.equal(options.headers.Authorization,undefined);
   if(mode==='throw')throw new Error('upstream details must not leak');
   if(mode==='html')return new Response('<html>Blocked</html>',{headers:{'Content-Type':'text/html'}});
