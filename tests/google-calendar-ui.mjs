@@ -10,7 +10,7 @@ w.document.write(await readFile(new URL('../test.html',import.meta.url),'utf8'))
 w.lucide={createIcons(){}};w.confirm=()=>true;
 w.Option=function(text,value){const option=w.document.createElement('option');option.textContent=text;option.value=value;return option;};
 let failSave=false,savePending=null,eventPending=null,pendingReads=false,readCount=0,failedCalendar=null;
-let poll;
+let poll,reconnect=false;
 w.setInterval=fn=>{poll=fn;return 1;};
 w.HTMLElement.prototype.scrollIntoView=()=>{};
 const local={id:'local',kind:'event',title:'Local record',date:core.localDate(new Date()),start:'12:00'};
@@ -23,7 +23,7 @@ w.cloudError=()=> 'Error';w.testCore=core;
 w.calendarRequest=async(action,args={})=>{
   calls.push({action,args});
   if(action==='status')return {configured:true,connected:true,email:'calendar@example.com'};
-  if(action==='calendars')return {calendars:[...calendarList]};
+  if(action==='calendars'){if(reconnect)throw new Error('RECONNECT_REQUIRED');return {calendars:[...calendarList]};}
   if(action==='events'){readCount++;if(args.calendarId===failedCalendar)throw new Error('GOOGLE_ERROR');if(pendingReads)return new Promise(resolve=>{eventPending=resolve;});return {events:[args.calendarId==='primary' ? event : {...event,id:args.calendarId,title:args.calendarId+' earnings',editable:false}]};}
   if(action==='create' || action==='update'){if(failSave)throw new Error('EVENT_CHANGED');if(savePending)return new Promise(resolve=>{savePending.resolve=resolve;});return {id:'saved'};}
   return {};
@@ -99,5 +99,9 @@ try {
   eventPending({events:[event]});await pause();await pause();
   assert.equal($('event-list').querySelectorAll('.google-record').length,0,'late private data cannot enter another account');
   assert.equal($('google-editor').open,false);
+  pendingReads=false;reconnect=true;w.journalCloud.user={id:'owner',email:'owner@example.com'};w.dispatchEvent(new w.Event('journal-account'));
+  await until(()=>$('google-sync-status').textContent.includes('만료'));
+  assert.equal($('google-setup-link').hidden,false,'expired Google access offers reconnection');
+  const attempts=calls.length;w.Date.now=()=>now()+130000;await poll();assert.equal(calls.length,attempts,'expired credentials do not poll repeatedly');w.Date.now=now;
   console.log('PASS: all calendars by default, legacy reset, synchronized toggles, persistent all-off, new subscriptions, account isolation, merged counts, XSS-safe rows, read-only protection, drafts, retries, etags and logout races.');
 } finally {await w.happyDOM.close();}

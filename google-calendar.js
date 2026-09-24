@@ -4,7 +4,7 @@ const el = id => document.getElementById(id);
 let owner = null, generation = 0, fetchGeneration = 0, listGeneration = 0, connected = false;
 let calendars = [], events = [], selectedCalendars = new Set(), loadedRange = '', editingEvent = null, saving = false, requestId = '';
 let lastSync = 0;
-let refreshing = false;
+let refreshing = false, needsReconnect = false;
 let hiddenCalendars = new Set();
 const current = () => owner && owner === window.journalCloud?.user?.id;
 const active = () => ['calendar','connections'].includes(document.body.dataset.view);
@@ -12,6 +12,12 @@ const writable = calendar => ['owner','writer'].includes(calendar.accessRole);
 const make = (tag,text,className) => {const node=document.createElement(tag);if(text !== undefined)node.textContent=text;if(className)node.className=className;return node;};
 const icon = (name,label) => {const button=make('button',undefined,'google-icon');button.type='button';button.title=label;button.setAttribute('aria-label',label);const i=make('i');i.dataset.lucide=name;button.append(i);return button;};
 const refreshJournal = () => {window.journalCalendar?.render();window.lucide?.createIcons();};
+function connectionFailure(error) {
+  if (!['RECONNECT_REQUIRED','MISSING_SCOPE','NOT_CONNECTED'].includes(error?.message)) return;
+  needsReconnect = true;
+  el('google-setup-link').hidden = false;
+  el('google-setup-link').textContent = 'Google Calendar 다시 연결';
+}
 // A denylist makes new calendars visible; v2 resets the old implicit primary-only allowlist.
 const preferencesKey = () => `google-calendar-hidden-v2:${owner}`;
 function remember() {try {localStorage.setItem(preferencesKey(),JSON.stringify([...hiddenCalendars]));} catch {}}
@@ -51,16 +57,17 @@ async function loadCalendars(selectPrimary=false) {
     renderCalendars(selectPrimary);await loadEvents(true);
   } catch(error) {
     if(version!==generation || request!==listGeneration || !current())return;
+    connectionFailure(error);
     el('google-connection-error').textContent=errorMessage(error);el('google-sync-status').textContent=errorMessage(error);
   }
 }
 async function loadAccount() {
   const version=++generation; fetchGeneration++;listGeneration++;
-  owner=window.journalCloud?.user?.id || null;connected=false;calendars=[];events=[];selectedCalendars=new Set();hiddenCalendars=new Set();loadedRange='';lastSync=0;
+  owner=window.journalCloud?.user?.id || null;connected=false;needsReconnect=false;calendars=[];events=[];selectedCalendars=new Set();hiddenCalendars=new Set();loadedRange='';lastSync=0;
   try {const saved=JSON.parse(localStorage.getItem(preferencesKey()));if(Array.isArray(saved))hiddenCalendars=new Set(saved.filter(id=>typeof id==='string'));} catch {}
   el('google-editor').close();el('google-account').textContent=owner ? '연결 확인 중…' : '로그인 후 연결';
   el('google-disconnect').hidden=true;el('google-connect').disabled=!owner;el('google-connect').textContent='연결';
-  el('google-setup-link').hidden=false;el('google-sync-status').textContent='';el('google-connection-error').textContent='';
+  el('google-setup-link').hidden=false;el('google-setup-link').textContent='Google Calendar 연결';el('google-sync-status').textContent='';el('google-connection-error').textContent='';
   renderCalendars();refreshJournal();
   if (!owner || !active()) return;
   try {
@@ -96,6 +103,7 @@ async function loadEvents(force=false) {
       fetched.push(...result.events.map(event=>({...event,calendarId:calendar.id,calendar})));
     } catch(error) {
       if(version!==generation || request!==fetchGeneration || !current())return;
+      connectionFailure(error);
       failures.push(`${calendar.name}: ${errorMessage(error)}`);
     }
   }
@@ -172,7 +180,7 @@ window.addEventListener('journal-calendar-range',()=>loadEvents());
 window.addEventListener('journal-view',()=>{if(active()){if(!connected)loadAccount();else loadCalendars();}});
 el('refresh-records').addEventListener('click',()=>{if(active()){if(!connected)loadAccount();else loadCalendars();}});
 async function refreshVisibleCalendar() {
-  if(document.hidden || !active() || !current() || !connected || saving || refreshing || Date.now()-lastSync<60000 || el('google-editor').open || el('editor').open)return;
+  if(document.hidden || !active() || !current() || !connected || needsReconnect || saving || refreshing || Date.now()-lastSync<60000 || el('google-editor').open || el('editor').open)return;
   refreshing=true;
   try {await loadCalendars();} finally {refreshing=false;}
 }
