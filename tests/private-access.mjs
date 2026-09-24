@@ -14,6 +14,16 @@ for(const name of ['privacy','terms']) {
     assert.equal(w.document.querySelectorAll('script,form,iframe').length,0,'policy pages work without sign-in or JavaScript');
     assert.equal(w.document.querySelector('[rel=canonical]').href,`https://seungmin.xyz/${name}`);
     assert.ok(w.document.querySelector('a[href="mailto:tmdals2008@gmail.com"]'));
+    assert.doesNotMatch(w.document.body.textContent,/프로필|캐릭터|MBTI|혈액형|룰렛|레벨/,'policies omit granular feature descriptions');
+    if(name==='privacy') {
+      assert.ok(w.document.getElementById('google'),'calendar disclosure deep link stays available');
+      assert.ok(w.document.getElementById('deletion'),'deletion instructions stay available');
+      assert.ok(w.document.querySelector('a[href="https://developers.google.com/terms/api-services-user-data-policy"]'));
+      assert.ok(w.document.querySelector('a[href="https://myaccount.google.com/connections"]'));
+      assert.match(w.document.body.textContent,/직접 입력한 정보/);
+      assert.match(w.document.body.textContent,/암호화/);
+      assert.match(w.document.body.textContent,/판매하거나 공유하지 않습니다/);
+    }
     for(const link of w.document.querySelectorAll('a[href],link[href],img[src]')) {
       const path=link.getAttribute('href') || link.getAttribute('src');
       if(/^[a-z]+:/i.test(path))continue;
