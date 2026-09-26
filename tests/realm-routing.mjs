@@ -9,7 +9,7 @@ const user={id:'routing-fixture',email:'fixture@example.com',user_metadata:{real
 assert.equal(resolveRealmStage(null,'#map'),'auth');
 assert.equal(resolveRealmStage(null,''),'entry');
 assert.equal(resolveRealmStage(user,''),'entry');
-for(const account of [null,user,{...user,user_metadata:{}}])for(const route of ['home','substack','about'])assert.equal(resolveRealmStage(account,'#'+route),route);
+for(const account of [null,user,{...user,user_metadata:{}}])for(const route of ['home','substack','food-map','about'])assert.equal(resolveRealmStage(account,'#'+route),route);
 assert.equal(resolveRealmStage(user,'#unknown'),'map');
 assert.equal(resolveRealmStage({...user,user_metadata:{}},'#map'),'profile');
 assert.equal(resolveRealmStage({...user,user_metadata:{realm_profile:user.user_metadata.realm_profile}},'#complete'),'avatar');
@@ -103,6 +103,10 @@ for(const account of [null,user]) {
     assert.equal(window.scrollY,1400);
     doc.querySelector('[data-public-page=about]').click();assert.equal(doc.body.dataset.stage,'home','active public link collapses its content');
     navigate('#substack');assert.equal(doc.getElementById('substack-content').hidden,false);assert.equal(doc.getElementById('about-content').hidden,true);
+    navigate('#food-map');assert.equal(doc.getElementById('food-map-content').hidden,false);assert.equal(doc.getElementById('substack-content').hidden,true);
+    assert.equal(doc.querySelector('[data-public-page=food-map]').getAttribute('aria-current'),'page');
+    assert.equal(doc.title,'서울 맛집 지도');
+    doc.querySelector('[data-public-page=food-map]').click();assert.equal(doc.body.dataset.stage,'home');assert.equal(doc.getElementById('food-map-content').hidden,true);
     navigate('#map');assert.equal(doc.body.dataset.stage,account?'map':'auth');
     assert.equal(entry.hidden,true);assert.equal(doc.body.classList.contains('entry-flow'),false);
     if(!account){
@@ -121,7 +125,7 @@ for(const account of [null,user]) {
     navigate('#home');await scroll(0);assert.equal(doc.body.dataset.stage,'entry','returning to public menu can rewind');
   }finally{await window.happyDOM.close();}
 }
-for(const account of [null,user,{...user,user_metadata:{}}])for(const route of ['home','about','substack']){
+for(const account of [null,user,{...user,user_metadata:{}}])for(const route of ['home','about','substack','food-map']){
   const {window}=await boot('#'+route,account);
   try{assert.equal(window.document.body.dataset.stage,route);assert.equal(window.scrollY,1400);assert.equal(window.document.getElementById('home').inert,false);}
   finally{await window.happyDOM.close();}

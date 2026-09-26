@@ -19,6 +19,8 @@
   <link rel="stylesheet" href="dungeon.css?v=20260924-2">
   <link rel="stylesheet" href="continuity.css?v=20260924-10">
   <link rel="stylesheet" href="policy.css?v=20260924-10">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="food-map.css?v=20260926-1">
   <link rel="stylesheet" href="pwa.css?v=1">
   <script src="pwa.js?v=1" defer></script>
 </head>
@@ -49,10 +51,41 @@
       <h1 id="home-title" class="sr-only" tabindex="-1">메뉴</h1>
       <nav id="public-nav" class="public-nav" aria-label="주요 메뉴">
         <a href="#substack" data-public-page="substack">Substack</a>
+        <a href="#food-map" data-public-page="food-map">서울 맛집 지도</a>
         <a href="#map" data-public-page="auth">개인일정</a>
         <a href="#about" data-public-page="about">About</a>
       </nav>
       <div class="public-content">
+        <section id="food-map-content" class="food-map-content" aria-labelledby="food-map-title" hidden>
+          <header class="food-map-heading">
+            <h2 id="food-map-title">서울 맛집 지도</h2><span id="food-station-count" class="food-station-count" role="status"></span>
+            <div class="food-map-scope" role="group" aria-label="지도 범위"><button type="button" data-map-scope="seoul" aria-pressed="true">서울</button><button type="button" data-map-scope="all" aria-pressed="false">전체</button></div>
+          </header>
+          <div class="food-map-layout">
+            <aside class="food-map-sidebar" aria-label="역 검색과 맛집">
+              <div class="food-map-filters">
+                <label><span class="sr-only">역 검색</span><input type="search" id="food-station-search" placeholder="역 검색" autocomplete="off" maxlength="60"></label>
+                <select id="food-line" aria-label="노선"><option value="">전체 노선</option></select>
+                <button type="button" id="food-filter-reset" class="icon-button" aria-label="필터 초기화" title="필터 초기화"><i data-lucide="rotate-ccw" aria-hidden="true"></i></button>
+              </div>
+              <ul id="food-station-list" class="food-station-list" aria-label="역 목록"></ul>
+              <p id="food-no-results" class="food-no-results" role="status" hidden>검색 결과가 없습니다.</p>
+              <section id="food-station-detail" class="food-station-detail" aria-labelledby="food-station-title" hidden>
+                <button id="food-station-back" class="food-station-back" type="button"><i data-lucide="arrow-left" aria-hidden="true"></i>역 목록</button>
+                <h3 id="food-station-title" tabindex="-1"></h3><div id="food-station-lines"></div>
+                <p id="food-station-note" class="food-station-note"></p>
+                <p class="food-station-empty">등록된 맛집이 없습니다.</p>
+                <a id="food-station-external" class="food-station-external" target="_blank" rel="noopener noreferrer">네이버 지도<i data-lucide="external-link" aria-hidden="true"></i></a>
+              </section>
+            </aside>
+            <div class="food-map-surface">
+              <div id="food-map-canvas" class="food-map-canvas" role="region" aria-label="서울 및 수도권 역 지도" tabindex="0"></div>
+              <div id="food-map-tools" class="food-map-tools"><button type="button" id="food-zoom-in" title="지도 확대" aria-label="지도 확대"><i data-lucide="plus" aria-hidden="true"></i></button><button type="button" id="food-zoom-out" title="지도 축소" aria-label="지도 축소"><i data-lucide="minus" aria-hidden="true"></i></button></div>
+              <div class="food-map-message"><p id="food-map-status" role="status"></p><button id="food-map-retry" type="button" title="지도 다시 불러오기" aria-label="지도 다시 불러오기" hidden><i data-lucide="rotate-cw" aria-hidden="true"></i></button></div>
+            </div>
+          </div>
+          <footer class="food-map-source">1~9호선 · 경의중앙선 · 서울 외 구간 포함 · <a href="https://t-data.seoul.go.kr/dataprovide/trafficdataviewfile.do?data_id=36" target="_blank" rel="noopener noreferrer">역 위치: 서울시</a> / <a href="https://www.openstreetmap.org/way/181444733" target="_blank" rel="noopener noreferrer">도라산: OSM</a></footer>
+        </section>
         <section id="substack-content" class="substack-reader" aria-label="Substack 포스트" tabindex="0" hidden>
           <div class="substack-status"><p id="substack-status" role="status">불러오는 중…</p><button id="substack-retry" class="icon-button" type="button" title="다시 불러오기" aria-label="다시 불러오기" hidden><i data-lucide="rotate-cw" aria-hidden="true"></i></button></div>
           <ul id="substack-posts" class="substack-posts" aria-label="포스트 목록"></ul>
@@ -160,7 +193,8 @@
   <script src="vendor/supabase.js" defer></script>
   <script src="auth-client.js?v=20260924-5" defer></script>
   <script src="vendor/lucide.js" defer></script>
-  <script type="module" src="realm.js?v=20260924-7"></script>
+  <script type="module" src="realm.js?v=20260926-1"></script>
+  <script type="module" src="food-map.js?v=20260926-1"></script>
   <script type="module" src="substack.js?v=20260924-9"></script>
   <script type="module" src="player-level.js?v=20260924-2"></script>
   <script type="module" src="map-wind.js?v=20260924-2"></script>

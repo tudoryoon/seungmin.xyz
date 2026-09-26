@@ -1,0 +1,83 @@
+.public-nav { gap:32px;flex-wrap:wrap;row-gap:4px; }
+body[data-stage=food-map] .public-hub { inset:86px 28px 20px;display:flex;flex-direction:column;text-align:left; }
+body[data-stage=food-map] .public-content { flex:1;min-height:0;padding-top:16px; }
+body[data-stage=food-map] .world { visibility:hidden; }
+.food-map-content { height:100%;display:flex;flex-direction:column;text-shadow:none;background:#101816; }
+.food-map-heading { display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--line); }
+.food-map-heading h2 { font-size:18px;line-height:1.4;font-weight:550; }
+.food-station-count { font-size:12px;color:#a9bdb4;font-variant-numeric:tabular-nums; }
+.food-map-scope { display:flex;gap:0;margin-left:auto;border:1px solid #607367;border-radius:4px;overflow:hidden; }
+.food-map-scope button { min-height:32px;padding:4px 12px;font-size:12px;border-radius:0; }
+.food-map-scope button[aria-pressed=true] { background:#b7ebd5;color:#15281f; }
+.food-map-layout { display:grid;grid-template-columns:280px minmax(0,1fr);flex:1;min-height:0; }
+.food-map-sidebar { display:flex;flex-direction:column;min-height:0;min-width:0;border-right:1px solid var(--line); }
+.food-map-filters { display:grid;grid-template-columns:minmax(0,1fr) 36px;gap:8px;padding:12px;border-bottom:1px solid var(--line); }
+.food-map-filters label { grid-column:1/-1; }
+.food-map-filters input,.food-map-filters select { min-height:38px;padding:8px 10px;font-size:13px;background:#192420; }
+.food-map-filters .icon-button { width:36px;min-height:38px;height:38px; }
+.food-map-filters button:disabled { cursor:default;opacity:.3; }
+.food-station-list { min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;list-style:none;padding:0;margin:0; }
+.food-station-list button { display:flex;align-items:flex-start;flex-direction:column;gap:5px;width:100%;padding:12px 16px;min-height:64px;border-radius:0;border-bottom:1px solid #c5dfcf14;text-align:left; }
+.food-station-list button:hover { background:#23332b; }
+.food-station-list button:focus-visible { outline-offset:-3px; }
+.station-result-name { color:#e9f0eb;font-size:14px;line-height:1.4;overflow-wrap:anywhere; }
+.station-lines { display:flex;flex-wrap:wrap;gap:4px 10px; }
+.station-line { display:inline-flex;align-items:center;gap:5px;font-size:11px;line-height:1.6;color:#bdcec3;white-space:nowrap; }
+.station-line::before { content:"";width:7px;height:7px;border-radius:50%;background:var(--line-color);flex-shrink:0; }
+.food-station-detail { min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:12px 16px 20px; }
+.food-station-detail h3 { margin:16px 0 10px;font-size:22px;line-height:1.4;overflow-wrap:anywhere; }
+.food-station-detail h3:focus { outline:none; }
+.food-station-back { min-height:32px;padding:0;gap:6px;font-size:12px;color:var(--mint); }
+.food-station-note { font-size:12px;color:#dfbe82;line-height:1.7;margin:12px 0; }
+.food-station-note:empty { display:none; }
+.food-station-empty,.food-no-results { color:#9daf9f;font-size:13px;line-height:1.6;padding:24px 0; }
+.food-no-results { padding:24px 16px; }
+.food-station-external { display:inline-flex;align-items:center;min-height:44px;gap:8px;font-size:12px;text-decoration:underline;text-underline-offset:4px;color:var(--mint); }
+.food-map-surface { min-width:0;min-height:0;position:relative;background:#e6ebe5; }
+.food-map-canvas { position:absolute;inset:0;z-index:0;background:#dde5dc;color:#173025; }
+.food-map-canvas:focus-visible { outline:2px solid #2d795a;outline-offset:-3px; }
+.food-map-tools { position:absolute;z-index:450;top:14px;right:14px;display:grid;gap:6px; }
+.food-map-tools button { background:#101a17;color:#e5ede8;width:40px;min-height:40px;border:1px solid #6b8477; }
+.food-map-message { position:absolute;z-index:450;left:12px;top:12px;max-width:calc(100% - 80px);display:flex;align-items:center;gap:8px;background:#101816;color:#dfc28c;padding:0 10px;border-radius:4px;font-size:12px; }
+.food-map-message:has(p:empty):has(button[hidden]) { display:none; }
+.food-map-message p:not(:empty) { padding:8px 0; }
+.food-map-message button { min-height:36px;width:30px;padding:0; }
+.food-map-canvas .leaflet-control-attribution { max-width:100%;font-size:10px;line-height:1.6;background:#fffffff0;color:#304936; }
+.food-map-canvas .leaflet-control-attribution a { color:#265a43;min-height:0; }
+.food-map-source { flex-shrink:0;padding:6px 12px;font-size:10px;line-height:1.5;color:#8da395;border-top:1px solid var(--line); }
+.food-map-source a { text-decoration:underline;text-underline-offset:2px; }
+.food-station-marker { display:grid;place-items:center;background:none;border:0; }
+.station-dot { display:block;width:12px;height:12px;border:2px solid white;border-radius:50%;background:var(--station-color);box-shadow:0 1px 4px #0009; }
+.station-dot.is-transfer { width:15px;height:15px;border-width:3px; }
+.food-station-marker:hover .station-dot,.food-station-marker:focus .station-dot,.food-station-marker.is-selected .station-dot { width:20px;height:20px;box-shadow:0 0 0 3px #15291fbb; }
+.food-station-marker:focus-visible { outline:2px solid #11241a;outline-offset:3px;border-radius:50%; }
+.food-map-canvas .food-station-tooltip { font:12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#14261f;color:white;border-color:#14261f; }
+.food-map-canvas .leaflet-tooltip-top::before { border-top-color:#14261f; }
+@media(max-width:760px) {
+  .public-nav { gap:14px;row-gap:4px; }
+  .public-nav a { font-size:13px; }
+  body[data-stage=food-map] .public-hub { inset:80px 12px max(12px,env(safe-area-inset-bottom)); }
+  body[data-stage=food-map] .public-content { padding-top:10px; }
+  .food-map-heading { padding:8px 10px;gap:6px; }
+  .food-map-heading h2 { font-size:15px; }
+  .food-station-count { font-size:10px; }
+  .food-map-scope button { padding:4px 9px; }
+  .food-map-layout { grid-template-columns:1fr;grid-template-rows:minmax(160px,1fr) minmax(174px,34%); }
+  .food-map-surface { grid-row:1; }
+  .food-map-sidebar { grid-row:2;border-right:0;border-top:1px solid var(--line); }
+  .food-map-filters { grid-template-columns:minmax(0,1fr) 108px 36px;gap:6px;padding:8px; }
+  .food-map-filters label { grid-column:auto; }
+  .food-station-list button { min-height:56px;padding:9px 12px; }
+  .food-station-detail { padding:8px 12px 12px; }
+  .food-station-detail h3 { margin:4px 0;font-size:18px; }
+  .food-station-empty { padding:12px 0; }
+  .food-map-source { padding:4px 8px; }
+}
+@media(max-width:760px) and (max-height:600px) {
+  body[data-stage=food-map] .public-hub { top:58px; }
+  .food-map-layout { grid-template-columns:210px minmax(0,1fr);grid-template-rows:minmax(0,1fr); }
+  .food-map-sidebar { grid-column:1;grid-row:1;border-right:1px solid var(--line);border-top:0; }
+  .food-map-surface { grid-column:2;grid-row:1; }
+  .food-map-filters { grid-template-columns:minmax(0,1fr) 36px; }
+  .food-map-filters label { grid-column:1/-1; }
+}

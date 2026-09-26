@@ -1,14 +1,14 @@
 import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js?v=20260924-2';
 import { validProfile } from './profile.js?v=20260924-2';
 import { createDungeon } from './dungeon.js?v=20260924-2';
-import { resolveRealmStage } from './realm-route.js?v=20260924-2';
+import { resolveRealmStage } from './realm-route.js?v=20260926-1';
 import { createScrollEntry, entryScene } from './scroll-entry.js?v=20260924-2';
 
 const $ = id => document.getElementById(id);
 const client = window.realmClient;
 window.lucide?.createIcons();
 let user = null, stage = 'entry', epoch = 0, flipped = false;
-const publicStages = ['entry','home','substack','about'];
+const publicStages = ['entry','home','substack','food-map','about'];
 let sessionReady = false, recovery = false;
 let draft = null, preview = parseAvatar(DEFAULT_PROMPT), frame = 0;
 const settings = $('realm-settings'), settingsPanel = $('settings-panel'), settingsToggle = $('settings-toggle');
@@ -91,7 +91,7 @@ function show(next, {replace=false,fromScroll=false} = {}) {
   stage = next;
   document.body.dataset.stage = next;
   const entryFlow=publicStages.includes(next);
-  const sectionId=['substack','about'].includes(next)?'home':next;
+  const sectionId=['substack','food-map','about'].includes(next)?'home':next;
   document.body.classList.toggle('entry-flow',entryFlow);
   document.documentElement.classList.toggle('entry-flow',entryFlow);
   const hash=next==='entry'?'':'#'+next;
@@ -102,7 +102,7 @@ function show(next, {replace=false,fromScroll=false} = {}) {
   });
   if(!entryFlow){$('home').inert=false;$('home').removeAttribute('aria-hidden');}
   $('home-link').hidden=entryFlow;
-  for(const page of ['substack','about'])$(page+'-content').hidden=next!==page;
+  for(const page of ['substack','food-map','about'])$(page+'-content').hidden=next!==page;
   document.querySelectorAll('[data-public-page]').forEach(link=>{
     if(link.dataset.publicPage===next)link.setAttribute('aria-current','page');
     else link.removeAttribute('aria-current');
@@ -114,7 +114,7 @@ function show(next, {replace=false,fromScroll=false} = {}) {
     else item.removeAttribute('aria-current');
   });
   portal.setStage(entryFlow?'entry':next);
-  document.title = ({entry:'입장',home:'메뉴',substack:'Substack',about:'About',auth:'개인일정',profile:'프로필',avatar:'캐릭터',complete:'캐릭터',map:'지도'})[next];
+  document.title = ({entry:'입장',home:'메뉴',substack:'Substack','food-map':'서울 맛집 지도',about:'About',auth:'개인일정',profile:'프로필',avatar:'캐릭터',complete:'캐릭터',map:'지도'})[next];
   if (motion && previous !== next && !entryFlow) {
     $(next).getAnimations().forEach(animation => animation.cancel());
     $(next).animate([
@@ -200,7 +200,7 @@ window.addEventListener('hashchange',restoreRoute);
 window.addEventListener('popstate',restoreRoute);
 document.querySelectorAll('[data-public-page]').forEach(link=>link.addEventListener('click',event=>{
   if(event.button!==0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)return;
-  if(link.dataset.publicPage===stage && ['substack','about'].includes(stage)){
+  if(link.dataset.publicPage===stage && ['substack','food-map','about'].includes(stage)){
     event.preventDefault();show('home');
   }
 }));
