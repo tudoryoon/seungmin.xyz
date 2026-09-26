@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="continuity.css?v=20260924-10">
   <link rel="stylesheet" href="policy.css?v=20260924-10">
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
-  <link rel="stylesheet" href="food-map.css?v=20260926-1">
+  <link rel="stylesheet" href="food-map.css?v=20260926-2">
   <link rel="stylesheet" href="pwa.css?v=1">
   <script src="pwa.js?v=1" defer></script>
 </head>
@@ -79,12 +79,12 @@
               </section>
             </aside>
             <div class="food-map-surface">
-              <div id="food-map-canvas" class="food-map-canvas" role="region" aria-label="서울 및 수도권 역 지도" tabindex="0"></div>
+              <div id="food-map-canvas" class="food-map-canvas" role="region" aria-label="서울 및 수도권 지하철 노선도" tabindex="0"></div>
               <div id="food-map-tools" class="food-map-tools"><button type="button" id="food-zoom-in" title="지도 확대" aria-label="지도 확대"><i data-lucide="plus" aria-hidden="true"></i></button><button type="button" id="food-zoom-out" title="지도 축소" aria-label="지도 축소"><i data-lucide="minus" aria-hidden="true"></i></button></div>
               <div class="food-map-message"><p id="food-map-status" role="status"></p><button id="food-map-retry" type="button" title="지도 다시 불러오기" aria-label="지도 다시 불러오기" hidden><i data-lucide="rotate-cw" aria-hidden="true"></i></button></div>
             </div>
           </div>
-          <footer class="food-map-source">1~9호선 · 경의중앙선 · 서울 외 구간 포함 · <a href="https://t-data.seoul.go.kr/dataprovide/trafficdataviewfile.do?data_id=36" target="_blank" rel="noopener noreferrer">역 위치: 서울시</a> / <a href="https://www.openstreetmap.org/way/181444733" target="_blank" rel="noopener noreferrer">도라산: OSM</a></footer>
+          <footer class="food-map-source">1~9호선 · 경의중앙선 · 서울 외 구간 포함 · <a href="https://t-data.seoul.go.kr/dataprovide/trafficdataviewfile.do?data_id=36" target="_blank" rel="noopener noreferrer">역 정보: 서울시</a> · 위치·거리 재구성</footer>
         </section>
         <section id="substack-content" class="substack-reader" aria-label="Substack 포스트" tabindex="0" hidden>
           <div class="substack-status"><p id="substack-status" role="status">불러오는 중…</p><button id="substack-retry" class="icon-button" type="button" title="다시 불러오기" aria-label="다시 불러오기" hidden><i data-lucide="rotate-cw" aria-hidden="true"></i></button></div>
@@ -194,7 +194,7 @@
   <script src="auth-client.js?v=20260924-5" defer></script>
   <script src="vendor/lucide.js" defer></script>
   <script type="module" src="realm.js?v=20260926-1"></script>
-  <script type="module" src="food-map.js?v=20260926-1"></script>
+  <script type="module" src="food-map.js?v=20260926-2"></script>
   <script type="module" src="substack.js?v=20260924-9"></script>
   <script type="module" src="player-level.js?v=20260924-2"></script>
   <script type="module" src="map-wind.js?v=20260924-2"></script>

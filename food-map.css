@@ -33,8 +33,17 @@ body[data-stage=food-map] .world { visibility:hidden; }
 .food-station-empty,.food-no-results { color:#9daf9f;font-size:13px;line-height:1.6;padding:24px 0; }
 .food-no-results { padding:24px 16px; }
 .food-station-external { display:inline-flex;align-items:center;min-height:44px;gap:8px;font-size:12px;text-decoration:underline;text-underline-offset:4px;color:var(--mint); }
-.food-map-surface { min-width:0;min-height:0;position:relative;background:#e6ebe5; }
-.food-map-canvas { position:absolute;inset:0;z-index:0;background:#dde5dc;color:#173025; }
+.food-map-surface { min-width:0;min-height:0;position:relative;background:#111615; }
+.food-map-canvas { position:absolute;inset:0;z-index:0;background:#111615;color:#e2eee7;isolation:isolate; }
+.food-map-canvas .leaflet-pane { z-index:400; }
+.food-map-canvas .leaflet-overlay-pane { z-index:200; }
+.food-map-canvas .leaflet-marker-pane { z-index:600; }
+.food-map-canvas .leaflet-tooltip-pane { z-index:650; }
+.subway-depth { position:absolute;inset:0;z-index:250;width:100%;height:100%;pointer-events:none; }
+.food-map-canvas[data-depth=ready] .subway-track { opacity:0; }
+.subway-track { stroke-width:var(--track-width,4.5px); }
+.subway-track-shadow { stroke-width:calc(var(--track-width,4.5px) + 3px);filter:drop-shadow(0 2px 2px #0008); }
+.food-map-canvas .leaflet-overlay-pane svg { overflow:visible; }
 .food-map-canvas:focus-visible { outline:2px solid #2d795a;outline-offset:-3px; }
 .food-map-tools { position:absolute;z-index:450;top:14px;right:14px;display:grid;gap:6px; }
 .food-map-tools button { background:#101a17;color:#e5ede8;width:40px;min-height:40px;border:1px solid #6b8477; }
@@ -47,12 +56,18 @@ body[data-stage=food-map] .world { visibility:hidden; }
 .food-map-source { flex-shrink:0;padding:6px 12px;font-size:10px;line-height:1.5;color:#8da395;border-top:1px solid var(--line); }
 .food-map-source a { text-decoration:underline;text-underline-offset:2px; }
 .food-station-marker { display:grid;place-items:center;background:none;border:0; }
-.station-dot { display:block;width:12px;height:12px;border:2px solid white;border-radius:50%;background:var(--station-color);box-shadow:0 1px 4px #0009; }
-.station-dot.is-transfer { width:15px;height:15px;border-width:3px; }
-.food-station-marker:hover .station-dot,.food-station-marker:focus .station-dot,.food-station-marker.is-selected .station-dot { width:20px;height:20px;box-shadow:0 0 0 3px #15291fbb; }
+.food-station-marker > span { width:100%;height:100%;display:grid;place-items:center; }
+.station-dot { display:block;width:var(--station-size,8px);height:var(--station-size,8px);border:1.5px solid var(--station-color);border-radius:50%;background:#e7eee9;box-shadow:0 2px 0 #0009,0 3px 6px #0008;transition:box-shadow .18s,transform .18s; }
+.station-dot.is-transfer { width:var(--transfer-size,11px);height:var(--transfer-size,11px);border:2px solid #e8f1ed;background:#182720;box-shadow:0 0 0 1px #111,0 3px 0 #0009,0 4px 6px #0008; }
+.food-station-marker:hover .station-dot,.food-station-marker:focus .station-dot,.food-station-marker.is-selected .station-dot { transform:translateY(-2px) scale(1.3);box-shadow:0 0 0 3px #111a,0 6px 8px #0009; }
+.food-station-marker.is-selected .station-dot { background:#fff;border-color:#fff; }
+.station-name { position:absolute;white-space:nowrap;font:11px/19px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#cad7cf;background:#111615e8;border-radius:2px;padding:0 3px;pointer-events:none;text-shadow:0 1px 1px #000; }
+.food-station-marker.is-selected .station-name { color:#fff; }
+.station-name[hidden],.subway-depth[hidden] { display:none!important; }
 .food-station-marker:focus-visible { outline:2px solid #11241a;outline-offset:3px;border-radius:50%; }
 .food-map-canvas .food-station-tooltip { font:12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#14261f;color:white;border-color:#14261f; }
 .food-map-canvas .leaflet-tooltip-top::before { border-top-color:#14261f; }
+@media(prefers-reduced-motion:reduce) { .station-dot { transition:none; } }
 @media(max-width:760px) {
   .public-nav { gap:14px;row-gap:4px; }
   .public-nav a { font-size:13px; }
