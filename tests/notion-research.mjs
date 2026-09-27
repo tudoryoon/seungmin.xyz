@@ -20,6 +20,11 @@ const data=makeNotionDataset(pages,seed,{rootId:ROOT_PAGE,syncedAt:'2026-09-27T1
 assert.equal(data.records.length,2); assert.equal(data.records[0].date.start,'2026-09-22');assert.equal(data.records[0].studyDate,'2026-09-23');
 assert.ok(data.relations.some(r=>r.type==='parent'));
 createResearchIndex(data);
+const reviewSeed={...seed,records:[{...seed.records[0],source:{url:'https://www.notion.so/'+a}},{...seed.records[1],source:{url:'https://www.notion.so/'+b}}],relations:[{...seed.relations[1],id:'prior-review',from:seed.records[0].id,to:seed.records[1].id}]};
+const independentPages=pages.map(p=>p.id===b?{...p,parent:{page_id:ROOT_PAGE}}:p);
+const reviewed=makeNotionDataset(independentPages,reviewSeed,{rootId:ROOT_PAGE,syncedAt:'2026-09-27T11:00:00Z'});
+assert.ok(reviewed.relations.some(r=>r.id==='review-prior-review'&&r.status==='suggested'));
+assert.ok(!mergeNotionBodies(reviewed,[{pageId:a,removed:true}]).relations.length,'removed source removes reviewed relations too');
 const body={pageId:a,editedAt:pages[1].last_edited_time,markdown:'PLTR AI 도입\n\n# Current text',linkedPageIds:[b],fetchedAt:'2026-09-27T11:00:00Z'};
 const merged=mergeNotionBodies(data,[body]);assert.equal(merged.records[0].loaded,true);createResearchIndex(merged);
 assert.equal(mergeNotionBodies(data,[{...body,editedAt:'different'}]).records[0].loaded,false);

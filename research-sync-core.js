@@ -51,7 +51,12 @@ export function makeNotionDataset(pages, seed, { rootId, syncedAt }) {
     const ticker = record.title.match(/\b([A-Z][A-Z0-9.]{0,6}) US\b/)?.[1];
     if (ticker && !entities.some(e=>e.name===ticker)) entities.push({id:'ticker-'+ticker.toLowerCase().replaceAll('.','-'),name:ticker,type:'company',aliases:[]});
   }
-  return rebuildNotionRelations({ version: 1, mode: 'notion-live', capturedAt: kstDate(syncedAt), syncedAt, entities, records, relations: [] });
+  const recordIds = new Set(records.map(r=>r.id));
+  const reviewedRelations = seed.relations.filter(r=>recordIds.has(r.from)&&recordIds.has(r.to)).map(r=>({
+    ...r, id:'review-'+r.id, status:'suggested', reason:'초안 검토에서 제안한 연결입니다. ' + r.reason,
+    evidence:[r.from,r.to].map(record=>({record,section:'notion-body'}))
+  }));
+  return rebuildNotionRelations({ version: 1, mode: 'notion-live', capturedAt: kstDate(syncedAt), syncedAt, entities, records, reviewedRelations, relations: [] });
 }
 export function rebuildNotionRelations(data) {
   const records = data.records, byPage = new Map(records.map(r => [r.source.pageId, r]));
@@ -75,6 +80,11 @@ export function rebuildNotionRelations(data) {
     for (const link of r.source.linkedPageIds || []) {
       const other = byPage.get(notionId(link)); if (other) add(r, other, 'link', '원문 링크', 'Notion 원문에서 연결된 페이지입니다.', 'editorial');
     }
+  }
+  const recordIds = new Set(records.map(r=>r.id));
+  for (const relation of data.reviewedRelations || []) {
+    const pair = [relation.from,relation.to].sort().join(':');
+    if (recordIds.has(relation.from) && recordIds.has(relation.to) && !pairs.has(pair)) { pairs.add(pair); relations.push(relation); }
   }
   const degree = new Map();
   for (let i = 0; i < records.length; i++) for (let j = i + 1; j < records.length; j++) {
