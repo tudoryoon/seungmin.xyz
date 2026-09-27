@@ -1,5 +1,7 @@
 export const wrapFeed = items => `<?xml version="1.0"?><rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>YSM</title>${items}</channel></rss>`;
 export const emptyFeed = wrapFeed('');
+// The retired reader is tested independently from the production Research page.
+export const legacyReaderHTML = `<section id="substack-content"><p id="substack-status"></p><button id="substack-retry" hidden></button><ul id="substack-posts"></ul><article id="substack-article" hidden><button id="substack-back"></button><div id="substack-article-meta"></div><h2 id="substack-article-title" tabindex="-1"></h2><div id="substack-article-body"></div><a id="substack-original"></a></article><footer class="substack-footer"><a href="https://substack.com/@tudoryoon">Substack</a></footer></section>`;
 export const sampleFeed = wrapFeed(Array.from({length:12},(_,i)=>`<item>
   <title><![CDATA[${i===0?'테스트 포스트: 기록을 오래 이어가는 방법':i===1?'긴 제목도 자연스럽게 이어지는지 확인하는 모바일 화면 테스트 포스트':`테스트 포스트 ${i+1}`}]]></title>
   <link>https://tudoryoon.substack.com/p/fixture-${i}</link>

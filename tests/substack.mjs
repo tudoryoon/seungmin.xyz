@@ -1,10 +1,9 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import { parseSubstackFeed, sanitizeSubstackBody, createSubstackReader, watchSubstack } from '../substack.js';
-import { emptyFeed, sampleFeed, wrapFeed } from './substack-fixture.mjs';
+import { emptyFeed, sampleFeed, wrapFeed, legacyReaderHTML } from './substack-fixture.mjs';
 import snapshot from '../data/substack-snapshot.js';
 const { JSDOM } = await import(process.env.JSDOM_MODULE || 'jsdom');
-const { window } = new JSDOM(await readFile(new URL('../index.html',import.meta.url),'utf8'),{url:'https://seungmin.xyz/#substack'});
+const { window } = new JSDOM(legacyReaderHTML,{url:'https://seungmin.xyz/#substack'});
 try {
   const document=window.document, Parser=window.DOMParser;
   assert.deepEqual(parseSubstackFeed(emptyFeed,Parser),[]);
@@ -69,7 +68,7 @@ try {
   assert.equal(interval,null);window.dispatchEvent(new window.Event('focus'));window.dispatchEvent(new window.Event('online'));assert.equal(checks,4,'private routes do not fetch');
   dispose();document.body.dataset.stage='substack';window.dispatchEvent(new window.Event('realm-view'));assert.equal(checks,4);
 
-  const markup=await readFile(new URL('../index.html',import.meta.url),'utf8');
+  const markup=legacyReaderHTML;
   const cacheKey='seungmin-public-substack-v1';
   const saved=window.localStorage.getItem(cacheKey);
   assert.equal(JSON.parse(saved).xml,sampleFeed,'successful reads are persisted');

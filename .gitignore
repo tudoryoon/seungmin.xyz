@@ -1,0 +1,7 @@
+.env
+.env.*
+.dev.vars
+.dev.vars.*
+*.secret
+research-seed*.json
+data/research-snapshot.js

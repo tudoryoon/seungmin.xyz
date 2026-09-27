@@ -9,7 +9,9 @@ const user={id:'routing-fixture',email:'fixture@example.com',user_metadata:{real
 assert.equal(resolveRealmStage(null,'#map'),'auth');
 assert.equal(resolveRealmStage(null,''),'entry');
 assert.equal(resolveRealmStage(user,''),'entry');
-for(const account of [null,user,{...user,user_metadata:{}}])for(const route of ['home','substack','food-map','about'])assert.equal(resolveRealmStage(account,'#'+route),route);
+for(const account of [null,user,{...user,user_metadata:{}}])for(const route of ['home','research','food-map','about'])assert.equal(resolveRealmStage(account,'#'+route),route);
+assert.equal(resolveRealmStage(null,'#substack'),'research');
+assert.equal(resolveRealmStage(null,'#research?note=pltr&view=graph'),'research');
 assert.equal(resolveRealmStage(user,'#unknown'),'map');
 assert.equal(resolveRealmStage({...user,user_metadata:{}},'#map'),'profile');
 assert.equal(resolveRealmStage({...user,user_metadata:{realm_profile:user.user_metadata.realm_profile}},'#complete'),'avatar');
@@ -84,11 +86,11 @@ for(const account of [null,user]) {
     assert.equal(doc.getElementById('about-content').hidden,true);
     assert.equal(doc.querySelectorAll('a[href="privacy.html"],a[href="terms.html"]').length,2,'public policy links are not duplicated outside About');
     await scroll(1400);assert.equal(doc.body.dataset.stage,'home');assert.equal(hub.hidden,false);assert.equal(hub.inert,false);assert.equal(auth.hidden,true);
-    const substack=doc.querySelector('.public-nav a[data-public-page=substack]');
-    assert.equal(substack.getAttribute('href'),'#substack','Substack opens the inline reader');
-    assert.equal(substack.hasAttribute('target'),false);
-    assert.equal(doc.querySelector('.substack-footer a').href,'https://substack.com/@tudoryoon');
-    assert.equal(doc.getElementById('substack-content').textContent.includes('준비 중'),false);
+    const research=doc.querySelector('.public-nav a[data-public-page=research]');
+    assert.equal(research.getAttribute('href'),'#research','Research opens inline');
+    assert.equal(research.hasAttribute('target'),false);
+    assert.equal(doc.getElementById('substack-content'),null,'old feed is no longer mounted');
+    assert.equal(doc.querySelector('script[src^="substack.js"]'),null,'no Substack requests');
     doc.querySelector('[data-public-page]').focus();
     await scroll(1365);assert.equal(doc.body.dataset.stage,'entry');assert.equal(hub.hidden,false);assert.equal(hub.inert,true);
     assert.notEqual(doc.activeElement,doc.querySelector('[data-public-page]'),'rewinding releases menu focus');
@@ -102,8 +104,10 @@ for(const account of [null,user]) {
     assert.equal(doc.querySelector('[data-public-page=about]').getAttribute('aria-current'),'page');
     assert.equal(window.scrollY,1400);
     doc.querySelector('[data-public-page=about]').click();assert.equal(doc.body.dataset.stage,'home','active public link collapses its content');
-    navigate('#substack');assert.equal(doc.getElementById('substack-content').hidden,false);assert.equal(doc.getElementById('about-content').hidden,true);
-    navigate('#food-map');assert.equal(doc.getElementById('food-map-content').hidden,false);assert.equal(doc.getElementById('substack-content').hidden,true);
+    navigate('#substack');assert.equal(doc.getElementById('research-content').hidden,false);assert.equal(doc.getElementById('about-content').hidden,true);
+    assert.equal(window.location.hash,'#research','legacy bookmark redirects');
+    navigate('#research?note=pltr&view=graph');assert.equal(window.location.hash,'#research?note=pltr&view=graph','deep links survive realm routing');
+    navigate('#food-map');assert.equal(doc.getElementById('food-map-content').hidden,false);assert.equal(doc.getElementById('research-content').hidden,true);
     assert.equal(doc.querySelector('[data-public-page=food-map]').getAttribute('aria-current'),'page');
     assert.equal(doc.title,'서울 맛집 지도');
     doc.querySelector('[data-public-page=food-map]').click();assert.equal(doc.body.dataset.stage,'home');assert.equal(doc.getElementById('food-map-content').hidden,true);
@@ -125,7 +129,7 @@ for(const account of [null,user]) {
     navigate('#home');await scroll(0);assert.equal(doc.body.dataset.stage,'entry','returning to public menu can rewind');
   }finally{await window.happyDOM.close();}
 }
-for(const account of [null,user,{...user,user_metadata:{}}])for(const route of ['home','about','substack','food-map']){
+for(const account of [null,user,{...user,user_metadata:{}}])for(const route of ['home','about','research','food-map']){
   const {window}=await boot('#'+route,account);
   try{assert.equal(window.document.body.dataset.stage,route);assert.equal(window.scrollY,1400);assert.equal(window.document.getElementById('home').inert,false);}
   finally{await window.happyDOM.close();}

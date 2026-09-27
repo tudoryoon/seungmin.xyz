@@ -1,11 +1,18 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { onRequest as substackFeed } from './functions/api/substack.js';
+import { onRequest as research } from './functions/api/research.js';
 const root = new URL('./', import.meta.url);
 const types = { js:'text/javascript', mjs:'text/javascript', css:'text/css', html:'text/html', wav:'audio/wav', webp:'image/webp', png:'image/png', svg:'image/svg+xml', ico:'image/x-icon', webmanifest:'application/manifest+json' };
 const server = createServer(async (req, res) => {
   try {
     const path = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+    if (path === '/api/research' || path === '/api/research/') {
+      const request = new Request('http://' + req.headers.host + req.url, { method:req.method, headers:req.headers, ...(req.method === 'POST' ? {body:req,duplex:'half'} : {}) });
+      const secret = process.env.RESEARCH_SECRET_FILE ? (await readFile(process.env.RESEARCH_SECRET_FILE,'utf8')).trim() : process.env.RESEARCH_SECRET;
+      const response = await research({request,env:{RESEARCH_SECRET:secret}});
+      res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));return;
+    }
     if (path === '/api/substack' || path === '/api/substack/') {
       const response = await substackFeed({request:new Request('http://localhost'+req.url,{method:req.method}),waitUntil:promise=>promise.catch(()=>{})});
       res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));return;

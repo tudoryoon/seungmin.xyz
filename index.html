@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="policy.css?v=20260924-10">
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="food-map.css?v=20260926-2">
+  <link rel="stylesheet" href="research.css?v=20260927-1">
   <link rel="stylesheet" href="pwa.css?v=1">
   <script src="pwa.js?v=1" defer></script>
 </head>
@@ -50,7 +51,7 @@
     <section id="home" class="stage public-hub" aria-labelledby="home-title" hidden>
       <h1 id="home-title" class="sr-only" tabindex="-1">메뉴</h1>
       <nav id="public-nav" class="public-nav" aria-label="주요 메뉴">
-        <a href="#substack" data-public-page="substack">Substack</a>
+        <a href="#research" data-public-page="research">Research</a>
         <a href="#food-map" data-public-page="food-map">서울 맛집 지도</a>
         <a href="#map" data-public-page="auth">개인일정</a>
         <a href="#about" data-public-page="about">About</a>
@@ -86,18 +87,7 @@
           </div>
           <footer class="food-map-source">1~9호선 · 경의중앙선 · 서울 외 구간 포함 · <a href="https://t-data.seoul.go.kr/dataprovide/trafficdataviewfile.do?data_id=36" target="_blank" rel="noopener noreferrer">서울시</a> / <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> · 위치·거리 재구성</footer>
         </section>
-        <section id="substack-content" class="substack-reader" aria-label="Substack 포스트" tabindex="0" hidden>
-          <div class="substack-status"><p id="substack-status" role="status">불러오는 중…</p><button id="substack-retry" class="icon-button" type="button" title="다시 불러오기" aria-label="다시 불러오기" hidden><i data-lucide="rotate-cw" aria-hidden="true"></i></button></div>
-          <ul id="substack-posts" class="substack-posts" aria-label="포스트 목록"></ul>
-          <article id="substack-article" class="substack-article" hidden>
-            <button id="substack-back" class="substack-back" type="button"><i data-lucide="arrow-left" aria-hidden="true"></i><span>목록</span></button>
-            <div id="substack-article-meta" class="substack-meta"></div>
-            <h2 id="substack-article-title" tabindex="-1"></h2>
-            <div id="substack-article-body" class="substack-prose"></div>
-            <a id="substack-original" class="substack-original" target="_blank" rel="noopener noreferrer">원문 보기</a>
-          </article>
-          <footer class="substack-footer"><a href="https://substack.com/@tudoryoon" target="_blank" rel="noopener noreferrer" title="Substack (새 탭)">substack.com/@tudoryoon</a></footer>
-        </section>
+        <section id="research-content" class="research-content" aria-label="Research" hidden></section>
         <div id="about-content" hidden>
           <p>개인 페이지입니다.</p>
           <p class="about-purpose">포털은 운영자의 일정과 기록을 관리하는 개인용 공간입니다.</p>
@@ -193,9 +183,9 @@
   <script src="vendor/supabase.js" defer></script>
   <script src="auth-client.js?v=20260924-5" defer></script>
   <script src="vendor/lucide.js" defer></script>
-  <script type="module" src="realm.js?v=20260926-1"></script>
+  <script type="module" src="realm.js?v=20260927-1"></script>
   <script type="module" src="food-map.js?v=20260926-2"></script>
-  <script type="module" src="substack.js?v=20260924-9"></script>
+  <script type="module" src="research.js?v=20260927-1"></script>
   <script type="module" src="player-level.js?v=20260924-2"></script>
   <script type="module" src="map-wind.js?v=20260924-2"></script>
 </body>
