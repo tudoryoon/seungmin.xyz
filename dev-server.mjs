@@ -10,7 +10,8 @@ const server = createServer(async (req, res) => {
     if (path === '/api/research' || path === '/api/research/') {
       const request = new Request('http://' + req.headers.host + req.url, { method:req.method, headers:req.headers, ...(req.method === 'POST' ? {body:req,duplex:'half'} : {}) });
       const secret = process.env.RESEARCH_SECRET_FILE ? (await readFile(process.env.RESEARCH_SECRET_FILE,'utf8')).trim() : process.env.RESEARCH_SECRET;
-      const response = await research({request,env:{RESEARCH_SECRET:secret}});
+      const token = process.env.NOTION_TOKEN_FILE ? (await readFile(process.env.NOTION_TOKEN_FILE,'utf8')).trim() : process.env.NOTION_TOKEN;
+      const response = await research({request,env:{RESEARCH_SECRET:secret,NOTION_TOKEN:token}});
       res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));return;
     }
     if (path === '/api/substack' || path === '/api/substack/') {

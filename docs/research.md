@@ -1,4 +1,28 @@
-# Password-Protected Research Draft
+# Password-Protected Research
+
+## Live Notion Connection (2026-09-27)
+
+The site uses an internal Notion connection with read-content capability only, no insert/update/comment/agent/user-profile capability. The owner approved sharing only `3b271f4f9d4c80e3ad2cecb7f0db3174` (the overseas study root) and descendants. `NOTION_TOKEN` is a Production secret in Cloudflare, not a build-time browser variable. Source documents are never modified.
+
+`lib/notion-research.js` uses Notion API version `2026-03-11`. A paginated page search is filtered by actual parent ancestry to the approved root. It never follows an arbitrary external URL or imports sibling workspaces. Currently all source records are ordinary nested pages; data-source/database rows are not traversed by this importer. Searches above 1,000 pages fail explicitly instead of silently truncating. The root itself is navigation, not a study record.
+
+Opening Research fetches metadata first, then hydrates four pages per request using the official page-markdown API. The selected record is prioritized. Visible readers check every five minutes; a paused tab resumes on focus. With the site closed there is no scheduled crawl: changes are fetched on the next visit. This is automatic read synchronization, not a continuously running cron or a two-way editor. New, moved, renamed, edited and removed pages are reconciled from the next catalog. Empty pages stay explicitly labeled. Search covers titles immediately and body text as hydration finishes.
+
+`created_time` determines the chronological date, converted to Asia/Seoul (UTC+9); `last_edited_time` is displayed separately. A valid date in the title remains labeled as a title date, never substituted for the API creation timestamp. Copied/imported pages can have creation times different from the original study date. Missing creation metadata remains undated. No manual date input is required.
+
+Source content replaces the previous six summaries in live mode. The graph shows original parent/child relationships and Notion page links as source-based edges. Two or more shared known topics can produce dotted suggestions, capped at three per record; this is deterministic alias matching, not an AI semantic inference service. It does not assert causality. New company tickers in page titles are indexed. Marked parses markdown and DOMPurify restricts the result to reading markup, with HTTPS-only links/media. Unsupported or truncated Notion exports carry a visible original-source warning.
+
+The password gate protects both catalog and hydration responses. The server checks root access for each request. Catalog freshness is at most 30 seconds; body cache freshness is five minutes and keyed by source revision. A page removed from the catalog is never served from its old body cache. Root authorization errors fail closed, including on cache hits. An already displayed copy cannot be recalled immediately; the visible tab learns revocations on its next check. Temporary body failures retain the current view with an explicit delayed-sync status and retry, not a false completion badge.
+
+Cloudflare Cache API stores only AES-GCM encrypted cache entries under token/secret-derived opaque keys. This cache is opportunistic and may be evicted; Notion is the durable source of truth. No plaintext research content or Notion token is committed or put in localStorage/service-worker caches. Server/client responses are private/no-store. Requests are sequential with pacing and one bounded 429 retry. Functions/API usage still follows the services' current quotas; no paid plan was enabled.
+
+Local preview: set `RESEARCH_SECRET_FILE` and `NOTION_TOKEN_FILE` to mode-0600 files outside the repository and run `node dev-server.mjs 4181`. Production needs the matching `RESEARCH_SECRET` and `NOTION_TOKEN` secrets before deployment.
+
+Tests: `JSDOM_MODULE=/path/to/jsdom/lib/api.js node --test tests/notion-research.mjs`, plus the existing Research access/reader/route suites. Tests use synthetic pages and exercise KST date boundaries, root scoping, removed pages, revocation despite cache, encrypted cache storage, rate limits, source date differences, markdown sanitization and progressive client updates. DOMPurify security assertions run against JSDOM, not Happy DOM.
+
+## Original Draft (Historical)
+
+The following describes the earlier six-summary draft. Live synchronization above supersedes its ingestion and date behavior.
 
 On 2026-09-27 the owner requested a Research draft, then added a shared-password requirement before deployment. This release replaces the Substack navigation/reader with Research. It does not change Notion permissions or expose the owner's private calendar, workouts, account metadata or library.
 

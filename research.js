@@ -1,7 +1,10 @@
 import { createResearchIndex, filterRecords, relatedRecords, recordDate, readResearchRoute, researchHref, KIND_LABELS, safeSourceURL } from './research-core.js?v=20260927-1';
+import { kstTimestamp, mergeNotionBodies, rebuildNotionRelations } from './research-sync-core.js?v=20260927-2';
+import { renderNotionMarkdown } from './research-markdown.js?v=20260927-2';
 
 export function createResearch(root, { data, loadGraph = () => import('./vendor/cytoscape.mjs'), onLock = () => {} } = {}) {
-  const index = createResearchIndex(data), document = root.ownerDocument, window = document.defaultView;
+  let index = createResearchIndex(data);
+  const document = root.ownerDocument, window = document.defaultView;
   const $ = id => root.querySelector('#' + id);
   let state = readResearchRoute(window.location.hash, index), mobile = window.location.hash.includes('note=') ? 'record' : 'list', cy = null, graphEpoch = 0, destroyed = false;
   const listeners = [];
@@ -56,13 +59,20 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
       <div class="research-main"><article id="research-reader" class="research-reader research-scroll" aria-labelledby="research-record-title"></article><section id="research-graph-view" class="research-graph-view" aria-label="기록 관계망" hidden><header class="research-graph-heading"><div><span class="research-eyebrow">연결</span><h3 id="research-graph-title"></h3></div><div class="research-graph-tools"><button type="button" id="research-zoom-out" class="icon-button" title="관계망 축소" aria-label="관계망 축소"><i data-lucide="minus" aria-hidden="true"></i></button><button type="button" id="research-zoom-in" class="icon-button" title="관계망 확대" aria-label="관계망 확대"><i data-lucide="plus" aria-hidden="true"></i></button><button type="button" id="research-fit" class="icon-button" title="관계망 전체 보기" aria-label="관계망 전체 보기"><i data-lucide="maximize" aria-hidden="true"></i></button></div></header><div id="research-graph" class="research-graph" role="img" aria-label="선택한 기록과 관련 기록의 관계망"></div><p id="research-graph-status" role="status"></p><nav id="research-graph-links" aria-label="관계망의 기록"></nav><div class="research-legend"><span>기록 기반</span><span>연결 제안</span></div></section><p id="research-main-empty" class="research-empty" hidden>다른 검색어 또는 주제를 선택해 주세요.</p></div>
       <aside class="research-context research-scroll" aria-label="관련 기록과 근거"><div class="research-context-heading"><h3>관련 기록</h3><label class="research-suggestions"><input id="research-suggestions" type="checkbox" checked>제안 포함</label></div><div id="research-relations"></div></aside>
     </div>
-    <footer class="research-footer"><span id="research-snapshot-label"></span><span>원문 요약 · 자동 동기화 미연결</span></footer>`;
-  $('research-total').textContent = String(index.records.size).padStart(2, '0');
-  $('research-snapshot-label').textContent = 'Notion 검토본 · ' + data.capturedAt.replaceAll('-', '.');
-  const months = [...new Set(data.records.map(r => r.date.start?.slice(0, 7)).filter(Boolean))].sort().reverse();
-  for (const month of months) { const o = element('option', '', month.replace('-', '.')); o.value = month; $('research-month').append(o); }
-  const undated = element('option', '', '날짜 미지정'); undated.value = 'undated'; $('research-month').append(undated);
-  for (const entity of data.entities) { const o = element('option', '', entity.name); o.value = entity.id; $('research-entity').append(o); }
+    <footer class="research-footer"><span id="research-snapshot-label"></span><span id="research-sync-status" role="status"></span></footer>`;
+  function refreshMetadata() {
+    root.querySelector('.research-edition > span').hidden = data.mode === 'notion-live';
+    $('research-total').textContent = String(index.records.size).padStart(2, '0');
+    $('research-snapshot-label').textContent = data.mode === 'notion-live' ? 'Notion · ' + kstTimestamp(data.syncedAt) + ' KST' : 'Notion 검토본 · ' + data.capturedAt.replaceAll('-', '.');
+    $('research-sync-status').textContent = data.mode === 'notion-live' ? '자동 동기화 · 생성일 기준' : '원문 요약 · 자동 동기화 미연결';
+    $('research-month').replaceChildren(element('option', '', '모든 날짜')); $('research-month').firstChild.value = '';
+    $('research-entity').replaceChildren(element('option', '', '모든 주제')); $('research-entity').firstChild.value = '';
+    const months = [...new Set(data.records.map(r => r.date.start?.slice(0, 7)).filter(Boolean))].sort().reverse();
+    for (const month of months) { const o = element('option', '', month.replace('-', '.')); o.value = month; $('research-month').append(o); }
+    const undated = element('option', '', '날짜 미지정'); undated.value = 'undated'; $('research-month').append(undated);
+    for (const entity of data.entities) { const o = element('option', '', entity.name); o.value = entity.id; $('research-entity').append(o); }
+  }
+  refreshMetadata();
 
   function renderList(records) {
     const groups = new Map();
@@ -96,13 +106,22 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
       const entity = index.entities.get(id), button = element('button', 'research-tag', entity.name); button.type = 'button'; button.dataset.type = entity.type;
       button.title = `${entity.name} 관련 기록`; button.addEventListener('click', () => { mobile = 'list'; navigate({ entity: id, query: '', month: '' }); }); tags.append(button);
     }
-    header.append(meta, title, element('p', 'research-summary', record.summary), tags);
+    header.append(meta, title);
+    if (record.summary) header.append(element('p', 'research-summary', record.summary));
+    header.append(tags);
+    if (record.source.createdAt) {
+      const dates = element('div', 'research-source-dates');
+      dates.append(element('span', '', '작성 ' + kstTimestamp(record.source.createdAt) + ' KST'), element('span', '', '수정 ' + kstTimestamp(record.source.editedAt) + ' KST'));
+      if (record.studyDate) dates.append(element('span', '', '제목 날짜 ' + record.studyDate.replaceAll('-', '.')));
+      header.append(dates);
+    }
     const question = element('section', 'research-question'); question.append(element('h4', '', '질문'), element('p', '', record.question));
     const sections = record.sections.map(section => {
       const node = element('section', 'research-section'); node.id = 'research-section-' + section.id;
       if (state.section === section.id) node.classList.add('is-evidence');
       node.append(element('h4', '', section.label));
-      if (section.text) node.append(element('p', '', section.text));
+      if (section.markdown) { const body = element('div', 'research-notion-body'); body.append(renderNotionMarkdown(section.markdown, document)); node.append(body); }
+      else if (section.text) node.append(element('p', '', section.text));
       if (section.items) { const ul = element('ul'); for (const item of section.items) ul.append(element('li', '', item)); node.append(ul); }
       if (section.note) node.append(element('p', 'research-note', section.note));
       return node;
@@ -115,8 +134,8 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
     provenance.append(element('p', 'research-date-basis', '날짜 기준 · ' + record.date.basis));
     if (record.event) provenance.append(element('p', 'research-date-basis', record.event.label + ' · ' + record.event.date.replaceAll('-', '.')));
     if (record.dateNote) provenance.append(element('p', 'research-note', record.dateNote));
-    provenance.append(element('p', 'research-date-basis', '원문을 바탕으로 재구성한 요약입니다. Notion 원문은 접근 권한이 필요할 수 있습니다.'));
-    $('research-reader').replaceChildren(header, question, ...sections, openQuestions, provenance);
+    provenance.append(element('p', 'research-date-basis', data.mode === 'notion-live' ? 'Notion 원문 · 생성일과 실제 공부 날짜는 다를 수 있습니다.' : '원문을 바탕으로 재구성한 요약입니다. Notion 원문은 접근 권한이 필요할 수 있습니다.'));
+    $('research-reader').replaceChildren(header, ...(record.question ? [question] : []), ...sections, ...(record.questions.length ? [openQuestions] : []), provenance);
     $('research-reader').scrollTop = 0;
   }
 
@@ -238,15 +257,22 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
   const observer = typeof window.ResizeObserver === 'function' ? new window.ResizeObserver(fitGraph) : null;
   observer?.observe($('research-graph'));
   render();
-  return { index, render, getState: () => ({ ...state }), destroy() { destroyed = true; stopGraph(); observer?.disconnect(); listeners.forEach(dispose => dispose()); } };
+  return { get index() { return index; }, render, getState: () => ({ ...state }),
+    setSyncStatus(text) { $('research-sync-status').textContent = text; },
+    update(next) {
+      const scroll = [...root.querySelectorAll('.research-scroll')].map(n=>[n,n.scrollTop]);
+      data = next; index = createResearchIndex(data); refreshMetadata(); render();
+      for (const [node, top] of scroll) node.scrollTop = top;
+    },
+    destroy() { destroyed = true; stopGraph(); observer?.disconnect(); listeners.forEach(dispose => dispose()); } };
 }
 
 export function createResearchGate(root, { fetchRequest = (...args) => fetch(...args), createReader = createResearch } = {}) {
   const document = root.ownerDocument, window = document.defaultView;
-  let reader = null, pending = null, destroyed = false, generation = 0, lastChecked = 0;
+  let reader = null, dataset = null, pending = null, destroyed = false, generation = 0, lastChecked = 0;
   const messageFor = status => status === 429 ? '잠시 후 다시 시도해 주세요.' : status === 503 ? '서버 설정을 확인 중입니다.' : status === 401 ? '비밀번호가 맞지 않습니다.' : '연결하지 못했습니다. 다시 시도해 주세요.';
   function locked(message = '') {
-    reader?.destroy(); reader = null; root.dataset.locked = 'true';
+    reader?.destroy(); reader = null; dataset = null; root.dataset.locked = 'true';
     root.innerHTML = `<section class="research-gate" aria-labelledby="research-gate-title"><i data-lucide="lock-keyhole" aria-hidden="true"></i><h2 id="research-gate-title">Research</h2><form id="research-unlock"><label><span class="sr-only">Research 비밀번호</span><input id="research-password" type="password" name="password" placeholder="비밀번호" autocomplete="current-password" maxlength="128" required></label><button type="submit" class="icon-button" title="Research 열기" aria-label="Research 열기"><i data-lucide="arrow-right" aria-hidden="true"></i></button></form><p id="research-gate-message" role="status"></p></section>`;
     root.querySelector('#research-gate-message').textContent = message;
     window.lucide?.createIcons({root});
@@ -276,19 +302,51 @@ export function createResearchGate(root, { fetchRequest = (...args) => fetch(...
   async function check(force = false) {
     if (destroyed || document.body.dataset.stage !== 'research') return;
     if (pending && !force) return pending;
-    if (!force && reader && Date.now() - lastChecked < 60000) return;
+    if (!force && reader && Date.now() - lastChecked < 300000) return;
     const attempt = ++generation;
     pending = (async () => {
       try {
         const response = await fetchRequest('/api/research', {credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(12000)});
         if (attempt !== generation || destroyed) return;
         if (response.status === 401) { locked(); return; }
+        if (response.status === 403) { locked('Notion 읽기 권한을 확인해 주세요.'); return; }
         if (!response.ok) { locked(messageFor(response.status)); return; }
-        const data = await response.json();
+        let data = await response.json();
         if (attempt !== generation || destroyed) return;
         createResearchIndex(data); lastChecked = Date.now();
+        if (data.mode === 'notion-live' && dataset?.mode === 'notion-live') {
+          const previous = new Map(dataset.records.map(r=>[r.id,r]));
+          data.records = data.records.map(r => {
+            const old = previous.get(r.id);
+            return old?.loaded && old.source.editedAt === r.source.editedAt && Date.now()-Date.parse(old.source.fetchedAt) < 300000 ? {...old, date:r.date, path:r.path, source:{...old.source,...r.source}} : r;
+          });
+          data = rebuildNotionRelations(data);
+        }
+        dataset = data;
         if (!reader) { root.dataset.locked = 'false'; reader = createReader(root, {data,onLock:lock}); }
-      } catch { if (attempt === generation && !destroyed) locked(messageFor(0)); }
+        else reader.update?.(data);
+        if (data.mode === 'notion-live') {
+          while (dataset.records.some(r=>!r.loaded) && attempt === generation && !destroyed && !document.hidden) {
+            const selected = reader.getState().note;
+            const batch = dataset.records.filter(r=>!r.loaded).sort((a,b)=>(b.id===selected)-(a.id===selected)).slice(0,4);
+            reader.setSyncStatus(`원문 동기화 ${dataset.records.filter(r=>r.loaded).length} / ${dataset.records.length}`);
+            const bodyResponse = await fetchRequest('/api/research?hydrate='+batch.map(r=>r.source.pageId).join(','),{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(30000)});
+            if (attempt !== generation || destroyed) return;
+            if ([401,403].includes(bodyResponse.status)) { locked(bodyResponse.status===403?'Notion 읽기 권한을 확인해 주세요.':''); return; }
+            if (!bodyResponse.ok) throw Error('Sync unavailable');
+            const content = await bodyResponse.json();
+            if (attempt !== generation || destroyed) return;
+            const updated = mergeNotionBodies(dataset,content.bodies);
+            if (batch.some(r=>updated.records.some(n=>n.id===r.id&&!n.loaded))) throw Error('Source changed while syncing');
+            dataset = updated; reader.update(dataset);
+          }
+          if (dataset?.records.some(r=>!r.loaded)) { lastChecked = 0; reader?.setSyncStatus('원문 동기화 대기'); }
+          else reader?.setSyncStatus('자동 동기화 · 생성일 기준');
+        }
+      } catch { if (attempt === generation && !destroyed) {
+        if (reader && dataset?.mode === 'notion-live') { reader.setSyncStatus('동기화 지연 · 잠시 후 재시도'); lastChecked = 0; }
+        else locked(messageFor(0));
+      } }
       finally { if (attempt === generation) pending = null; }
     })();
     return pending;

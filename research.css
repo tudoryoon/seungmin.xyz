@@ -147,3 +147,16 @@ body[data-stage=research] .world-shade { opacity:.9; }
   .research-legend { padding:5px 16px 12px; }
   .research-footer { font-size:9px;gap:3px;padding:8px 12px;flex-wrap:wrap; }
 }
+.research-source-dates { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 18px; color: #93a69a; font-size: 11px; line-height: 1.7; }
+.research-notion-body { overflow-wrap: anywhere; line-height: 1.85; font-size: 14px; }
+.research-notion-body > :first-child { margin-top: 0; }
+.research-notion-body p { white-space: normal; }
+.research-notion-body a { color: #a1d9bf; text-decoration: underline; text-underline-offset: 3px; }
+.research-notion-body img { display: block; max-width: 100%; height: auto; margin: 20px 0; }
+.research-notion-body pre { overflow: auto; max-width: 100%; padding: 14px; background: #191f1c; }
+.research-notion-body code { font-size: 12px; }
+.research-notion-body table { display: block; overflow-x: auto; max-width: 100%; border-collapse: collapse; }
+.research-notion-body th, .research-notion-body td { padding: 8px 12px; border: 1px solid #354139; min-width: 100px; }
+.research-notion-body blockquote { margin: 18px 0; padding: 2px 18px; border-left: 2px solid #709b85; color: #b6c4bc; }
+.research-notion-body h1, .research-notion-body h2 { font-size: 20px; }
+.research-notion-body h3, .research-notion-body h4 { font-size: 16px; }

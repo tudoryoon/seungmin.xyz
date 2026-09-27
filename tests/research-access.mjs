@@ -11,6 +11,10 @@ let time=Date.now();const handler=createResearchAccess(sealed,{now:()=>time}),en
 const request=(method='GET',body=null,cookie='',origin='https://example.com',ip='fixture-ip')=>new Request('https://example.com/api/research',{method,headers:{Origin:origin,'Content-Type':'application/json',Cookie:cookie,'CF-Connecting-IP':ip},...(body===null?{}:{body:JSON.stringify(body)})});
 assert.equal((await handler(request())).status,503,'missing server key fails closed');
 const unauthorized=await handler(request(),env);assert.equal(unauthorized.status,401);assert.ok(!(await unauthorized.text()).includes('FDE'));
+let sourceReads=0;
+const liveHandler=createResearchAccess(sealed,{loadData:()=>{sourceReads++;return data;}});
+assert.equal((await liveHandler(new Request('https://example.com/api/research?hydrate=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'),env)).status,401);
+assert.equal(sourceReads,0,'Notion is never contacted before authentication');
 assert.equal((await handler(request('POST',{password:'fixture-password'},'','https://attacker.example'),env)).status,403);
 assert.equal((await handler(request('POST',{password:'wrong'}),env)).status,401);
 assert.equal((await handler(request('POST',{password:'x'.repeat(2000)}),env)).status,400);
