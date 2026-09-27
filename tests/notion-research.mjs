@@ -34,6 +34,7 @@ assert.equal(mergeNotionBodies(data,[{...body,truncated:true}]).records[0].state
 let revoked=false,deleted=false,calls=[],attempts=0,time=Date.now();const stored=new Map();
 const fetchRequest=async(url,options)=>{
   calls.push({url,method:options.method});
+  assert.equal(options.redirect,'manual','never forward the Notion credential to redirects');
   assert.equal(options.headers['Notion-Version'],'2026-03-11');assert.equal(options.headers.Authorization,'Bearer fake-test-token');
   if(url.endsWith('pages/'+ROOT_PAGE))return Response.json(pages[0],{status:revoked?403:200});
   if(url.endsWith('search'))return Response.json({results:deleted?pages.filter(p=>p.id!==b):pages,has_more:false});
@@ -56,6 +57,10 @@ await assert.rejects(()=>load(seed,env,request('?hydrate=../../private')),e=>e.s
 revoked=true;await assert.rejects(()=>load(seed,env,request('?hydrate='+a)),e=>e.status===403,'cached content cannot bypass revoked root');revoked=false;
 deleted=true;time+=31000;assert.equal((await load(seed,env,request('?hydrate='+b))).bodies[0].removed,true);
 assert.ok(calls.every(c=>c.method==='GET'||c.url.endsWith('/search')),'no Notion writes');
+let redirectCalls=0;
+const redirectLoad=createNotionResearch({fetchRequest:async()=>{redirectCalls++;return new Response(null,{status:302,headers:{Location:'https://unrelated.example'}});}});
+await assert.rejects(()=>redirectLoad(seed,env,request()),e=>e.code==='notion_redirect');
+assert.equal(redirectCalls,1,'reject redirects without a second authenticated request');
 
 const {JSDOM}=await import(process.env.JSDOM_MODULE||'jsdom');
 const win=new JSDOM('',{url:'https://example.com/#research',pretendToBeVisual:true}).window;
