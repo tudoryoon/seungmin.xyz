@@ -1,6 +1,6 @@
 import { createResearchIndex, filterRecords, relatedRecords, recordDate, readResearchRoute, researchHref, KIND_LABELS, safeSourceURL } from './research-core.js?v=20260927-1';
 import { kstTimestamp, mergeNotionBodies, rebuildNotionRelations } from './research-sync-core.js?v=20260927-2';
-import { renderNotionMarkdown } from './research-markdown.js?v=20260927-2';
+import { renderNotionMarkdown } from './research-markdown.js?v=20260927-3';
 
 export function createResearch(root, { data, loadGraph = () => import('./vendor/cytoscape.mjs'), onLock = () => {} } = {}) {
   let index = createResearchIndex(data);

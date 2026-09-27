@@ -70,6 +70,8 @@ try {
   root.append(fragment);assert.equal(root.querySelectorAll('script,[onerror]').length,0);assert.ok(!root.innerHTML.includes('javascript:'));assert.ok(root.querySelector('a[href="https://example.com/note"]'));
   root.replaceChildren(renderNotionMarkdown('# Title {color="orange_bg"}\n\n**bold **\n\n```text\n{color="orange_bg"}\n```\n<pdf src="https://example.com/p.pdf">PDF</pdf>',win.document));
   assert.equal(root.querySelector('h1').textContent,'Title ');assert.equal(root.querySelector('strong').textContent,'bold');assert.match(root.querySelector('code').textContent,/color=/);assert.ok(root.querySelector('a[href="https://example.com/p.pdf"]'));
+  root.replaceChildren(renderNotionMarkdown('<table header-row="true">\n<tr><td>**Cell** <img src=x onerror=alert(1)></td></tr>\n</table>\n**After table**\n<empty-block/>\n![Image](https://example.com/image.png)',win.document));
+  assert.equal(root.querySelector('td strong').textContent,'Cell');assert.equal(root.querySelectorAll('strong').length,2);assert.equal(root.querySelectorAll('[onerror]').length,0);assert.equal(root.querySelector('img').src,'https://example.com/image.png');
   const reader=createResearch(root,{data:merged});
   assert.match(root.textContent,/작성 2026.09.22 03:28 KST/);assert.match(root.textContent,/제목 날짜 2026.09.23/);
   const query=root.querySelector('#research-query');query.value='PLTR';query.dispatchEvent(new win.Event('input'));query.focus();
