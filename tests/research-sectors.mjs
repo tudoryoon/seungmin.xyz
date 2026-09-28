@@ -60,8 +60,15 @@ try {
   assert.equal(reader.getState().sector, 'platform');
   assert.match($('.sector-detail').textContent, /본문 언급 · 분류 제안/);
   assert.equal($('.sector-record-title').textContent, '투자일기');
-  $('.sector-record-title').click();
+  assert.equal($('.sector-read').textContent, 'Research에서 읽기 →');
+  assert.match($('.sector-read').href, /note=diary/);assert.match($('.sector-read').href, /section=body/);
+  assert.equal($('.sector-record-actions .sector-source').target,'_blank');
+  $('.sector-read').click();
   assert.equal(root.dataset.view, 'read'); assert.equal($('#research-record-title').textContent, '투자일기');
+  assert.equal(reader.getState().section,'body');
+  $('[data-research-view=sector]').click();
+  assert.equal(reader.getState().sector,'platform');
+  $('.sector-record-title').click();assert.equal(root.dataset.view,'read');
   $('[data-research-view=sector]').click();
   $('.sector-controls input[type=search]').value = 'CoWoS'; $('.sector-controls input[type=search]').dispatchEvent(new window.Event('input'));
   assert.equal(root.querySelectorAll('[data-sector]').length, 1);

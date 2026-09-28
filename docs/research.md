@@ -1,5 +1,26 @@
 # Password-Protected Research
 
+## Sector atlas navigation and viewport (2026-09-28)
+
+The atlas keeps all seven layers in a compact, fixed layout and fits them to the
+available viewport on entry. Use the zoom buttons, mouse wheel, touch pinch, or
+keyboard +/− to zoom; drag or use arrow keys to move; **전체 보기** or 0 restores
+the overview. The map alone handles these gestures, so the related-article panel
+scrolls normally. A drag never activates a sector card. Manual zoom/pan survives
+Notion hydration, topic selection, and viewport resize. Hidden panels defer the
+initial fit; overview mode follows available space. The SVG connections use
+unscaled map coordinates and move with the cards at every zoom level.
+
+Each related article has a prominent **Research에서 읽기** link alongside its
+Notion source link. The article title opens the same Research reader. Internal
+links preserve the evidence section, support modifier/new-tab navigation, and
+return to the selected sector through the existing sector-view button. Mobile
+shows the zoomable overview above the details with a back-to-map control.
+
+`tests/research-sector-camera.mjs` covers fit, zoom anchors, preserved cameras,
+tap/drag distinction, pinch, keyboard control, bounds, hidden views, and cleanup;
+`tests/research-sectors.mjs` covers both internal read actions and source links.
+
 ## Explicit hashtags (2026-09-28)
 
 Write literal, space-separated tags in Notion prose, for example

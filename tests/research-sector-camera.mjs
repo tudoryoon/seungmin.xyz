@@ -1,0 +1,53 @@
+import assert from 'node:assert/strict';
+import { createSectorCamera } from '../research-sector-camera.js';
+const { Window } = await import(process.env.DOM_MODULE || 'happy-dom');
+const window = new Window(), document = window.document;
+document.body.innerHTML = '<div id="viewport"><div id="map"><button>항목</button></div></div><button id="in">+</button><button id="out">−</button><button id="fit">전체 보기</button><output></output>';
+const viewport=document.querySelector('#viewport'), map=document.querySelector('#map'), zoomIn=document.querySelector('#in'), zoomOut=document.querySelector('#out'), fit=document.querySelector('#fit'), readout=document.querySelector('output');
+let width=1000,height=600,mapHeight=530,frame=0;const frames=new Map(),observers=[];
+window.requestAnimationFrame=fn=>{frames.set(++frame,fn);return frame;};window.cancelAnimationFrame=id=>frames.delete(id);
+window.ResizeObserver=class{constructor(fn){this.fn=fn;observers.push(this);}observe(){}disconnect(){this.closed=true;}};
+Object.defineProperties(viewport,{clientWidth:{get:()=>width},clientHeight:{get:()=>height}});
+Object.defineProperties(map,{offsetWidth:{get:()=>1040},offsetHeight:{get:()=>mapHeight}});
+viewport.getBoundingClientRect=()=>({left:10,top:20,width,height});
+const camera=createSectorCamera(viewport,map,{zoomIn,zoomOut,fit,readout});
+const flush=()=>{const todo=[...frames.values()];frames.clear();todo.forEach(fn=>fn());assert.equal(frames.size,0);};
+const snapshot=()=>{const nums=map.style.transform.match(/-?[\d.]+/g)?.map(Number);return {x:nums?.[0],y:nums?.[1],scale:nums?.[2]};};
+const close=(a,b)=>assert.ok(Math.abs(a-b)<.00001,`${a} != ${b}`);
+const pointer=(type,id,x,y,target=window)=>target.dispatchEvent(new window.PointerEvent(type,{pointerId:id,clientX:x+10,clientY:y+20,button:0,bubbles:true,cancelable:true}));
+const wheel=(delta,x=400,y=200)=>{
+  const e=new window.WheelEvent('wheel',{deltaY:delta,clientX:x+10,clientY:y+20,bubbles:true,cancelable:true});
+  // Happy DOM's WheelEvent extends UIEvent and omits standard MouseEvent coordinates.
+  if(e.clientX===undefined)Object.defineProperties(e,{clientX:{value:x+10},clientY:{value:y+20}});
+  viewport.dispatchEvent(e);assert.ok(e.defaultPrevented);
+};
+const key=value=>viewport.dispatchEvent(new window.KeyboardEvent('keydown',{key:value,bubbles:true,cancelable:true}));
+try {
+  flush();close(snapshot().scale,976/1040);assert.equal(readout.textContent,'94%');
+  const initial=snapshot();assert.ok(initial.x>=0&&initial.y>=0);assert.ok(initial.y+530*initial.scale<=height);
+  zoomIn.click();assert.ok(snapshot().scale>initial.scale);
+  const before=snapshot(),anchor={x:(400-before.x)/before.scale,y:(200-before.y)/before.scale};wheel(-100);
+  close((400-snapshot().x)/snapshot().scale,anchor.x);close((200-snapshot().y)/snapshot().scale,anchor.y);
+  const manual=map.style.transform;mapHeight=600;camera.refresh();camera.refresh();flush();assert.equal(map.style.transform,manual,'hydration/content updates preserve manual camera');
+  width=390;height=420;observers.forEach(o=>o.fn());flush();assert.equal(map.style.transform,manual,'resize cannot reset user zoom');
+  fit.click();assert.ok(snapshot().x>=0&&snapshot().y>=0);assert.ok(snapshot().scale*1040+snapshot().x<=width);
+  assert.equal(map.dataset.detail,'overview','small overview prioritizes readable sector names');
+  let clicks=0;const node=map.querySelector('button');node.addEventListener('click',()=>clicks++);
+  pointer('pointerdown',1,100,100,node);pointer('pointermove',1,102,101);pointer('pointerup',1,102,101);
+  node.dispatchEvent(new window.MouseEvent('click',{bubbles:true,detail:1}));assert.equal(clicks,1,'a tap still selects a sector');
+  const start=snapshot();pointer('pointerdown',1,100,100,node);pointer('pointermove',1,130,125);pointer('pointerup',1,130,125);
+  close(snapshot().x,start.x+30);close(snapshot().y,start.y+25);
+  node.dispatchEvent(new window.MouseEvent('click',{bubbles:true,cancelable:true,detail:1}));assert.equal(clicks,1,'dragging a node does not activate it');
+  const pinch=snapshot();pointer('pointerdown',1,100,100,viewport);pointer('pointerdown',2,200,100,viewport);pointer('pointermove',2,300,100);
+  close(snapshot().scale,pinch.scale*2);close((200-snapshot().x)/snapshot().scale,(150-pinch.x)/pinch.scale);
+  pointer('pointercancel',1,100,100);pointer('pointerup',2,300,100);
+  const stopped=map.style.transform;pointer('pointermove',2,500,100);assert.equal(map.style.transform,stopped);
+  const p=snapshot();key('ArrowRight');close(snapshot().x,p.x-40);key('+');assert.ok(snapshot().scale>p.scale);key('0');
+  for(let i=0;i<12;i++)zoomIn.click();close(snapshot().scale,3);assert.equal(zoomIn.disabled,true);
+  assert.equal(map.dataset.detail,'full');
+  for(let i=0;i<12;i++)wheel(600);close(snapshot().scale,.2);assert.equal(zoomOut.disabled,true);
+  width=0;height=0;fit.click();camera.refresh();flush();assert.ok(Number.isFinite(snapshot().scale));
+  width=1000;height=600;observers.forEach(o=>o.fn());flush();assert.ok(snapshot().x>=0&&snapshot().y>=0);
+  camera.destroy();const ended=map.style.transform;zoomIn.click();key('+');camera.refresh();assert.equal(map.style.transform,ended);assert.equal(frames.size,0);assert.ok(observers.every(o=>o.closed));
+  console.log('PASS: atlas overview fit, cursor-anchored zoom, stable updates/resizes, tap vs drag, touch pinch, keyboard, limits, hidden resize and disposal.');
+} finally {camera.destroy();await window.happyDOM.close();}

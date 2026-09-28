@@ -11,10 +11,13 @@ Scroll-through portal -> public Research / 서울 맛집 지도 / 개인일정 /
 
 ## Research
 
-Research opens on a sector atlas with 20 study areas, record coverage, topic
-search and a gaps filter. Selecting an area shows title-matched Notion records,
-separately labeled body mentions, study questions and typed industry paths with
-public source links. Records and Connections remain available as separate views.
+Research opens on a zoomable sector atlas with all 20 study areas fitted into
+view, record coverage, topic search and a gaps filter. Wheel/pinch zoom, drag
+movement and an overview button keep the full structure easy to explore.
+Selecting an area shows explicit tags, title-matched Notion records, separately
+labeled body mentions, study questions and typed industry paths. Each article
+offers **Research에서 읽기** alongside its Notion source. Records and Connections
+remain available as separate views.
 The shared taxonomy is versioned in code; private records are joined only after
 unlocking and are never saved in browser storage. This release adds no AI calls
 or in-browser editing of the taxonomy. See [sector atlas details](docs/research.md).
