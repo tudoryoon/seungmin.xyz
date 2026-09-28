@@ -51,6 +51,12 @@ const catalog=await load(seed,env,request());assert.equal(catalog.records.length
 const hydration=await load(seed,env,request('?hydrate='+a));assert.equal(hydration.bodies.length,1);assert.ok(hydration.bodies[0].linkedPageIds.includes(b));
 const before=calls.filter(c=>c.url.endsWith('/markdown')).length;
 await load(seed,env,request('?hydrate='+a));assert.equal(calls.filter(c=>c.url.endsWith('/markdown')).length,before,'cache skips unchanged body');
+await load(seed,env,request('?hydrate='+a+'&refresh=images'));
+assert.equal(calls.filter(c=>c.url.endsWith('/markdown')).length,before+1,'image repair bypasses the normal body cache');
+await load(seed,env,request('?hydrate='+a+'&refresh=images'));
+assert.equal(calls.filter(c=>c.url.endsWith('/markdown')).length,before+1,'image repairs share a bounded fresh export');
+await assert.rejects(()=>load(seed,env,request('?hydrate='+a+','+b+'&refresh=images')),e=>e.status===400);
+await assert.rejects(()=>load(seed,env,request('?hydrate='+a+'&refresh=anything')),e=>e.status===400);
 for(const value of stored.values())assert.ok(!(await value.clone().text()).includes('Secret fixture'),'cached content is encrypted');
 assert.equal((await load(seed,env,request('?hydrate='+outside))).bodies[0].removed,true,'outside root is never fetched');
 await assert.rejects(()=>load(seed,env,request('?hydrate=../../private')),e=>e.status===400);

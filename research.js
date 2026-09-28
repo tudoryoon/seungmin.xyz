@@ -1,10 +1,11 @@
 import { createResearchIndex, filterRecords, relatedRecords, recordDate, readResearchRoute, researchHref, KIND_LABELS, safeSourceURL } from './research-core.js?v=20260928-3';
 import { kstTimestamp, mergeNotionBodies, rebuildNotionRelations } from './research-sync-core.js?v=20260928-2';
-import { renderNotionMarkdown } from './research-markdown.js?v=20260928-1';
+import { renderNotionMarkdown } from './research-markdown.js?v=20260928-2';
+import { notionImageKey } from './research-media.js?v=20260928-1';
 import { createResearchLinkResolver, configureResearchLink } from './research-links.js?v=20260928-1';
 import { createSectorMap } from './research-sector-view.js?v=20260928-3';
 
-export function createResearch(root, { data, loadGraph = () => import('./vendor/cytoscape.mjs'), onLock = () => {} } = {}) {
+export function createResearch(root, { data, loadGraph = () => import('./vendor/cytoscape.mjs'), onLock = () => {}, onRefreshImages = async () => null } = {}) {
   let index = createResearchIndex(data);
   let resolveLink = createResearchLinkResolver(index.records.values());
   let unavailableLink = null;
@@ -127,6 +128,12 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
     const links = {
       resolveLink, baseURL: record.source.url,
       onOpenRecord: id => openRecord(id, '', 'read'),
+      async refreshImage(url) {
+        const markdown = await onRefreshImages(record.id);
+        if (typeof markdown !== 'string') return null;
+        const fresh = renderNotionMarkdown(markdown, document);
+        return [...fresh.querySelectorAll('img')].find(image => notionImageKey(image.src) === notionImageKey(url))?.src || null;
+      },
       onUnavailable({ url, label, trigger }, focus = true) {
         unavailableLink = { note: record.id, url, label };
         const close = element('button', 'research-notice-close', '닫기'); close.type = 'button';
@@ -394,9 +401,10 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
 export function createResearchGate(root, { fetchRequest = (...args) => fetch(...args), createReader = createResearch } = {}) {
   const document = root.ownerDocument, window = document.defaultView;
   let reader = null, dataset = null, pending = null, destroyed = false, generation = 0, lastChecked = 0;
+  const mediaRequests = new Map();
   const messageFor = status => status === 429 ? '잠시 후 다시 시도해 주세요.' : status === 503 ? '서버 설정을 확인 중입니다.' : status === 401 ? '비밀번호가 맞지 않습니다.' : '연결하지 못했습니다. 다시 시도해 주세요.';
   function locked(message = '') {
-    reader?.destroy(); reader = null; dataset = null; root.dataset.locked = 'true';
+    mediaRequests.clear(); reader?.destroy(); reader = null; dataset = null; root.dataset.locked = 'true';
     root.innerHTML = `<section class="research-gate" aria-labelledby="research-gate-title"><i data-lucide="lock-keyhole" aria-hidden="true"></i><h2 id="research-gate-title">Research</h2><form id="research-unlock"><label><span class="sr-only">Research 비밀번호</span><input id="research-password" type="password" name="password" placeholder="비밀번호" autocomplete="current-password" maxlength="128" required></label><button type="submit" class="icon-button" title="Research 열기" aria-label="Research 열기"><i data-lucide="arrow-right" aria-hidden="true"></i></button></form><p id="research-gate-message" role="status"></p></section>`;
     root.querySelector('#research-gate-message').textContent = message;
     window.lucide?.createIcons({root});
@@ -423,6 +431,28 @@ export function createResearchGate(root, { fetchRequest = (...args) => fetch(...
       locked();
     } catch { if (button) { button.disabled = false; button.title = '잠금 실패 · 다시 시도'; } }
   }
+  async function refreshImages(id) {
+    const record = dataset?.records.find(r => r.id === id);
+    if (!record?.source.pageId || destroyed) return null;
+    const previous = mediaRequests.get(id);
+    if (previous && previous.until > Date.now()) return previous.promise;
+    const attempt = generation;
+    const promise = (async () => {
+      const response = await fetchRequest('/api/research?hydrate=' + record.source.pageId + '&refresh=images', {credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(30000)});
+      if (attempt !== generation || destroyed) return null;
+      if ([401,403].includes(response.status)) { generation++; pending = null; locked(response.status === 403 ? 'Notion 읽기 권한을 확인해 주세요.' : ''); return null; }
+      if (!response.ok) throw Error('Image refresh unavailable');
+      const content = await response.json();
+      if (attempt !== generation || destroyed) return null;
+      const body = content.bodies?.find(b => b.pageId === record.source.pageId);
+      if (body?.removed) { dataset = mergeNotionBodies(dataset, content.bodies); reader.update(dataset); return null; }
+      if (typeof body?.markdown !== 'string') return null;
+      dataset = mergeNotionBodies(dataset, content.bodies);
+      return body.markdown;
+    })();
+    mediaRequests.set(id, {promise,until:Date.now()+10000});
+    try { return await promise; } catch (error) { mediaRequests.delete(id); throw error; }
+  }
   async function check(force = false) {
     if (destroyed || document.body.dataset.stage !== 'research') return;
     if (pending && !force) return pending;
@@ -447,7 +477,7 @@ export function createResearchGate(root, { fetchRequest = (...args) => fetch(...
           data = rebuildNotionRelations(data);
         }
         dataset = data;
-        if (!reader) { root.dataset.locked = 'false'; reader = createReader(root, {data,onLock:lock}); }
+        if (!reader) { root.dataset.locked = 'false'; reader = createReader(root, {data,onLock:lock,onRefreshImages:refreshImages}); }
         else reader.update?.(data);
         if (data.mode === 'notion-live') {
           while (dataset.records.some(r=>!r.loaded) && attempt === generation && !destroyed && !document.hidden) {
@@ -483,7 +513,7 @@ export function createResearchGate(root, { fetchRequest = (...args) => fetch(...
   window.addEventListener('realm-view', show); window.addEventListener('focus', refocus); document.addEventListener('visibilitychange', refocus);
   const timer = window.setInterval(refocus, 60000);
   locked(); show();
-  return { check, lock, destroy() { destroyed = true; generation++; reader?.destroy(); window.clearInterval(timer); window.removeEventListener('realm-view',show); window.removeEventListener('focus',refocus); document.removeEventListener('visibilitychange',refocus); } };
+  return { check, lock, destroy() { destroyed = true; generation++; mediaRequests.clear(); reader?.destroy(); window.clearInterval(timer); window.removeEventListener('realm-view',show); window.removeEventListener('focus',refocus); document.removeEventListener('visibilitychange',refocus); } };
 }
 
 if (typeof document !== 'undefined') {

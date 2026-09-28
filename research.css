@@ -172,6 +172,10 @@ body[data-stage=research] .world-shade { opacity:.9; }
 .research-link-notice p { margin: 8px 0 0; }
 .research-notice-close { background: transparent; border: 1px solid var(--r-line); border-radius: 5px; padding: 5px 12px; color: var(--r-muted); cursor: pointer; }
 .research-notion-body img { display: block; max-width: 100%; height: auto; margin: 20px 0; }
+.research-image { display: block; max-width: 100%; }
+.research-image img[hidden], .research-image [hidden] { display: none; }
+.research-image-status { display: inline-block; margin: 14px 10px 14px 0; color: var(--r-muted); font-size: 12px; }
+.research-image-retry { border: 1px solid var(--r-line); border-radius: 5px; background: transparent; color: var(--r-mint); padding: 7px 10px; cursor: pointer; }
 .research-notion-body pre { overflow: auto; max-width: 100%; padding: 14px; background: #191f1c; }
 .research-notion-body code { font-size: 12px; }
 .research-notion-body table { display: block; overflow-x: auto; max-width: 100%; border-collapse: collapse; }

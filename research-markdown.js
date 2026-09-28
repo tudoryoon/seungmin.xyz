@@ -2,6 +2,7 @@ import { Marked } from './vendor/marked.mjs';
 import createDOMPurify from './vendor/dompurify.mjs';
 import { safeSourceURL } from './research-core.js';
 import { configureResearchLink } from './research-links.js?v=20260928-1';
+import { attachImageRecovery } from './research-media.js?v=20260928-1';
 
 function createParser(document) {
   const parser = new Marked({ breaks: true, gfm: true });
@@ -49,6 +50,7 @@ export function renderNotionMarkdown(markdown, document, links) {
     const url = safeSourceURL(image.getAttribute('src'));
     if (!url) { image.remove(); continue; }
     image.src = url; image.loading = 'lazy'; image.referrerPolicy = 'no-referrer';
+    attachImageRecovery(image, links?.refreshImage);
   }
   return fragment;
 }
