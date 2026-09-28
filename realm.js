@@ -69,7 +69,7 @@ import('./portal.js?v=20260924-7').then(({ createPortal }) => {
   document.body.dataset.entryRenderer = 'fallback';
 });
 const entrance=createScrollEntry({
-  section:$('entry'),button:$('enter'),isActive:()=>sessionReady && !recovery && publicStages.includes(stage),motion:()=>motion,
+  section:$('entry'),button:$('enter'),isActive:()=>sessionReady && !recovery && publicStages.includes(stage) && stage!=='research',motion:()=>motion,
   render(progress){
     document.body.style.setProperty('--entry-progress',progress);
     for(const [key,value] of Object.entries(entryScene(progress)))document.body.style.setProperty('--'+key,value);
@@ -92,10 +92,11 @@ function show(next, {replace=false,fromScroll=false} = {}) {
   const previous = stage;
   stage = next;
   document.body.dataset.stage = next;
-  const entryFlow=publicStages.includes(next);
+  const entryFlow=publicStages.includes(next) && next!=='research';
   const sectionId=['research','food-map','about'].includes(next)?'home':next;
   document.body.classList.toggle('entry-flow',entryFlow);
   document.documentElement.classList.toggle('entry-flow',entryFlow);
+  document.documentElement.classList.toggle('research-open',next==='research');
   const hash=next==='entry'?'':next==='research' && location.hash.startsWith('#research?')?location.hash:'#'+next;
   if(location.hash!==hash)history[replace?'replaceState':'pushState'](null,'',location.pathname+location.search+hash);
   document.querySelectorAll('.stage').forEach(section => {
@@ -117,14 +118,14 @@ function show(next, {replace=false,fromScroll=false} = {}) {
   });
   portal.setStage(entryFlow?'entry':next);
   document.title = ({entry:'입장',home:'메뉴',research:'Research','food-map':'서울 맛집 지도',about:'About',auth:'개인일정',profile:'프로필',avatar:'캐릭터',complete:'캐릭터',map:'지도'})[next];
-  if (motion && previous !== next && !entryFlow) {
+  if (motion && previous !== next && !publicStages.includes(next)) {
     $(next).getAnimations().forEach(animation => animation.cancel());
     $(next).animate([
       {opacity:0,transform:next === 'map' ? 'scale(.94)' : 'translateY(12px)'},
       {opacity:1,transform:next === 'map' ? 'scale(1)' : 'translateY(0)'}
     ], {duration:650,easing:'cubic-bezier(.22,.61,.36,1)'});
   }
-  // Public pages share the runway; private routes never depend on scroll position.
+  // Research has its own scrollable panels, separate from the entrance runway.
   if(!fromScroll){
     if(entryFlow)entrance.reset(next==='entry'?0:1);
     else window.scrollTo({ top: 0, behavior: 'instant' });

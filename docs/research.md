@@ -12,6 +12,8 @@ Opening Research fetches metadata first, then hydrates four pages per request us
 
 Source content replaces the previous six summaries in live mode. The graph shows original parent/child relationships and Notion page links as source-based edges. Earlier curated draft connections are retained as explicitly labeled review suggestions, not asserted as newly verified facts about edited text. Two or more shared known topics can also produce dotted suggestions, capped at three additional suggestions per record; this is deterministic alias matching, not an AI semantic inference service. It does not assert causality. New company tickers in page titles are indexed. Marked parses markdown and DOMPurify restricts the result to reading markup, with HTTPS-only links/media. Unsupported or truncated Notion exports carry a visible original-source warning.
 
+Body overlap suggestions (2026-09-28): after both bodies load, `research-overlap.js` compares normalized prose passages, including a report excerpt inside a longer diary. It ignores heading-only matches, code, attachments, URLs and presentation markup. A match requires at least two distinct passages containing at least 25 letters/numbers each and at least 120 matching normalized characters in total. Repeated copies of one passage count once. This is exact normalized text matching, not paraphrase or semantic similarity. Matches display as **본문 중복 · 연결 제안**, with counts, up to three text-only excerpts and links to both bodies. Existing Notion links/hierarchy take priority over duplicate suggestions for the same pair; body overlap takes priority over keyword suggestions and is independent of their three-edge cap. Editing or removing source text rebuilds the suggestions. The existing suggestion toggle hides these edges too. No citation direction is inferred, and no Notion content is written or sent to an external model.
+
 The password gate protects both catalog and hydration responses. The server checks root access for each request. Catalog freshness is at most 30 seconds; body cache freshness is five minutes and keyed by source revision. A page removed from the catalog is never served from its old body cache. Root authorization errors fail closed, including on cache hits. An already displayed copy cannot be recalled immediately; the visible tab learns revocations on its next check. Temporary body failures retain the current view with an explicit delayed-sync status and retry, not a false completion badge.
 
 Cloudflare Cache API stores only AES-GCM encrypted cache entries under token/secret-derived opaque keys. This cache is opportunistic and may be evicted; Notion is the durable source of truth. No plaintext research content or Notion token is committed or put in localStorage/service-worker caches. Server/client responses are private/no-store. Requests are sequential with pacing and one bounded 429 retry. Functions/API usage still follows the services' current quotas; no paid plan was enabled.
@@ -65,6 +67,8 @@ Only after that connection is established should webhook/periodic refresh be ena
 ## Tests
 
 `DOM_MODULE=/path/to/happy-dom/lib/index.js node tests/research.mjs`
+
+`DOM_MODULE=/path/to/happy-dom/lib/index.js node tests/research-overlap.mjs`
 
 `DOM_MODULE=/path/to/happy-dom/lib/index.js node tests/research-access.mjs`
 

@@ -107,7 +107,18 @@ for(const account of [null,user]) {
     navigate('#substack');assert.equal(doc.getElementById('research-content').hidden,false);assert.equal(doc.getElementById('about-content').hidden,true);
     assert.equal(window.location.hash,'#research','legacy bookmark redirects');
     navigate('#research?note=pltr&view=graph');assert.equal(window.location.hash,'#research?note=pltr&view=graph','deep links survive realm routing');
+    assert.equal(entry.hidden,true,'Research removes the entrance runway');
+    assert.equal(window.scrollY,0);
+    assert.equal(doc.documentElement.classList.contains('research-open'),true);
+    assert.equal(doc.getElementById('home-link').hidden,false,'Research offers an explicit return to the menu');
+    window.scrollTo({top:0});
+    doc.getElementById('research-content').dispatchEvent(new window.WheelEvent('wheel',{deltaY:-600,bubbles:true,cancelable:true}));
+    await new Promise(resolve=>window.requestAnimationFrame(resolve));
+    assert.equal(doc.body.dataset.stage,'research','scrolling upward cannot leave Research');
+    assert.equal(window.location.hash,'#research?note=pltr&view=graph');
+    assert.equal(hub.inert,false);
     navigate('#food-map');assert.equal(doc.getElementById('food-map-content').hidden,false);assert.equal(doc.getElementById('research-content').hidden,true);
+    assert.equal(doc.documentElement.classList.contains('research-open'),false,'leaving Research releases the document scroll lock');
     assert.equal(doc.querySelector('[data-public-page=food-map]').getAttribute('aria-current'),'page');
     assert.equal(doc.title,'서울 맛집 지도');
     doc.querySelector('[data-public-page=food-map]').click();assert.equal(doc.body.dataset.stage,'home');assert.equal(doc.getElementById('food-map-content').hidden,true);
@@ -131,8 +142,22 @@ for(const account of [null,user]) {
 }
 for(const account of [null,user,{...user,user_metadata:{}}])for(const route of ['home','about','research','food-map']){
   const {window}=await boot('#'+route,account);
-  try{assert.equal(window.document.body.dataset.stage,route);assert.equal(window.scrollY,1400);assert.equal(window.document.getElementById('home').inert,false);}
+  try{assert.equal(window.document.body.dataset.stage,route);assert.equal(window.scrollY,route==='research'?0:1400);assert.equal(window.document.getElementById('home').inert,false);}
   finally{await window.happyDOM.close();}
+}
+{
+  const {window}=await boot('#research',null,null,{preference:'on'});
+  try {
+    assert.equal(window.document.getElementById('research-content').hidden,false,'Research also opens with animation enabled');
+    assert.equal(window.document.getElementById('home').inert,false);
+    window.location.hash='#home';window.dispatchEvent(new window.Event('hashchange'));
+    assert.equal(window.scrollY,1400,'returning to the menu restores the entrance position');
+    window.scrollTo({top:0});await until(()=>window.document.body.dataset.stage==='entry');
+    window.history.replaceState(null,'','/index.html#research');window.dispatchEvent(new window.Event('popstate'));
+    assert.equal(window.document.body.dataset.stage,'research','history can reopen Research after rewinding the entrance');
+    assert.equal(window.scrollY,0);
+    assert.equal(window.document.getElementById('home').inert,false);
+  }finally{await window.happyDOM.close();}
 }
 for(const [route,account,error,expected] of [['',null,null,'entry'],['#map',null,null,'auth'],['#map',{...user,user_metadata:{}},null,'profile'],['#complete',{...user,user_metadata:{realm_profile:user.user_metadata.realm_profile}},null,'avatar'],['#map',null,new Error('offline'),'auth']]) {
   const {window}=await boot(route,account,error);

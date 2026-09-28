@@ -1,5 +1,5 @@
 import { createResearchIndex, filterRecords, relatedRecords, recordDate, readResearchRoute, researchHref, KIND_LABELS, safeSourceURL } from './research-core.js?v=20260927-1';
-import { kstTimestamp, mergeNotionBodies, rebuildNotionRelations } from './research-sync-core.js?v=20260927-2';
+import { kstTimestamp, mergeNotionBodies, rebuildNotionRelations } from './research-sync-core.js?v=20260928-1';
 import { renderNotionMarkdown } from './research-markdown.js?v=20260927-3';
 
 export function createResearch(root, { data, loadGraph = () => import('./vendor/cytoscape.mjs'), onLock = () => {} } = {}) {
@@ -146,8 +146,9 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
       node.dataset.status = relation.status;
       const classification = element('div', 'research-relation-label');
       classification.append(element('span', '', relation.label), element('span', 'research-relation-status', relation.status === 'suggested' ? '연결 제안' : '기록 기반'));
-      const details = element('details', 'research-evidence'); const summary = element('summary', '', '근거 ' + relation.evidence.length);
+      const details = element('details', 'research-evidence'); const summary = element('summary', '', relation.overlap ? `겹치는 구절 ${relation.overlap.passages}개` : '근거 ' + relation.evidence.length);
       details.append(summary);
+      for (const excerpt of relation.overlap?.excerpts || []) details.append(element('blockquote', 'research-overlap-excerpt', excerpt));
       for (const evidence of relation.evidence) {
         const source = index.records.get(evidence.record), section = source.sections.find(s => s.id === evidence.section);
         const a = element('a', '', source.title + ' · ' + section.label); a.href = researchHref({ note: source.id, section: section.id });

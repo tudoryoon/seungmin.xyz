@@ -1,4 +1,5 @@
 import { normalize } from './research-core.js';
+import { findBodyOverlaps } from './research-overlap.js?v=20260928-1';
 
 export const notionId = value => String(value || '').replaceAll('-', '').toLowerCase();
 export function kstDate(value) {
@@ -69,10 +70,10 @@ export function rebuildNotionRelations(data) {
     r.entities = data.entities.filter(e => [e.name, ...e.aliases].some(a => matches(text, a))).map(e => e.id);
   }
   const relations = [], pairs = new Set();
-  function add(from, to, type, label, reason, status) {
+  function add(from, to, type, label, reason, status, details = {}) {
     const pair = [from.id, to.id].sort().join(':'); if (pairs.has(pair) || from.id === to.id) return;
     pairs.add(pair); relations.push({ id: type + '-' + from.id + '-' + to.id, from: from.id, to: to.id, type, label, reason, status,
-      evidence: [from, to].map(r => ({ record: r.id, section: 'notion-body' })) });
+      evidence: [from, to].map(r => ({ record: r.id, section: 'notion-body' })), ...details });
   }
   for (const r of records) {
     const parent = byPage.get(r.source.parentId);
@@ -80,6 +81,9 @@ export function rebuildNotionRelations(data) {
     for (const link of r.source.linkedPageIds || []) {
       const other = byPage.get(notionId(link)); if (other) add(r, other, 'link', '원문 링크', 'Notion 원문에서 연결된 페이지입니다.', 'editorial');
     }
+  }
+  for (const {from, to, overlap, evidence} of findBodyOverlaps(records)) {
+    add(from, to, 'overlap', '본문 중복', `서식을 제외한 긴 구절 ${overlap.passages}개(총 ${overlap.characters}자)가 일치합니다. 같은 자료의 발췌·재사용 여부를 확인해 보세요.`, 'suggested', {overlap, evidence});
   }
   const recordIds = new Set(records.map(r=>r.id));
   for (const relation of data.reviewedRelations || []) {
