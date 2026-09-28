@@ -1,10 +1,13 @@
 import { createResearchIndex, filterRecords, relatedRecords, recordDate, readResearchRoute, researchHref, KIND_LABELS, safeSourceURL } from './research-core.js?v=20260928-3';
 import { kstTimestamp, mergeNotionBodies, rebuildNotionRelations } from './research-sync-core.js?v=20260928-2';
-import { renderNotionMarkdown } from './research-markdown.js?v=20260927-3';
+import { renderNotionMarkdown } from './research-markdown.js?v=20260928-1';
+import { createResearchLinkResolver, configureResearchLink } from './research-links.js?v=20260928-1';
 import { createSectorMap } from './research-sector-view.js?v=20260928-3';
 
 export function createResearch(root, { data, loadGraph = () => import('./vendor/cytoscape.mjs'), onLock = () => {} } = {}) {
   let index = createResearchIndex(data);
+  let resolveLink = createResearchLinkResolver(index.records.values());
+  let unavailableLink = null;
   const document = root.ownerDocument, window = document.defaultView;
   const $ = id => root.querySelector('#' + id);
   let state = readResearchRoute(window.location.hash, index), mobile = window.location.hash.includes('note=') ? 'record' : 'list', cy = null, graphEpoch = 0, destroyed = false;
@@ -32,10 +35,10 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
     if (window.location.hash !== href) window.history[replace ? 'replaceState' : 'pushState'](null, '', href);
     render();
   }
-  function openRecord(id, section = '') {
+  function openRecord(id, section = '', view = state.view) {
     const visible = filterRecords(index, state).some(r => r.id === id);
     mobile = 'record';
-    navigate({ note: id, section, ...(section ? { view: 'read' } : {}), ...(visible ? {} : { query: '', entity: '', tag: '', month: '' }) });
+    navigate({ note: id, section, view: section ? 'read' : view, ...(visible ? {} : { query: '', entity: '', tag: '', month: '' }) });
     if (section) scrollWithin($('research-reader'), $(`research-section-${section}`));
     else $('research-record-title')?.focus({ preventScroll: true });
   }
@@ -118,6 +121,25 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
   }
 
   function renderReader(record) {
+    if (unavailableLink && (unavailableLink.note !== record.id || resolveLink(unavailableLink.url)?.record)) unavailableLink = null;
+    const notice = element('aside', 'research-link-notice'); notice.hidden = true; notice.tabIndex = -1;
+    notice.setAttribute('aria-label', '연결된 페이지 안내');
+    const links = {
+      resolveLink, baseURL: record.source.url,
+      onOpenRecord: id => openRecord(id, '', 'read'),
+      onUnavailable({ url, label, trigger }, focus = true) {
+        unavailableLink = { note: record.id, url, label };
+        const close = element('button', 'research-notice-close', '닫기'); close.type = 'button';
+        close.addEventListener('click', () => {
+          unavailableLink = null; notice.hidden = true;
+          const target = trigger?.isConnected ? trigger : $('research-record-title');
+          target?.focus({ preventScroll: true }); scrollWithin($('research-reader'), target);
+        });
+        notice.replaceChildren(element('strong', '', label), element('p', '', '아직 Research에 연동되지 않은 페이지입니다. 연동된 기록은 이 화면에서 바로 읽을 수 있습니다.'), external('Notion 원문에서 열기', url), close);
+        notice.hidden = false;
+        if (focus) { notice.focus({ preventScroll: true }); scrollWithin($('research-reader'), notice); icons(); }
+      }
+    };
     const header = element('header', 'research-record-heading');
     const meta = element('div', 'research-meta'); meta.append(element('span', 'research-kind', KIND_LABELS[record.kind]), element('span', '', recordDate(record)), element('span', 'research-state', record.state));
     const title = element('h3', '', record.title); title.id = 'research-record-title'; title.tabIndex = -1;
@@ -148,7 +170,7 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
       const node = element('section', 'research-section'); node.id = 'research-section-' + section.id;
       if (state.section === section.id) node.classList.add('is-evidence');
       node.append(element('h4', '', section.label));
-      if (section.markdown) { const body = element('div', 'research-notion-body'); body.append(renderNotionMarkdown(section.markdown, document)); node.append(body); }
+      if (section.markdown) { const body = element('div', 'research-notion-body'); body.append(renderNotionMarkdown(section.markdown, document, links)); node.append(body); }
       else if (section.text) node.append(element('p', '', section.text));
       if (section.items) { const ul = element('ul'); for (const item of section.items) ul.append(element('li', '', item)); node.append(ul); }
       if (section.note) node.append(element('p', 'research-note', section.note));
@@ -158,12 +180,15 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
     for (const text of record.questions) openQuestions.append(element('p', '', text));
     const provenance = element('footer', 'research-provenance');
     provenance.append(element('p', '', record.path.join(' / ')), external('Notion 원문', record.source.url));
-    for (const ref of record.references || []) provenance.append(external(ref.label, ref.url));
+    for (const ref of record.references || []) {
+      const link = element('a', 'research-source', ref.label); link.setAttribute('href', ref.url); provenance.append(link); configureResearchLink(link, links);
+    }
     provenance.append(element('p', 'research-date-basis', '날짜 기준 · ' + record.date.basis));
     if (record.event) provenance.append(element('p', 'research-date-basis', record.event.label + ' · ' + record.event.date.replaceAll('-', '.')));
     if (record.dateNote) provenance.append(element('p', 'research-note', record.dateNote));
     provenance.append(element('p', 'research-date-basis', data.mode === 'notion-live' ? 'Notion 원문 · 생성일과 실제 공부 날짜는 다를 수 있습니다.' : '원문을 바탕으로 재구성한 요약입니다. Notion 원문은 접근 권한이 필요할 수 있습니다.'));
-    $('research-reader').replaceChildren(header, ...(record.question ? [question] : []), ...sections, ...(record.questions.length ? [openQuestions] : []), provenance);
+    $('research-reader').replaceChildren(header, notice, ...(record.question ? [question] : []), ...sections, ...(record.questions.length ? [openQuestions] : []), provenance);
+    if (unavailableLink) links.onUnavailable(unavailableLink, false);
     $('research-reader').scrollTop = 0;
   }
 
@@ -360,7 +385,7 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
     setSyncStatus(text) { $('research-sync-status').textContent = text; },
     update(next) {
       const scroll = [...root.querySelectorAll('.research-scroll')].map(n=>[n,n.scrollTop]);
-      data = next; index = createResearchIndex(data); refreshMetadata(); render();
+      data = next; index = createResearchIndex(data); resolveLink = createResearchLinkResolver(index.records.values()); refreshMetadata(); render();
       for (const [node, top] of scroll) node.scrollTop = top;
     },
     destroy() { destroyed = true; stopGraph(); sectorMap.destroy(); observer?.disconnect(); listeners.forEach(dispose => dispose()); } };

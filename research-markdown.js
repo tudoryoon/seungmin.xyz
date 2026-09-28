@@ -1,6 +1,7 @@
 import { Marked } from './vendor/marked.mjs';
 import createDOMPurify from './vendor/dompurify.mjs';
 import { safeSourceURL } from './research-core.js';
+import { configureResearchLink } from './research-links.js?v=20260928-1';
 
 function createParser(document) {
   const parser = new Marked({ breaks: true, gfm: true });
@@ -27,7 +28,7 @@ function createParser(document) {
   return parser;
 }
 
-export function renderNotionMarkdown(markdown, document) {
+export function renderNotionMarkdown(markdown, document, links) {
   const fragment = createDOMPurify(document.defaultView).sanitize(createParser(document).parse(markdown), {
     RETURN_DOM_FRAGMENT: true,
     ALLOWED_TAGS: ['p','br','strong','em','del','s','code','pre','blockquote','ul','ol','li','h1','h2','h3','h4','h5','h6','a','img','table','thead','tbody','tr','td','th','hr','details','summary','page','mention-page','file','pdf','video','audio'],
@@ -35,10 +36,11 @@ export function renderNotionMarkdown(markdown, document) {
     ALLOW_DATA_ATTR: false
   });
   for (const page of fragment.querySelectorAll('page,mention-page,file,pdf,video,audio')) {
-    const link = document.createElement('a'), url = safeSourceURL(page.getAttribute('url') || page.getAttribute('src'));
+    const link = document.createElement('a'), url = page.getAttribute('url') || page.getAttribute('src');
     link.textContent = page.textContent || '첨부 자료'; if (url) link.href = url; page.replaceWith(link);
   }
   for (const link of fragment.querySelectorAll('a')) {
+    if (links) { configureResearchLink(link, links); continue; }
     const url = safeSourceURL(link.getAttribute('href'));
     if (url) { link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer'; }
     else link.removeAttribute('href');

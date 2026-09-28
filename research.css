@@ -165,6 +165,12 @@ body[data-stage=research] .world-shade { opacity:.9; }
 .research-notion-body > :first-child { margin-top: 0; }
 .research-notion-body p { white-space: normal; }
 .research-notion-body a { color: #a1d9bf; text-decoration: underline; text-underline-offset: 3px; }
+.research-internal-link::after { content: ' →'; font-size: .85em; text-decoration: none; }
+.research-unavailable-link { padding: 0; border: 0; background: none; color: #a1d9bf; font: inherit; text-align: inherit; text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer; }
+.research-link-notice { margin: 18px 0; padding: 16px; border: 1px solid var(--r-line); border-radius: 8px; background: #202b25; font-size: 13px; line-height: 1.8; }
+.research-link-notice[hidden] { display: none; }
+.research-link-notice p { margin: 8px 0 0; }
+.research-notice-close { background: transparent; border: 1px solid var(--r-line); border-radius: 5px; padding: 5px 12px; color: var(--r-muted); cursor: pointer; }
 .research-notion-body img { display: block; max-width: 100%; height: auto; margin: 20px 0; }
 .research-notion-body pre { overflow: auto; max-width: 100%; padding: 14px; background: #191f1c; }
 .research-notion-body code { font-size: 12px; }

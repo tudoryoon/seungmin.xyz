@@ -155,6 +155,12 @@ Local preview: set `RESEARCH_SECRET_FILE` and `NOTION_TOKEN_FILE` to mode-0600 f
 
 Tests: `JSDOM_MODULE=/path/to/jsdom/lib/api.js node --test tests/notion-research.mjs`, plus the existing Research access/reader/route suites. Tests use synthetic pages and exercise KST date boundaries, root scoping, removed pages, revocation despite cache, encrypted cache storage, rate limits, source date differences, markdown sanitization and progressive client updates. DOMPurify security assertions run against JSDOM, not Happy DOM.
 
+### Read linked pages inside Research
+
+`research-links.js` resolves Notion page URLs against the current authorized catalog by page ID, including legacy source URLs, hyphenated IDs, app/public workspace URLs, relative links and database `?p=` links. After sanitization, markdown links, child pages, page mentions, links inside tables and record references use internal Research deep links. Normal clicks show the record, clearing filters that would hide it; modifier clicks open the same internal route. Pending pages use the existing prioritized hydration flow. A Notion block hash opens its containing record; block-level scrolling is not available in the markdown export.
+
+Unknown Notion destinations show an in-reader notice with an explicit **Notion 원문에서 열기** action. They do not redirect, broaden ingestion scope or make an extra Notion request. The footer's **Notion 원문** remains an explicit external link; ordinary non-Notion sources remain external. The page lookup is rebuilt on catalog changes, including deletions/revocations. Background hydration retains an open unavailable-page notice. `tests/research-links.mjs` covers synthetic URL variants, host spoofing, XSS, internal navigation, filter reset, pending-body hydration, route restoration, source opt-in and catalog removal.
+
 ## Original Draft (Historical)
 
 The following describes the earlier six-summary draft. Live synchronization above supersedes its ingestion and date behavior.
