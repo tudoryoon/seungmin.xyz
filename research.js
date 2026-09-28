@@ -8,6 +8,8 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
   const document = root.ownerDocument, window = document.defaultView;
   const $ = id => root.querySelector('#' + id);
   let state = readResearchRoute(window.location.hash, index), mobile = window.location.hash.includes('note=') ? 'record' : 'list', cy = null, graphEpoch = 0, destroyed = false;
+  let graphLoading = false, graphRecord = '', graphSignature = '', graphFrame = 0, graphNeedsFit = false, graphRingSize = 8;
+  const graphSlots = new Map();
   const listeners = [];
   function listen(target, type, handler) { target.addEventListener(type, handler); listeners.push(() => target.removeEventListener(type, handler)); }
   function element(tag, className, text) {
@@ -62,6 +64,9 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
     </div>
     <section id="research-sector-view" class="research-sector-view" aria-label="섹터 지도" hidden></section>
     <footer class="research-footer"><span id="research-snapshot-label"></span><span id="research-sync-status" role="status"></span></footer>`;
+  const zoomLevel = element('output', 'research-zoom-level', '100%');
+  zoomLevel.id = 'research-zoom-level'; zoomLevel.setAttribute('aria-label', '관계망 확대율');
+  $('research-zoom-out').after(zoomLevel);
   const sectorMap = createSectorMap($('research-sector-view'), {
     onSelect: sector => navigate({ view: 'sector', sector }),
     onOpenRecord: (note, section) => { mobile = 'record'; navigate({ note, section, view: 'read', query: '', month: '', entity: '' }); }
@@ -169,27 +174,83 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
     $('research-graph-links').replaceChildren(...[record, ...items.map(item => item.record)].map(r => recordLink(r, 'research-graph-link')));
   }
 
-  function stopGraph() { graphEpoch++; cy?.destroy(); cy = null; }
-  function fitGraph() {
-    if (!cy) return;
-    cy.resize(); cy.fit(undefined, 38);
-    if (cy.zoom() > 1.25) { cy.zoom(1.25); cy.center(); }
+  function stopGraph() {
+    graphEpoch++; graphLoading = false; graphRecord = ''; graphSignature = ''; graphSlots.clear(); graphNeedsFit = false;
+    if (graphFrame) window.cancelAnimationFrame(graphFrame); graphFrame = 0;
+    cy?.destroy(); cy = null;
+  }
+  function resizeGraph() {
+    graphFrame = 0;
+    if (!cy || destroyed || root.hidden || state.view !== 'graph') return;
+    const { width, height } = $('research-graph').getBoundingClientRect();
+    if (!width || !height) return; // Wait for the mobile graph panel to become visible.
+    cy.resize();
+    if (graphNeedsFit) {
+      cy.fit(undefined, 38);
+      if (cy.zoom() > 1.25) { cy.zoom(1.25); cy.center(); }
+      graphNeedsFit = false;
+    }
+  }
+  function scheduleGraphResize() {
+    if (!graphFrame && !destroyed) graphFrame = window.requestAnimationFrame(resizeGraph);
+  }
+  function fitGraph() { if (graphFrame) window.cancelAnimationFrame(graphFrame); graphFrame = 0; graphNeedsFit = true; resizeGraph(); }
+  function graphPosition(id, focus) {
+    if (id === focus) return { x: 0, y: 0 };
+    if (!graphSlots.has(id)) {
+      const used = new Set(graphSlots.values()); let free = 0;
+      while (used.has(free)) free++;
+      graphSlots.set(id, free);
+    }
+    let slot = graphSlots.get(id), ring = 1;
+    while (slot >= ring * graphRingSize) { slot -= ring * graphRingSize; ring++; }
+    const angle = (slot + (ring > 1 ? .5 : 0)) * Math.PI * 2 / (ring * graphRingSize), radius = Math.max(210, graphRingSize * 22) * ring;
+    return { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
+  }
+  function syncGraph(record) {
+    const neighbors = relatedRecords(index, record.id, state.suggestions);
+    const nodes = [...new Map([record, ...neighbors.map(n => n.record)].map(r => [r.id, r])).values()].sort((a,b)=>a.id.localeCompare(b.id));
+    const elements = [
+      ...nodes.map(r => ({ group: 'nodes', data: { id: r.id, label: r.title.replace(' · ', '\n'), kind: r.kind }, classes: r.id === record.id ? 'focus' : '' })),
+      ...neighbors.map(({ relation: r }) => ({ group: 'edges', data: { id: r.id, source: r.from, target: r.to, label: r.label }, classes: r.status })).sort((a,b)=>a.data.id.localeCompare(b.data.id))
+    ];
+    const signature = JSON.stringify(elements), changedRecord = graphRecord !== record.id;
+    if (!changedRecord && signature === graphSignature) return;
+    if (changedRecord) {
+      graphSlots.clear();
+      const initial = nodes.filter(n => n.id !== record.id); graphRingSize = Math.max(8, initial.length);
+      initial.forEach((n, i) => graphSlots.set(n.id, Math.floor(i * graphRingSize / initial.length)));
+    }
+    const wanted = new Set(elements.map(e => e.data.id));
+    cy.batch(() => {
+      if (changedRecord) cy.elements().remove();
+      else cy.elements().filter(e => !wanted.has(e.id())).remove();
+      for (const spec of elements) {
+        let current = cy.getElementById(spec.data.id);
+        if (spec.group === 'edges' && current.length && (current.data('source') !== spec.data.source || current.data('target') !== spec.data.target)) { current.remove(); current = cy.getElementById(spec.data.id); }
+        if (!current.length) cy.add({ ...spec, ...(spec.group === 'nodes' ? { position: graphPosition(spec.data.id, record.id) } : {}) });
+        else { current.data(spec.data); current.classes(spec.classes); }
+      }
+    });
+    graphRecord = record.id; graphSignature = signature;
+    // Auto-fit once per selected record, never for background hydration or filtering suggestions.
+    if (changedRecord) fitGraph();
   }
   async function renderGraph(record) {
-    stopGraph(); const epoch = graphEpoch;
     $('research-graph-title').textContent = record.title;
+    if (cy) { syncGraph(record); return; }
+    if (graphLoading) return;
+    const epoch = graphEpoch; graphLoading = true;
     $('research-graph-status').textContent = '관계망 불러오는 중…';
     try {
       const { default: cytoscape } = await loadGraph();
       if (destroyed || epoch !== graphEpoch || root.hidden || state.view !== 'graph') return;
-      const neighbors = relatedRecords(index, record.id, state.suggestions);
-      const nodes = [record, ...neighbors.map(n => n.record)];
+      // A different selection or hydration batch may have arrived while the module loaded.
+      const current = index.records.get(state.note); if (!current) return;
+      $('research-graph-status').textContent = '';
       cy = cytoscape({
         container: $('research-graph'), minZoom: .45, maxZoom: 2.5,
-        elements: [
-          ...nodes.map(r => ({ data: { id: r.id, label: r.title.replace(' · ', '\n'), kind: r.kind }, classes: r.id === record.id ? 'focus' : '' })),
-          ...neighbors.map(({ relation: r }) => ({ data: { id: r.id, source: r.from, target: r.to, label: r.label }, classes: r.status }))
-        ],
+        elements: [],
         style: [
           { selector: 'node', style: { 'background-color': '#c0c7c1', 'border-color': '#323e37', 'border-width': 8, width: 20, height: 20, label: 'data(label)', color: '#cbd3ce', 'font-size': 14, 'font-family': 'system-ui, sans-serif', 'text-wrap': 'wrap', 'text-max-width': 120, 'text-valign': 'bottom', 'text-margin-y': 14, 'text-background-color': '#101513', 'text-background-opacity': .94, 'text-background-padding': 4 } },
           { selector: 'node[kind = "study"]', style: { 'background-color': '#c2afde' } },
@@ -200,25 +261,25 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
           { selector: 'edge.suggested', style: { 'line-style': 'dashed', 'line-color': '#96867a', 'target-arrow-shape': 'none', color: '#c3ad98' } },
           { selector: 'edge:selected', style: { width: 3, 'line-color': '#e1c799' } }
         ],
-        layout: { name: 'concentric', concentric: node => node.id() === record.id ? 2 : 1, levelWidth: () => 1, minNodeSpacing: 95, spacingFactor: 1, padding: 38, animate: false, startAngle: 0, nodeDimensionsIncludeLabels: false }
+        layout: { name: 'preset', fit: false }
       });
       cy.on('tap', 'node', event => { if (event.target.id() !== state.note) openRecord(event.target.id()); });
+      cy.on('zoom', () => { $('research-zoom-level').textContent = Math.round(cy.zoom() * 100) + '%'; });
       cy.on('tap', 'edge', event => {
         mobile = 'context'; root.dataset.panel = mobile; updatePanels();
         const panel = $('research-relation-' + event.target.id());
         panel?.querySelector('details')?.setAttribute('open', ''); scrollWithin(root.querySelector('.research-context'), panel);
       });
-      fitGraph();
-      $('research-graph-status').textContent = '';
+      syncGraph(current);
     } catch {
-      if (epoch === graphEpoch) $('research-graph-status').textContent = '관계망을 표시하지 못했습니다. 아래 목록에서 기록을 열 수 있습니다.';
-    }
+      if (epoch === graphEpoch) { cy?.destroy(); cy = null; graphRecord = ''; graphSignature = ''; $('research-graph-status').textContent = '관계망을 표시하지 못했습니다. 아래 목록에서 기록을 열 수 있습니다.'; }
+    } finally { if (epoch === graphEpoch) graphLoading = false; }
   }
 
   function updatePanels() {
     root.dataset.panel = mobile;
     root.querySelectorAll('[data-research-panel]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.researchPanel === mobile)));
-    if (mobile === 'record') window.requestAnimationFrame(fitGraph);
+    if (mobile === 'record') scheduleGraphResize();
   }
   function render() {
     root.dataset.view = state.view;
@@ -242,7 +303,8 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
     $('research-graph-view').hidden = !record || state.view !== 'graph';
     $('research-main-empty').hidden = !!record;
     if (!record) { stopGraph(); $('research-relations').replaceChildren(); icons(); return; }
-    renderReader(record); renderRelations(record);
+    if (state.view === 'read') renderReader(record);
+    renderRelations(record);
     if (state.view === 'graph' && !root.hidden) void renderGraph(record); else stopGraph();
     icons();
     if (state.section && state.view === 'read') window.requestAnimationFrame(() => scrollWithin($('research-reader'), $(`research-section-${state.section}`)));
@@ -267,7 +329,7 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
   };
   listen(window, 'realm-view', restore);
   // Route handling in realm.js dispatches realm-view after restoring the public stage.
-  const observer = typeof window.ResizeObserver === 'function' ? new window.ResizeObserver(fitGraph) : null;
+  const observer = typeof window.ResizeObserver === 'function' ? new window.ResizeObserver(scheduleGraphResize) : null;
   observer?.observe($('research-graph'));
   render();
   return { get index() { return index; }, render, getState: () => ({ ...state }),

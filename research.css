@@ -100,6 +100,7 @@ body[data-stage=research] .world-shade { opacity:.9; }
 .research-eyebrow { font-size:10px;color:#a2b6a8; }
 .research-graph-heading h3 { font-size:16px;font-weight:500;line-height:1.7;overflow-wrap:anywhere; }
 .research-graph-tools { display:flex;gap:2px;flex-shrink:0; }
+.research-zoom-level { display:flex;align-items:center;justify-content:center;width:42px;font-size:11px;font-variant-numeric:tabular-nums;color:var(--r-muted); }
 .research-graph { position:relative;flex:1;min-height:260px;touch-action:none; }
 #research-graph-status { padding-inline:20px;font-size:12px;color:#ceb895; }
 #research-graph-status:empty { display:none; }

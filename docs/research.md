@@ -1,5 +1,25 @@
 # Password-Protected Research
 
+## Stable graph viewport (2026-09-28)
+
+Previously every four-page Notion hydration batch destroyed and recreated the
+graph, while both the panel renderer and ResizeObserver fitted the viewport
+again. The new graph lifecycle keeps one Cytoscape renderer during graph view,
+diffs the displayed nodes/edges, and preserves existing node positions, zoom and
+pan. Unrelated body changes skip graph mutation. New nodes receive free slots
+around the selected record; initial neighbors are distributed evenly. The preset
+layout has automatic fitting disabled. Only a new selected record or an explicit
+overview button fits the camera; size changes just resize the drawing surface.
+The toolbar displays the actual zoom percentage.
+
+Concurrent module loading is coalesced and uses the latest selection. A hidden
+mobile panel defers its initial fit until it has nonzero dimensions. Leaving the
+graph or locking Research cancels pending work and destroys the renderer.
+`tests/research-graph.mjs` uses the shipped Cytoscape engine in headless mode to
+verify camera/dragged-position preservation through hydration, graph edits,
+suggestion filtering, repeated resize, mobile panels and route events, along
+with explicit fit, selection changes, delayed imports and teardown.
+
 ## Sector Atlas (2026-09-28)
 
 The bare `#research` route opens the sector atlas. Existing note and graph links
