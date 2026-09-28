@@ -7,7 +7,7 @@ Keep interface copy literal and minimal. No slogans, lore captions, motivational
 
 ## Current Flow
 
-Scroll-through portal -> public Research / 서울 맛집 지도 / 개인일정 / About menu. Only 개인일정 opens the owner's password login -> profile -> text-driven pixel avatar -> dungeon map; complete signed-in accounts go directly to their map. Research at `#research` offers reviewed Notion study summaries, dates, search, topics and an evidence-linked relationship graph. Old `#substack` links redirect to Research; the Substack browser reader is no longer loaded. Public content opens beneath the horizontal navigation; selecting its active link collapses it. Login retains the navigation, and a back-arrow control returns private screens to the public menu.
+Scroll-through portal -> public Research / 개인일정 / About menu. 서울 맛집 지도 opens from a link inside About and provides a return-to-About arrow; existing `#food-map` bookmarks still work. Only 개인일정 opens the owner's password login -> profile -> text-driven pixel avatar -> dungeon map; complete signed-in accounts go directly to their map. Research at `#research` offers reviewed Notion study summaries, dates, search, topics and an evidence-linked relationship graph. Old `#substack` links redirect to Research; the Substack browser reader is no longer loaded. Public content opens beneath the horizontal navigation; selecting its active main-menu link collapses it. Login retains the navigation, and a back-arrow control returns private screens to the public menu.
 
 ## Research
 

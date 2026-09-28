@@ -108,6 +108,7 @@ function show(next, {replace=false,fromScroll=false} = {}) {
   for(const page of ['research','food-map','about'])$(page+'-content').hidden=next!==page;
   document.querySelectorAll('[data-public-page]').forEach(link=>{
     if(link.dataset.publicPage===next)link.setAttribute('aria-current','page');
+    else if(link.dataset.publicPage==='about' && next==='food-map')link.setAttribute('aria-current','location');
     else link.removeAttribute('aria-current');
   });
   document.querySelector('.journey').hidden = [...publicStages,'auth','complete','map'].includes(next);
@@ -201,7 +202,7 @@ const ready = client.auth.getSession().then(({ data, error }) => {
 const restoreRoute=()=>{if(sessionReady)routeAccount();};
 window.addEventListener('hashchange',restoreRoute);
 window.addEventListener('popstate',restoreRoute);
-document.querySelectorAll('[data-public-page]').forEach(link=>link.addEventListener('click',event=>{
+document.querySelectorAll('#public-nav [data-public-page]').forEach(link=>link.addEventListener('click',event=>{
   if(event.button!==0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)return;
   if(link.dataset.publicPage===stage && ['research','food-map','about'].includes(stage)){
     event.preventDefault();show('home');

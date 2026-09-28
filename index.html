@@ -17,10 +17,10 @@
   <link rel="preload" as="image" href="assets/entry-earth.webp">
   <link rel="stylesheet" href="styles.css?v=20260924-2">
   <link rel="stylesheet" href="dungeon.css?v=20260924-2">
-  <link rel="stylesheet" href="continuity.css?v=20260924-10">
+  <link rel="stylesheet" href="continuity.css?v=20260928-1">
   <link rel="stylesheet" href="policy.css?v=20260924-10">
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
-  <link rel="stylesheet" href="food-map.css?v=20260926-2">
+  <link rel="stylesheet" href="food-map.css?v=20260928-1">
   <link rel="stylesheet" href="research.css?v=20260928-8">
   <link rel="stylesheet" href="pwa.css?v=1">
   <script src="pwa.js?v=1" defer></script>
@@ -52,13 +52,13 @@
       <h1 id="home-title" class="sr-only" tabindex="-1">메뉴</h1>
       <nav id="public-nav" class="public-nav" aria-label="주요 메뉴">
         <a href="#research" data-public-page="research">Research</a>
-        <a href="#food-map" data-public-page="food-map">서울 맛집 지도</a>
         <a href="#map" data-public-page="auth">개인일정</a>
         <a href="#about" data-public-page="about">About</a>
       </nav>
       <div class="public-content">
         <section id="food-map-content" class="food-map-content" aria-labelledby="food-map-title" hidden>
           <header class="food-map-heading">
+            <a class="food-map-back icon-button" href="#about" title="About으로 돌아가기" aria-label="About으로 돌아가기"><i data-lucide="arrow-left" aria-hidden="true"></i></a>
             <h2 id="food-map-title">서울 맛집 지도</h2><span id="food-station-count" class="food-station-count" role="status"></span>
             <div class="food-map-scope" role="group" aria-label="지도 범위"><button type="button" data-map-scope="seoul" aria-pressed="true">서울</button><button type="button" data-map-scope="all" aria-pressed="false">전체</button></div>
           </header>
@@ -91,6 +91,7 @@
         <div id="about-content" hidden>
           <p>개인 페이지입니다.</p>
           <p class="about-purpose">포털은 운영자의 일정과 기록을 관리하는 개인용 공간입니다.</p>
+          <nav class="about-links" aria-label="개인 프로젝트"><a href="#food-map" data-public-page="food-map">서울 맛집 지도<i data-lucide="arrow-right" aria-hidden="true"></i></a></nav>
           <nav class="about-policy-links policy-links" aria-label="사이트 정책"><a href="privacy.html">개인정보처리방침</a><a href="terms.html">이용약관</a></nav>
         </div>
       </div>
@@ -183,7 +184,7 @@
   <script src="vendor/supabase.js" defer></script>
   <script src="auth-client.js?v=20260924-5" defer></script>
   <script src="vendor/lucide.js" defer></script>
-  <script type="module" src="realm.js?v=20260928-1"></script>
+  <script type="module" src="realm.js?v=20260928-2"></script>
   <script type="module" src="food-map.js?v=20260926-2"></script>
   <script type="module" src="research.js?v=20260928-7"></script>
   <script type="module" src="player-level.js?v=20260924-2"></script>

@@ -89,6 +89,8 @@ for(const account of [null,user]) {
     const research=doc.querySelector('.public-nav a[data-public-page=research]');
     assert.equal(research.getAttribute('href'),'#research','Research opens inline');
     assert.equal(research.hasAttribute('target'),false);
+    assert.deepEqual([...doc.querySelectorAll('#public-nav a')].map(a=>a.textContent),['Research','개인일정','About']);
+    assert.equal(doc.querySelector('#about-content [data-public-page=food-map]').getAttribute('href'),'#food-map');
     assert.equal(doc.getElementById('substack-content'),null,'old feed is no longer mounted');
     assert.equal(doc.querySelector('script[src^="substack.js"]'),null,'no Substack requests');
     doc.querySelector('[data-public-page]').focus();
@@ -120,8 +122,10 @@ for(const account of [null,user]) {
     navigate('#food-map');assert.equal(doc.getElementById('food-map-content').hidden,false);assert.equal(doc.getElementById('research-content').hidden,true);
     assert.equal(doc.documentElement.classList.contains('research-open'),false,'leaving Research releases the document scroll lock');
     assert.equal(doc.querySelector('[data-public-page=food-map]').getAttribute('aria-current'),'page');
+    assert.equal(doc.querySelector('#public-nav [data-public-page=about]').getAttribute('aria-current'),'location');
     assert.equal(doc.title,'서울 맛집 지도');
-    doc.querySelector('[data-public-page=food-map]').click();assert.equal(doc.body.dataset.stage,'home');assert.equal(doc.getElementById('food-map-content').hidden,true);
+    assert.equal(doc.querySelector('.food-map-back').getAttribute('href'),'#about');
+    navigate('#about');assert.equal(doc.getElementById('about-content').hidden,false);assert.equal(doc.getElementById('food-map-content').hidden,true);
     navigate('#map');assert.equal(doc.body.dataset.stage,account?'map':'auth');
     assert.equal(entry.hidden,true);assert.equal(doc.body.classList.contains('entry-flow'),false);
     if(!account){

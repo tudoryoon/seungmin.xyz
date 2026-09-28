@@ -76,6 +76,10 @@ body.entry-flow .world-shade { background:#030810;opacity:calc(.03 + var(--hub-r
 .public-nav a:hover::after,.public-nav a[aria-current]::after { transform:scaleX(1); }
 .public-content { padding-top:36px;min-height:84px;color:#c3d2cf;font-size:15px;line-height:1.8;text-shadow:0 2px 16px #000; }
 .about-purpose { margin-top:12px;font-size:13px;color:#a7bcb3; }
+.about-links { display:flex;justify-content:center;margin-top:24px; }
+.about-links a { display:inline-flex;align-items:center;gap:10px;min-height:44px;color:var(--mint);text-decoration:underline;text-underline-offset:5px; }
+.about-links a svg { width:16px;height:16px; }
+.about-links a:focus-visible { outline:2px solid var(--mint);outline-offset:4px; }
 body.entry-flow .public-hub { opacity:var(--hub-reveal,0);transform:translateY(calc((1 - var(--hub-reveal,0)) * 18px)); }
 body.entry-flow .public-hub[inert] { pointer-events:none; }
 body.entry-flow.reduced-motion .public-hub { transform:none; }
