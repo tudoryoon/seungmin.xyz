@@ -63,7 +63,7 @@ await assert.rejects(()=>redirectLoad(seed,env,request()),e=>e.code==='notion_re
 assert.equal(redirectCalls,1,'reject redirects without a second authenticated request');
 
 const {JSDOM}=await import(process.env.JSDOM_MODULE||'jsdom');
-const win=new JSDOM('',{url:'https://example.com/#research',pretendToBeVisual:true}).window;
+const win=new JSDOM('',{url:'https://example.com/#research?view=read',pretendToBeVisual:true}).window;
 const root=win.document.createElement('section');win.document.body.append(root);win.document.body.dataset.stage='research';
 try {
   const fragment=renderNotionMarkdown('# Hello\n<script>alert(1)</script>\n[bad](javascript:alert(1))\n<page url="https://example.com/note">Good note</page>\n<img src=x onerror=alert(1)>',win.document);

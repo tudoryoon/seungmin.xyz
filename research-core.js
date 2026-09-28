@@ -63,9 +63,11 @@ export function recordDate(record, compact = false) {
 
 export function readResearchRoute(hash, index) {
   const params = new URLSearchParams(hash.split('?')[1] || '');
+  const sectorEntry = params.get('view') === 'sector' || (hash === '#research' || hash === '#research?');
   return {
     note: index.records.has(params.get('note')) ? params.get('note') : 'fde-20260922',
-    view: params.get('view') === 'graph' ? 'graph' : 'read',
+    view: sectorEntry ? 'sector' : params.get('view') === 'graph' ? 'graph' : 'read',
+    ...(sectorEntry ? { sector: /^[a-z0-9-]{1,40}$/.test(params.get('sector') || '') ? params.get('sector') : 'rack' } : {}),
     query: (params.get('q') || '').slice(0, 120),
     month: /^(\d{4}-\d{2}|undated)$/.test(params.get('month') || '') ? params.get('month') : '',
     entity: index.entities.has(params.get('entity')) ? params.get('entity') : '',
@@ -77,7 +79,8 @@ export function readResearchRoute(hash, index) {
 export function researchHref(state = {}) {
   const params = new URLSearchParams();
   if (state.note) params.set('note', state.note);
-  if (state.view === 'graph') params.set('view', 'graph');
+  if (['graph', 'sector'].includes(state.view)) params.set('view', state.view);
+  if (state.view === 'sector' && state.sector) params.set('sector', state.sector);
   if (state.query) params.set('q', state.query);
   if (state.month) params.set('month', state.month);
   if (state.entity) params.set('entity', state.entity);

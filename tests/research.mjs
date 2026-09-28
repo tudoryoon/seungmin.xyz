@@ -25,7 +25,7 @@ for(const edit of [d=>d.records.push(d.records[0]),d=>d.relations[0].evidence[0]
 }
 const {Window}=await import(process.env.DOM_MODULE||'happy-dom');
 const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
-const window=new Window({url:'https://seungmin.xyz/#research',settings:{disableCSSFileLoading:true,disableJavaScriptFileLoading:true}});
+const window=new Window({url:'https://seungmin.xyz/#research?view=read',settings:{disableCSSFileLoading:true,disableJavaScriptFileLoading:true}});
 window.document.write(html);window.document.body.dataset.stage='research';
 window.HTMLElement.prototype.scrollIntoView=function(){};
 const root=window.document.getElementById('research-content');root.hidden=false;

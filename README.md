@@ -11,6 +11,14 @@ Scroll-through portal -> public Research / 서울 맛집 지도 / 개인일정 /
 
 ## Research
 
+Research opens on a sector atlas with 20 study areas, record coverage, topic
+search and a gaps filter. Selecting an area shows title-matched Notion records,
+separately labeled body mentions, study questions and typed industry paths with
+public source links. Records and Connections remain available as separate views.
+The shared taxonomy is versioned in code; private records are joined only after
+unlocking and are never saved in browser storage. This release adds no AI calls
+or in-browser editing of the taxonomy. See [sector atlas details](docs/research.md).
+
 Research uses a full-width workspace with internal scrolling. The entrance runway is hidden while Research is open, so scrolling upward over either the content or the surrounding background cannot leave the workspace. The top-left arrow returns to the public menu. Body overlap suggestions identify copied passages across notes and show matching excerpts under **본문 중복 · 연결 제안**; see [the matching rules](docs/research.md).
 
 Research now reads the approved Notion root and its descendant pages through an official read-only connection. It refreshes on opening and every five minutes while visible. Dates use Notion creation timestamps in KST; modification timestamps and dates explicitly found in titles are displayed separately. Page hierarchy, original links, and shared-topic suggestions form the relationship graph. The six earlier summaries remain only as an encrypted unconfigured-preview fallback, not as a fallback after a live permission error. The Notion token and encryption key are Cloudflare server secrets. `/api/research` checks its signed HttpOnly session before any Notion request. Details and limits are in [docs/research.md](docs/research.md). No additional database, recurring background Worker, or paid model API is used. Cytoscape.js, Marked and DOMPurify are vendored with their licenses. Calendar, workout, library and auth storage remain private and unchanged.

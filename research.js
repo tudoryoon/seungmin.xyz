@@ -1,6 +1,7 @@
-import { createResearchIndex, filterRecords, relatedRecords, recordDate, readResearchRoute, researchHref, KIND_LABELS, safeSourceURL } from './research-core.js?v=20260927-1';
+import { createResearchIndex, filterRecords, relatedRecords, recordDate, readResearchRoute, researchHref, KIND_LABELS, safeSourceURL } from './research-core.js?v=20260928-2';
 import { kstTimestamp, mergeNotionBodies, rebuildNotionRelations } from './research-sync-core.js?v=20260928-1';
 import { renderNotionMarkdown } from './research-markdown.js?v=20260927-3';
+import { createSectorMap } from './research-sector-view.js?v=20260928-1';
 
 export function createResearch(root, { data, loadGraph = () => import('./vendor/cytoscape.mjs'), onLock = () => {} } = {}) {
   let index = createResearchIndex(data);
@@ -51,7 +52,7 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
       <select id="research-month" aria-label="기록 월"><option value="">모든 날짜</option></select>
       <select id="research-entity" aria-label="주제와 기업"><option value="">모든 주제</option></select>
       <button id="research-reset" class="icon-button" type="button" title="검색과 필터 초기화" aria-label="검색과 필터 초기화"><i data-lucide="rotate-ccw" aria-hidden="true"></i></button>
-      <div class="research-view" role="group" aria-label="보기"><button type="button" data-research-view="read" aria-pressed="true"><i data-lucide="book-open" aria-hidden="true"></i>기록</button><button type="button" data-research-view="graph" aria-pressed="false"><i data-lucide="git-fork" aria-hidden="true"></i>연결</button></div>
+      <div class="research-view" role="group" aria-label="보기"><button type="button" data-research-view="sector" aria-pressed="false"><i data-lucide="network" aria-hidden="true"></i>섹터 지도</button><button type="button" data-research-view="read" aria-pressed="true"><i data-lucide="book-open" aria-hidden="true"></i>기록</button><button type="button" data-research-view="graph" aria-pressed="false"><i data-lucide="git-fork" aria-hidden="true"></i>연결</button></div>
     </div>
     <nav class="research-mobile-nav" aria-label="Research 패널"><button type="button" data-research-panel="list" aria-pressed="true">목록</button><button type="button" data-research-panel="record" aria-pressed="false">본문</button><button type="button" data-research-panel="context" aria-pressed="false">관련 기록</button></nav>
     <div class="research-layout">
@@ -59,7 +60,12 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
       <div class="research-main"><article id="research-reader" class="research-reader research-scroll" aria-labelledby="research-record-title"></article><section id="research-graph-view" class="research-graph-view" aria-label="기록 관계망" hidden><header class="research-graph-heading"><div><span class="research-eyebrow">연결</span><h3 id="research-graph-title"></h3></div><div class="research-graph-tools"><button type="button" id="research-zoom-out" class="icon-button" title="관계망 축소" aria-label="관계망 축소"><i data-lucide="minus" aria-hidden="true"></i></button><button type="button" id="research-zoom-in" class="icon-button" title="관계망 확대" aria-label="관계망 확대"><i data-lucide="plus" aria-hidden="true"></i></button><button type="button" id="research-fit" class="icon-button" title="관계망 전체 보기" aria-label="관계망 전체 보기"><i data-lucide="maximize" aria-hidden="true"></i></button></div></header><div id="research-graph" class="research-graph" role="img" aria-label="선택한 기록과 관련 기록의 관계망"></div><p id="research-graph-status" role="status"></p><nav id="research-graph-links" aria-label="관계망의 기록"></nav><div class="research-legend"><span>기록 기반</span><span>연결 제안</span></div></section><p id="research-main-empty" class="research-empty" hidden>다른 검색어 또는 주제를 선택해 주세요.</p></div>
       <aside class="research-context research-scroll" aria-label="관련 기록과 근거"><div class="research-context-heading"><h3>관련 기록</h3><label class="research-suggestions"><input id="research-suggestions" type="checkbox" checked>제안 포함</label></div><div id="research-relations"></div></aside>
     </div>
+    <section id="research-sector-view" class="research-sector-view" aria-label="섹터 지도" hidden></section>
     <footer class="research-footer"><span id="research-snapshot-label"></span><span id="research-sync-status" role="status"></span></footer>`;
+  const sectorMap = createSectorMap($('research-sector-view'), {
+    onSelect: sector => navigate({ view: 'sector', sector }),
+    onOpenRecord: (note, section) => { mobile = 'record'; navigate({ note, section, view: 'read', query: '', month: '', entity: '' }); }
+  });
   function refreshMetadata() {
     root.querySelector('.research-edition > span').hidden = data.mode === 'notion-live';
     $('research-total').textContent = String(index.records.size).padStart(2, '0');
@@ -215,6 +221,12 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
     if (mobile === 'record') window.requestAnimationFrame(fitGraph);
   }
   function render() {
+    root.dataset.view = state.view;
+    const sectors = state.view === 'sector';
+    $('research-sector-view').hidden = !sectors;
+    root.querySelector('.research-layout').hidden = sectors;
+    root.querySelectorAll('[data-research-view]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.researchView === state.view)));
+    if (sectors) { stopGraph(); sectorMap.update(data, state.sector); icons(); return; }
     const records = filterRecords(index, state);
     if (records.length && !records.some(r => r.id === state.note)) {
       state.note = records[0].id; state.section = '';
@@ -259,13 +271,14 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
   observer?.observe($('research-graph'));
   render();
   return { get index() { return index; }, render, getState: () => ({ ...state }),
+    prioritizedRecordIds() { return state.view === 'sector' ? sectorMap.prioritizedRecordIds() : [state.note]; },
     setSyncStatus(text) { $('research-sync-status').textContent = text; },
     update(next) {
       const scroll = [...root.querySelectorAll('.research-scroll')].map(n=>[n,n.scrollTop]);
       data = next; index = createResearchIndex(data); refreshMetadata(); render();
       for (const [node, top] of scroll) node.scrollTop = top;
     },
-    destroy() { destroyed = true; stopGraph(); observer?.disconnect(); listeners.forEach(dispose => dispose()); } };
+    destroy() { destroyed = true; stopGraph(); sectorMap.destroy(); observer?.disconnect(); listeners.forEach(dispose => dispose()); } };
 }
 
 export function createResearchGate(root, { fetchRequest = (...args) => fetch(...args), createReader = createResearch } = {}) {
@@ -328,8 +341,8 @@ export function createResearchGate(root, { fetchRequest = (...args) => fetch(...
         else reader.update?.(data);
         if (data.mode === 'notion-live') {
           while (dataset.records.some(r=>!r.loaded) && attempt === generation && !destroyed && !document.hidden) {
-            const selected = reader.getState().note;
-            const batch = dataset.records.filter(r=>!r.loaded).sort((a,b)=>(b.id===selected)-(a.id===selected)).slice(0,4);
+            const priority = new Set(reader.prioritizedRecordIds?.() || [reader.getState().note]);
+            const batch = dataset.records.filter(r=>!r.loaded).sort((a,b)=>Number(priority.has(b.id))-Number(priority.has(a.id))).slice(0,4);
             reader.setSyncStatus(`원문 동기화 ${dataset.records.filter(r=>r.loaded).length} / ${dataset.records.length}`);
             const bodyResponse = await fetchRequest('/api/research?hydrate='+batch.map(r=>r.source.pageId).join(','),{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(30000)});
             if (attempt !== generation || destroyed) return;

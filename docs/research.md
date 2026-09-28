@@ -1,5 +1,65 @@
 # Password-Protected Research
 
+## Sector Atlas (2026-09-28)
+
+The bare `#research` route opens the sector atlas. Existing note and graph links
+still open the corresponding record. `#research?view=sector&sector=hbm` restores
+a sector selection; the Records and Connections buttons retain the original
+reader and document relationship graph.
+
+`research-sectors.js` contains a public, versioned study taxonomy: 20 areas over
+seven layers, based on the owner's industry map. Process generations, GPU/custom
+ASIC, CPU/HBM, packaging, systems, facilities, cloud operators and applications
+are separated. The taxonomy and public reference links are shared through the
+site's code, so every device receives the same structure after deployment.
+Private source text is never included in this module or in fixtures.
+
+`research-sector-view.js` joins the authorized Notion catalog to this taxonomy in
+memory after unlocking. Title matches, the immediate parent page and body mentions
+have separate labels and evidence. Body mentions are candidate relevance, never a primary-topic decision
+or an industry relationship. URLs, image targets, code and embedded attachments
+do not contribute. Single-letter tickers match only explicit title patterns.
+Empty pages, records with content, mentions and pending hydration have distinct
+states. The overview counts areas with nonempty title/parent-matched records, not
+research completeness. Search and the gaps filter affect only the atlas; the
+record reader retains its filters. New/edited/deleted Notion pages are reconciled
+through the existing refresh. Public diagrams include explicitly labeled study
+paths and dated official references; a study path is not a verified supply
+contract or an investment conclusion. Narrow screens provide a stacked map and
+detail panel with navigation back to the map.
+
+This release is an interactive atlas and record browser. It does not yet provide
+user-authored node/relation editing, a durable annotation database, or AI calls.
+It does not write to Notion, change its permissions, or persist research content
+in localStorage. Future relationship editing needs authenticated shared storage
+with revision checks; browser-local drafts must not be represented as saved
+cross-device data.
+
+Tests: `node tests/research-sectors.mjs` with `DOM_MODULE`, plus the existing
+Research, Notion, overlap, access and routing suites. Fixtures cover title
+matches vs mentions, false positives from URLs/code, pending and empty records,
+edit/delete reconciliation, safe text rendering, deep links, filters, navigation
+and an empty catalog.
+
+### Embedded agent follow-up
+
+The next layer can be a server-run research agent with tools to search the
+authorized record catalog, read specific pages, inspect the sector map, and
+return proposed links with supporting excerpts and source revisions. A proposal
+review should show changes before applying them through authenticated storage.
+Source text is untrusted evidence, never an instruction granting write access.
+Private retrieval must remain scoped to the approved Notion root, even when the
+model requests a different page. Notion authoring needs a separate explicit
+permission decision because the current connection is read-only.
+
+An embedded agent needs server-side API configuration, authenticated sessions,
+usage limits and a run log/cancel mechanism. A chat box alone does not provide
+those tools or reuse this desktop chat's session. OpenAI runtime options and
+custom functions are described at
+https://developers.openai.com/api/docs/guides/agents and
+https://developers.openai.com/api/docs/guides/tools. No agent service has been
+enabled or billed by this change.
+
 ## Live Notion Connection (2026-09-27)
 
 The site uses an internal Notion connection with read-content capability only, no insert/update/comment/agent/user-profile capability. The owner approved sharing only `3b271f4f9d4c80e3ad2cecb7f0db3174` (the overseas study root) and descendants. `NOTION_TOKEN` is a Production secret in Cloudflare, not a build-time browser variable. Source documents are never modified.
