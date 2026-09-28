@@ -3,7 +3,7 @@ import { kstTimestamp, mergeNotionBodies, rebuildNotionRelations } from './resea
 import { renderNotionMarkdown } from './research-markdown.js?v=20260928-2';
 import { notionImageKey } from './research-media.js?v=20260928-1';
 import { createResearchLinkResolver, configureResearchLink } from './research-links.js?v=20260928-1';
-import { createSectorMap } from './research-sector-view.js?v=20260928-3';
+import { createSectorMap } from './research-sector-view.js?v=20260928-4';
 
 export function createResearch(root, { data, loadGraph = () => import('./vendor/cytoscape.mjs'), onLock = () => {}, onRefreshImages = async () => null } = {}) {
   let index = createResearchIndex(data);

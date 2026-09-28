@@ -1,6 +1,6 @@
 import { SECTOR_LAYERS, SECTOR_NODES, SECTOR_RELATIONS, matchSectorRecords, sectorCoverage } from './research-sectors.js?v=20260928-2';
 import { researchHref, safeSourceURL } from './research-core.js?v=20260928-3';
-import { createSectorCamera } from './research-sector-camera.js?v=20260928-1';
+import { createSectorCamera } from './research-sector-camera.js?v=20260928-2';
 
 export function createSectorMap(root, { onSelect, onOpenRecord }) {
   const document = root.ownerDocument, window = document.defaultView;
@@ -11,6 +11,7 @@ export function createSectorMap(root, { onSelect, onOpenRecord }) {
     <div class="sector-controls"><label><span class="sr-only">섹터 항목 검색</span><input type="search" placeholder="기업·기술·제품 찾기" maxlength="80" aria-label="섹터 항목 검색"></label><label class="sector-gap-filter"><input type="checkbox">채울 영역만</label><span class="sector-match-note">#직접 태그는 긴밀한 연관으로 우선 표시합니다</span></div>
     <div class="sector-workspace"><section class="sector-map-pane" aria-label="산업 지도"><div class="sector-map-toolbar"><span class="sector-map-instructions">휠·핀치로 확대 · 드래그로 이동</span><div class="sector-zoom-controls" role="group" aria-label="섹터 지도 확대 및 축소"><button type="button" data-sector-zoom="out" aria-label="섹터 지도 축소">−</button><output class="sector-zoom-level" aria-label="섹터 지도 확대율">100%</output><button type="button" data-sector-zoom="in" aria-label="섹터 지도 확대">+</button><button type="button" data-sector-zoom="fit">전체 보기</button></div></div><div class="sector-map-viewport" tabindex="0" aria-label="섹터 지도 이동 영역" aria-describedby="sector-map-help"><div class="sector-map" aria-label="섹터 스터디 목차"></div><p class="sector-no-results" hidden>일치하는 항목이 없습니다.</p></div><p class="sr-only" id="sector-map-help">방향키로 이동, 더하기와 빼기 키로 확대·축소, 0 키로 전체 보기. 항목을 선택하면 관련 글이 표시됩니다.</p><div class="sector-map-legend"><span>● 관련 기록</span><span>◐ 본문 언급</span><span>○ 빈 페이지·기록 없음</span></div></section><aside class="sector-detail research-scroll" aria-label="섹터 항목과 근거"></aside></div>`;
   const map = root.querySelector('.sector-map'), detail = root.querySelector('.sector-detail');
+  root.querySelector('.sector-zoom-level').title = '화면에 맞춘 전체 보기 = 100%';
   const camera = createSectorCamera(root.querySelector('.sector-map-viewport'), map, {
     zoomIn:root.querySelector('[data-sector-zoom=in]'),zoomOut:root.querySelector('[data-sector-zoom=out]'),fit:root.querySelector('[data-sector-zoom=fit]'),readout:root.querySelector('.sector-zoom-level')
   });

@@ -1,21 +1,26 @@
-// Pan/zoom the HTML atlas without changing its layout or recreating its content.
+// Keep the fitted atlas at 100%; layout zoom repaints text at its displayed size.
 export function createSectorCamera(viewport, content, { zoomIn, zoomOut, fit, readout }) {
   const window = viewport.ownerDocument.defaultView, listeners = [], pointers = new Map();
-  let scale = 1, x = 0, y = 0, overview = true, ready = false, frame = 0, disposed = false, dragging = false, suppressClick = false;
-  const minScale = .2, maxScale = 3;
+  let scale = 1, fitScale = 1, x = 0, y = 0, overview = true, ready = false, frame = 0, disposed = false, dragging = false, suppressClick = false;
+  const minZoom = .2, maxZoom = 3;
   const listen = (target, type, handler, options) => { target.addEventListener(type, handler, options); listeners.push(() => target.removeEventListener(type, handler, options)); };
-  const clamp = value => Math.max(minScale, Math.min(maxScale, value));
+  const clamp = value => Math.max(fitScale * minZoom, Math.min(fitScale * maxZoom, value));
   const size = () => ({ width: viewport.clientWidth, height: viewport.clientHeight, contentWidth: content.offsetWidth, contentHeight: content.offsetHeight });
   function paint() {
-    content.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
-    content.dataset.detail = scale < .5 ? 'overview' : 'full';
-    readout.textContent = Math.round(scale * 100) + '%';
-    zoomOut.disabled = scale <= minScale; zoomIn.disabled = scale >= maxScale;
+    // CSS zoom lays out/rasterizes glyphs and SVG at the target resolution,
+    // avoiding a permanently composited bitmap scaled by a CSS transform.
+    content.style.zoom = String(scale);
+    content.style.left = x / scale + 'px'; content.style.top = y / scale + 'px';
+    content.style.setProperty('--sector-scale', String(scale));
+    content.dataset.detail = scale < .6 ? 'overview' : scale < .85 ? 'compact' : 'full';
+    readout.textContent = Math.round(scale / fitScale * 100) + '%';
+    zoomOut.disabled = scale <= fitScale * minZoom; zoomIn.disabled = scale >= fitScale * maxZoom;
   }
   function fitContent() {
     const s = size();
     if (!s.width || !s.height || !s.contentWidth || !s.contentHeight) return;
-    scale = clamp(Math.min(1, Math.max(1, s.width - 24) / s.contentWidth, Math.max(1, s.height - 24) / s.contentHeight));
+    fitScale = Math.min(1, Math.max(1, s.width - 24) / s.contentWidth, Math.max(1, s.height - 24) / s.contentHeight);
+    scale = fitScale;
     x = (s.width - s.contentWidth * scale) / 2; y = (s.height - s.contentHeight * scale) / 2;
     ready = true; paint();
   }

@@ -3,13 +3,18 @@
 ## Sector atlas navigation and viewport (2026-09-28)
 
 The atlas keeps all seven layers in a compact, fixed layout and fits them to the
-available viewport on entry. Use the zoom buttons, mouse wheel, touch pinch, or
+available viewport on entry. This fitted view is the 100% baseline; zoom ranges
+from 20% to 300% of that baseline. Use the zoom buttons, mouse wheel, touch pinch, or
 keyboard +/− to zoom; drag or use arrow keys to move; **전체 보기** or 0 restores
 the overview. The map alone handles these gestures, so the related-article panel
 scrolls normally. A drag never activates a sector card. Manual zoom/pan survives
 Notion hydration, topic selection, and viewport resize. Hidden panels defer the
 initial fit; overview mode follows available space. The SVG connections use
 unscaled map coordinates and move with the cards at every zoom level.
+CSS layout zoom renders text and SVG at the displayed size instead of scaling a
+permanently composited layer. Smaller views retain legible topic labels and
+connection strokes, progressively hiding counts and examples before they become
+too small to read. The selected topic's full details remain in the side panel.
 
 Each related article has a prominent **Research에서 읽기** link alongside its
 Notion source link. The article title opens the same Research reader. Internal
