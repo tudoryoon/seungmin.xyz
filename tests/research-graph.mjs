@@ -50,6 +50,11 @@ try {
   const changed = structuredClone(fixture);
   changed.relations.push({id:'new-link',from:'fde-20260922',to:'diary-20260913',type:'link',label:'새 근거',reason:'Synthetic new source',status:'editorial',evidence:[{record:'fde-20260922',section:'implementation'},{record:'diary-20260913',section:'implementation'}]});
   app.reader.update(changed);await app.flush();assertStable();assert.equal(graph.getElementById('new-link').length,1);
+  Object.assign(changed.relations.at(-1),{strength:'strong',tagLabels:['#GPU']});
+  app.reader.update(structuredClone(changed));await app.flush();assertStable();
+  assert.equal(graph.getElementById('new-link').hasClass('strong'),true);
+  assert.equal(graph.getElementById('new-link').data('label'),'#GPU');
+  assert.equal(graph.getElementById('new-link').style('target-arrow-shape'),'none');
   changed.records.find(r=>r.id==='pltr').title='PLTR · 새 제목';app.reader.update(structuredClone(changed));await app.flush();assertStable();assert.match(graph.getElementById('pltr').data('label'),/새 제목/);
   app.root.querySelector('#research-suggestions').click();await app.flush();assertStable();assert.equal(graph.getElementById('fde-jev').length,0);
   app.root.querySelector('#research-suggestions').click();await app.flush();assertStable();assert.equal(graph.getElementById('fde-jev').length,1);

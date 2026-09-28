@@ -1,5 +1,5 @@
-import { SECTOR_LAYERS, SECTOR_NODES, SECTOR_RELATIONS, matchSectorRecords, sectorCoverage } from './research-sectors.js?v=20260928-1';
-import { researchHref, safeSourceURL } from './research-core.js?v=20260928-2';
+import { SECTOR_LAYERS, SECTOR_NODES, SECTOR_RELATIONS, matchSectorRecords, sectorCoverage } from './research-sectors.js?v=20260928-2';
+import { researchHref, safeSourceURL } from './research-core.js?v=20260928-3';
 
 export function createSectorMap(root, { onSelect, onOpenRecord }) {
   const document = root.ownerDocument, window = document.defaultView;
@@ -7,7 +7,7 @@ export function createSectorMap(root, { onSelect, onOpenRecord }) {
   let data, hits, selected = 'rack', query = '', onlyGaps = false, expandedRelation = '', frame = 0, disposed = false;
   const byId = new Map(SECTOR_NODES.map(n => [n.id, n]));
   root.innerHTML = `<div class="sector-intro"><div><span class="research-eyebrow">SECTOR STUDY / 01</span><h3>AI 인프라에서 서비스까지</h3><p>항목을 선택하면 산업의 연결과 내가 읽은 기록이 함께 보입니다.</p></div><span class="sector-progress" role="status"></span></div>
-    <div class="sector-controls"><label><span class="sr-only">섹터 항목 검색</span><input type="search" placeholder="기업·기술·제품 찾기" maxlength="80" aria-label="섹터 항목 검색"></label><label class="sector-gap-filter"><input type="checkbox">채울 영역만</label><span class="sector-match-note">제목·상위 페이지·본문 언급을 구분합니다</span></div>
+    <div class="sector-controls"><label><span class="sr-only">섹터 항목 검색</span><input type="search" placeholder="기업·기술·제품 찾기" maxlength="80" aria-label="섹터 항목 검색"></label><label class="sector-gap-filter"><input type="checkbox">채울 영역만</label><span class="sector-match-note">#직접 태그는 긴밀한 연관으로 우선 표시합니다</span></div>
     <div class="sector-workspace"><div class="sector-map-scroll research-scroll"><div class="sector-map" aria-label="섹터 스터디 목차"></div><p class="sector-no-results" hidden>일치하는 항목이 없습니다.</p><div class="sector-map-legend"><span>● 관련 기록</span><span>◐ 본문 언급</span><span>○ 빈 페이지·기록 없음</span></div><p class="sector-map-hint">선택한 항목의 연결만 표시합니다. 기업별 공급·계약 관계는 근거에서 확인하세요.</p></div><aside class="sector-detail research-scroll" aria-label="섹터 항목과 근거"></aside></div>`;
   const map = root.querySelector('.sector-map'), detail = root.querySelector('.sector-detail');
   root.querySelector('input[type=search]').addEventListener('input', event => { query = event.target.value; render(); });
@@ -47,18 +47,18 @@ export function createSectorMap(root, { onSelect, onOpenRecord }) {
     }
     const records = el('section', 'sector-records'); records.append(el('h4', '', 'Notion에서 읽은 기록'));
     if (pending) records.append(el('p', 'sector-caveat', '원문을 불러오는 중입니다. 관련 기록과 언급 수가 추가될 수 있습니다.'));
-    for (const [basis, title] of [['title', '제목에서 찾은 기록'], ['path', '상위 페이지로 연결'], ['mention', '본문 언급 · 분류 제안']]) {
+    for (const [basis, title] of [['tag', '직접 태그 · 긴밀한 연관'], ['title', '제목에서 찾은 기록'], ['path', '상위 페이지로 연결'], ['mention', '본문 언급 · 분류 제안']]) {
       const matches = items.filter(i => i.basis === basis);
       if (!matches.length) continue;
       const group = el('div', 'sector-record-group'); group.append(el('h5', '', title + ' ' + matches.length));
       for (const item of matches) {
-        const record = item.record, article = el('article', 'sector-record');
+        const record = item.record, article = el('article', 'sector-record'); article.dataset.basis = basis;
         const a = el('a', 'sector-record-title', record.title); a.href = researchHref({ note: record.id, view: 'read' });
         a.addEventListener('click', event => {
           if (event.button || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
           event.preventDefault(); onOpenRecord(record.id, item.section || '');
         });
-        article.append(a, el('small', '', [record.date.start?.replaceAll('-', '.') || '날짜 미지정', item.pending ? '원문 확인 중' : item.empty ? '빈 페이지' : basis === 'title' ? '제목: ' + item.term : basis === 'path' ? '상위: ' + item.term : '본문 언급'].join(' · ')));
+        article.append(a, el('small', '', [record.date.start?.replaceAll('-', '.') || '날짜 미지정', item.pending ? '원문 확인 중' : item.empty ? '빈 페이지' : basis === 'tag' ? item.term : basis === 'title' ? '제목: ' + item.term : basis === 'path' ? '상위: ' + item.term : '본문 언급'].join(' · ')));
         if (item.excerpt) article.append(el('blockquote', '', item.excerpt));
         article.append(link('Notion 원문 ↗', record.source.url)); group.append(article);
       }

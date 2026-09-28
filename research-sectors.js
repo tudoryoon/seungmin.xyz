@@ -1,3 +1,4 @@
+import { extractRecordTags, tagKey } from './research-tags.js?v=20260928-1';
 // Public study taxonomy only. Private records are joined in memory after Research unlocks.
 export const SECTOR_LAYERS = [
   ['process', '공정·패키징'], ['chip', '칩·메모리'], ['system', '시스템·랙'],
@@ -76,6 +77,7 @@ export function sectorProse(value) {
 export function matchSectorRecords(records, nodes = SECTOR_NODES) {
   const result = new Map(nodes.map(n => [n.id, []]));
   for (const record of records) {
+    const tags = extractRecordTags(record);
     const sections = record.loaded === false ? [] : record.sections.map(s => {
       const raw = s.markdown ?? [s.text, ...(s.items || [])].filter(Boolean).join('\n');
       return { id: s.id, text: sectorProse(raw), hasContent: !!raw.trim() };
@@ -83,6 +85,7 @@ export function matchSectorRecords(records, nodes = SECTOR_NODES) {
     // An image/PDF report is a nonempty record even when its text cannot be matched.
     const empty = record.loaded !== false && (record.state === '빈 페이지' || sections.every(s => !s.hasContent));
     for (const n of nodes) {
+      const tagged = tags.filter(t => [n.name, ...n.aliases, ...n.tickers].some(alias => tagKey(alias) === t.key));
       const titleTerm = titleMatch(record.title, n), parentTitle = record.path.at(-1) || '';
       const parentTerm = titleMatch(parentTitle, n);
       let hit;
@@ -90,16 +93,17 @@ export function matchSectorRecords(records, nodes = SECTOR_NODES) {
         const line = section.text.split(/\n+/).find(p => n.aliases.some(alias => matches(p, alias)));
         if (line) { hit = { section: section.id, excerpt: line.slice(0, 260) }; break; }
       }
-      if (titleTerm || parentTerm || hit) result.get(n.id).push({ record, basis: titleTerm ? 'title' : parentTerm ? 'path' : 'mention', term: titleTerm || (parentTerm ? parentTitle : ''), empty, pending: record.loaded === false, ...hit });
+      if (tagged.length || titleTerm || parentTerm || hit) result.get(n.id).push({ record, basis: tagged.length ? 'tag' : titleTerm ? 'title' : parentTerm ? 'path' : 'mention', term: tagged.length ? tagged.map(t => '#' + t.label).join(' ') : titleTerm || (parentTerm ? parentTitle : ''), empty, pending: record.loaded === false, ...(tagged.length ? {section: tagged[0].section, excerpt: tagged[0].excerpt} : hit) });
     }
   }
-  const rank = {title:0,path:1,mention:2};
+  const rank = {tag:0,title:1,path:2,mention:3};
   for (const items of result.values()) items.sort((a, b) => rank[a.basis] - rank[b.basis] || (b.record.date.start || '').localeCompare(a.record.date.start || ''));
   return result;
 }
 export function sectorCoverage(items, pending) {
   const titles = items.filter(i => i.basis !== 'mention'), filled = titles.filter(i => !i.empty && !i.pending);
-  if (filled.length) return { state: 'record', label: '관련 기록 ' + filled.length };
+  const tagged = filled.filter(i => i.basis === 'tag').length;
+  if (filled.length) return { state: 'record', label: '관련 기록 ' + filled.length + (tagged ? ' · 직접 태그 ' + tagged : '') };
   if (titles.some(i => i.pending)) return { state: 'pending', label: '원문 확인 중' };
   if (titles.length) return { state: 'empty', label: '빈 페이지 ' + titles.length };
   const mentions = items.filter(i => i.basis === 'mention');

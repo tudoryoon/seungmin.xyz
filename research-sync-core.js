@@ -1,5 +1,6 @@
 import { normalize } from './research-core.js';
 import { findBodyOverlaps } from './research-overlap.js?v=20260928-1';
+import { extractRecordTags, tagKey, tagEntityId } from './research-tags.js?v=20260928-1';
 
 export const notionId = value => String(value || '').replaceAll('-', '').toLowerCase();
 export function kstDate(value) {
@@ -61,13 +62,26 @@ export function makeNotionDataset(pages, seed, { rootId, syncedAt }) {
 }
 export function rebuildNotionRelations(data) {
   const records = data.records, byPage = new Map(records.map(r => [r.source.pageId, r]));
+  // Rebuild derived tag topics so removing a tag also removes its filters/links.
+  data.entities = data.entities.filter(e => e.generatedBy !== 'hashtag');
+  const knownEntities = [...data.entities], tagEntities = new Map();
+  for (const r of records) {
+    r.tags = extractRecordTags(r).map(tag => {
+      let entity = knownEntities.find(e => [e.name, ...e.aliases].some(a => tagKey(a) === tag.key)) || tagEntities.get(tag.key);
+      if (!entity) {
+        entity = { id: tagEntityId(tag.key), name: tag.label, aliases: [], type: 'topic', generatedBy: 'hashtag' };
+        data.entities.push(entity); tagEntities.set(tag.key, entity);
+      }
+      return { ...tag, entity: entity.id };
+    });
+  }
   const matches = (text, alias) => {
     const term = normalize(alias);
-    return /^[a-z0-9 ]+$/.test(term) ? new RegExp('(?:^|[^a-z0-9])' + term + '(?:$|[^a-z0-9])', 'i').test(text) : text.includes(term);
+    return /^[a-z0-9 ._-]+$/.test(term) ? new RegExp('(?:^|[^a-z0-9])' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?:$|[^a-z0-9])', 'i').test(text) : text.includes(term);
   };
   for (const r of records) {
     const text = normalize([r.title, ...r.path.slice(1), ...(r.loaded ? r.sections.map(s => s.text) : [])].join(' '));
-    r.entities = data.entities.filter(e => [e.name, ...e.aliases].some(a => matches(text, a))).map(e => e.id);
+    r.entities = [...new Set([...knownEntities.filter(e => [e.name, ...e.aliases].some(a => matches(text, a))).map(e => e.id), ...r.tags.map(t => t.entity)])];
   }
   const relations = [], pairs = new Set();
   function add(from, to, type, label, reason, status, details = {}) {
@@ -81,6 +95,36 @@ export function rebuildNotionRelations(data) {
     for (const link of r.source.linkedPageIds || []) {
       const other = byPage.get(notionId(link)); if (other) add(r, other, 'link', '원문 링크', 'Notion 원문에서 연결된 페이지입니다.', 'editorial');
     }
+  }
+  // A shared explicit tag, or an explicit tag pointing to a subject's titled
+  // record, is strong topical relevance. Ordinary body mentions never qualify.
+  const byEntity = new Map(data.entities.map(e => [e.id, e]));
+  const titleEvidence = (record, entity) => {
+    const alias = [entity.name, ...entity.aliases].find(a => {
+      if (entity.type === 'company' && /^[a-z]$/i.test(a)) return new RegExp('^' + a + '(?:\\s+US\\b|$|\\s+[·(（-])', 'i').test(record.title);
+      return matches(normalize(record.title), a);
+    });
+    return alias ? { record: record.id, section: record.sections[0].id, basis: 'title', excerpt: record.title } : null;
+  };
+  for (let i = 0; i < records.length; i++) for (let j = i + 1; j < records.length; j++) {
+    const a = records[i], b = records[j], labels = [], proof = [];
+    const candidates = new Set([...a.tags, ...b.tags].map(t => t.entity));
+    for (const id of candidates) {
+      const entity = byEntity.get(id);
+      const evidence = [a, b].map(record => {
+        const tag = record.tags.find(t => t.entity === id);
+        return tag ? {record: record.id, section: tag.section, basis: 'tag', excerpt: tag.excerpt} : titleEvidence(record, entity);
+      });
+      if (evidence.every(Boolean)) { labels.push('#' + entity.name); proof.push(...evidence); }
+    }
+    if (!labels.length) continue;
+    const pair = [a.id, b.id].sort().join(':'), reason = labels.join(' · ') + ' 직접 태그를 근거로 연결한 긴밀한 주제 연관입니다. 태그를 공유하거나 해당 주제를 제목으로 다루는 기록입니다.';
+    const tagEvidence = [...new Map(proof.map(e => [e.record + ':' + e.section + ':' + e.excerpt, e])).values()];
+    const details = {strength:'strong',tagLabels:labels,tagEvidence};
+    if (pairs.has(pair)) {
+      const existing = relations.find(r => [r.from,r.to].sort().join(':') === pair);
+      Object.assign(existing, details); existing.reason += ' ' + reason;
+    } else add(a, b, 'tag', '직접 태그', reason, 'editorial', {...details,evidence:tagEvidence.map(({record,section})=>({record,section}))});
   }
   for (const {from, to, overlap, evidence} of findBodyOverlaps(records)) {
     add(from, to, 'overlap', '본문 중복', `서식을 제외한 긴 구절 ${overlap.passages}개(총 ${overlap.characters}자)가 일치합니다. 같은 자료의 발췌·재사용 여부를 확인해 보세요.`, 'suggested', {overlap, evidence});

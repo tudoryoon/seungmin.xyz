@@ -39,18 +39,18 @@ export function safeSourceURL(value) {
   try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password ? url.href : null; } catch { return null; }
 }
 
-export function filterRecords(index, { query = '', month = '', entity = '', kind = '' } = {}) {
+export function filterRecords(index, { query = '', month = '', entity = '', tag = '', kind = '' } = {}) {
   const words = normalize(query).split(' ').filter(Boolean);
   return [...index.records.values()].filter(record =>
     words.every(word => index.search.get(record.id).includes(word)) &&
     (!month || (month === 'undated' ? !record.date.start : record.date.start?.startsWith(month))) &&
-    (!entity || record.entities.includes(entity)) && (!kind || record.kind === kind)
+    (!entity || record.entities.includes(entity)) && (!tag || record.tags?.some(t => t.entity === tag)) && (!kind || record.kind === kind)
   ).sort((a, b) => (b.date.start || '').localeCompare(a.date.start || '') || a.title.localeCompare(b.title, 'ko'));
 }
 
 export function relatedRecords(index, id, includeSuggested = true) {
   return index.data.relations.filter(r => (r.from === id || r.to === id) && (includeSuggested || r.status !== 'suggested'))
-    .sort((a, b) => (a.status === 'suggested') - (b.status === 'suggested'))
+    .sort((a, b) => (b.strength === 'strong') - (a.strength === 'strong') || (a.status === 'suggested') - (b.status === 'suggested'))
     .map(relation => ({ relation, record: index.records.get(relation.from === id ? relation.to : relation.from) }));
 }
 
@@ -71,6 +71,7 @@ export function readResearchRoute(hash, index) {
     query: (params.get('q') || '').slice(0, 120),
     month: /^(\d{4}-\d{2}|undated)$/.test(params.get('month') || '') ? params.get('month') : '',
     entity: index.entities.has(params.get('entity')) ? params.get('entity') : '',
+    ...(params.get('tag') && /^[a-z0-9-]{1,600}$/.test(params.get('tag')) ? { tag: params.get('tag') } : {}),
     suggestions: params.get('suggestions') !== 'off',
     section: /^[a-z0-9-]+$/.test(params.get('section') || '') ? params.get('section') : ''
   };
@@ -84,6 +85,7 @@ export function researchHref(state = {}) {
   if (state.query) params.set('q', state.query);
   if (state.month) params.set('month', state.month);
   if (state.entity) params.set('entity', state.entity);
+  if (state.tag) params.set('tag', state.tag);
   if (state.suggestions === false) params.set('suggestions', 'off');
   if (state.section) params.set('section', state.section);
   return '#research' + (params.size ? '?' + params : '');

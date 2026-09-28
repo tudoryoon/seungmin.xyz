@@ -1,7 +1,7 @@
-import { createResearchIndex, filterRecords, relatedRecords, recordDate, readResearchRoute, researchHref, KIND_LABELS, safeSourceURL } from './research-core.js?v=20260928-2';
-import { kstTimestamp, mergeNotionBodies, rebuildNotionRelations } from './research-sync-core.js?v=20260928-1';
+import { createResearchIndex, filterRecords, relatedRecords, recordDate, readResearchRoute, researchHref, KIND_LABELS, safeSourceURL } from './research-core.js?v=20260928-3';
+import { kstTimestamp, mergeNotionBodies, rebuildNotionRelations } from './research-sync-core.js?v=20260928-2';
 import { renderNotionMarkdown } from './research-markdown.js?v=20260927-3';
-import { createSectorMap } from './research-sector-view.js?v=20260928-1';
+import { createSectorMap } from './research-sector-view.js?v=20260928-2';
 
 export function createResearch(root, { data, loadGraph = () => import('./vendor/cytoscape.mjs'), onLock = () => {} } = {}) {
   let index = createResearchIndex(data);
@@ -35,7 +35,7 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
   function openRecord(id, section = '') {
     const visible = filterRecords(index, state).some(r => r.id === id);
     mobile = 'record';
-    navigate({ note: id, section, ...(section ? { view: 'read' } : {}), ...(visible ? {} : { query: '', entity: '', month: '' }) });
+    navigate({ note: id, section, ...(section ? { view: 'read' } : {}), ...(visible ? {} : { query: '', entity: '', tag: '', month: '' }) });
     if (section) scrollWithin($('research-reader'), $(`research-section-${section}`));
     else $('research-record-title')?.focus({ preventScroll: true });
   }
@@ -65,11 +65,12 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
     <section id="research-sector-view" class="research-sector-view" aria-label="섹터 지도" hidden></section>
     <footer class="research-footer"><span id="research-snapshot-label"></span><span id="research-sync-status" role="status"></span></footer>`;
   const zoomLevel = element('output', 'research-zoom-level', '100%');
+  root.querySelector('.research-legend').prepend(element('span', 'research-legend-strong', '긴밀한 연관'));
   zoomLevel.id = 'research-zoom-level'; zoomLevel.setAttribute('aria-label', '관계망 확대율');
   $('research-zoom-out').after(zoomLevel);
   const sectorMap = createSectorMap($('research-sector-view'), {
     onSelect: sector => navigate({ view: 'sector', sector }),
-    onOpenRecord: (note, section) => { mobile = 'record'; navigate({ note, section, view: 'read', query: '', month: '', entity: '' }); }
+    onOpenRecord: (note, section) => { mobile = 'record'; navigate({ note, section, view: 'read', query: '', month: '', entity: '', tag: '' }); }
   });
   function refreshMetadata() {
     root.querySelector('.research-edition > span').hidden = data.mode === 'notion-live';
@@ -81,7 +82,15 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
     const months = [...new Set(data.records.map(r => r.date.start?.slice(0, 7)).filter(Boolean))].sort().reverse();
     for (const month of months) { const o = element('option', '', month.replace('-', '.')); o.value = month; $('research-month').append(o); }
     const undated = element('option', '', '날짜 미지정'); undated.value = 'undated'; $('research-month').append(undated);
-    for (const entity of data.entities) { const o = element('option', '', entity.name); o.value = entity.id; $('research-entity').append(o); }
+    const explicit = new Set(data.records.flatMap(r => (r.tags || []).map(t => t.entity)));
+    if (explicit.size) {
+      const group = element('optgroup'); group.label = '직접 태그 · 긴밀한 연관';
+      for (const entity of data.entities.filter(e => explicit.has(e.id))) { const o = element('option', '', '#' + entity.name); o.value = 'tag:' + entity.id; group.append(o); }
+      $('research-entity').append(group);
+    }
+    const inferred = element('optgroup'); inferred.label = '전체 주제와 기업 · 본문 언급 포함';
+    for (const entity of data.entities.filter(e => e.generatedBy !== 'hashtag')) { const o = element('option', '', entity.name); o.value = entity.id; inferred.append(o); }
+    $('research-entity').append(inferred);
   }
   refreshMetadata();
 
@@ -113,9 +122,17 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
     const meta = element('div', 'research-meta'); meta.append(element('span', 'research-kind', KIND_LABELS[record.kind]), element('span', '', recordDate(record)), element('span', 'research-state', record.state));
     const title = element('h3', '', record.title); title.id = 'research-record-title'; title.tabIndex = -1;
     const tags = element('div', 'research-tags');
+    const explicit = new Set();
+    for (const tag of record.tags || []) {
+      if (explicit.has(tag.entity)) continue; explicit.add(tag.entity);
+      const button = element('button', 'research-tag research-tag-explicit', '#' + tag.label); button.type = 'button';
+      button.title = '직접 태그 · 긴밀한 연관 — 이 태그를 지정한 기록만 보기';
+      button.addEventListener('click', () => { mobile = 'list'; navigate({tag:tag.entity,entity:'',query:'',month:''}); }); tags.append(button);
+    }
     for (const id of record.entities) {
+      if (explicit.has(id)) continue;
       const entity = index.entities.get(id), button = element('button', 'research-tag', entity.name); button.type = 'button'; button.dataset.type = entity.type;
-      button.title = `${entity.name} 관련 기록`; button.addEventListener('click', () => { mobile = 'list'; navigate({ entity: id, query: '', month: '' }); }); tags.append(button);
+      button.title = `${entity.name} 관련 기록 · 본문 언급 포함`; button.addEventListener('click', () => { mobile = 'list'; navigate({ entity: id, tag: '', query: '', month: '' }); }); tags.append(button);
     }
     header.append(meta, title);
     if (record.summary) header.append(element('p', 'research-summary', record.summary));
@@ -155,11 +172,16 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
     const nodes = items.map(({ relation, record: other }) => {
       const node = element('section', 'research-relation'); node.id = 'research-relation-' + relation.id;
       node.dataset.status = relation.status;
+      if (relation.strength) node.dataset.strength = relation.strength;
       const classification = element('div', 'research-relation-label');
-      classification.append(element('span', '', relation.label), element('span', 'research-relation-status', relation.status === 'suggested' ? '연결 제안' : '기록 기반'));
+      classification.append(element('span', '', relation.label), element('span', 'research-relation-status', relation.strength === 'strong' ? '긴밀한 연관' : relation.status === 'suggested' ? '연결 제안' : '기록 기반'));
       const details = element('details', 'research-evidence'); const summary = element('summary', '', relation.overlap ? `겹치는 구절 ${relation.overlap.passages}개` : '근거 ' + relation.evidence.length);
       details.append(summary);
       for (const excerpt of relation.overlap?.excerpts || []) details.append(element('blockquote', 'research-overlap-excerpt', excerpt));
+      for (const proof of relation.tagEvidence || []) {
+        const quote = element('blockquote', 'research-overlap-excerpt');
+        quote.append(element('small', '', index.records.get(proof.record).title + ' · ' + (proof.basis === 'tag' ? '직접 태그' : '주제 제목')), element('p', '', proof.excerpt)); details.append(quote);
+      }
       for (const evidence of relation.evidence) {
         const source = index.records.get(evidence.record), section = source.sections.find(s => s.id === evidence.section);
         const a = element('a', '', source.title + ' · ' + section.label); a.href = researchHref({ note: source.id, section: section.id });
@@ -212,7 +234,7 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
     const nodes = [...new Map([record, ...neighbors.map(n => n.record)].map(r => [r.id, r])).values()].sort((a,b)=>a.id.localeCompare(b.id));
     const elements = [
       ...nodes.map(r => ({ group: 'nodes', data: { id: r.id, label: r.title.replace(' · ', '\n'), kind: r.kind }, classes: r.id === record.id ? 'focus' : '' })),
-      ...neighbors.map(({ relation: r }) => ({ group: 'edges', data: { id: r.id, source: r.from, target: r.to, label: r.label }, classes: r.status })).sort((a,b)=>a.data.id.localeCompare(b.data.id))
+      ...neighbors.map(({ relation: r }) => ({ group: 'edges', data: { id: r.id, source: r.from, target: r.to, label: r.strength === 'strong' ? r.tagLabels.join(' · ') : r.label }, classes: r.status + (r.strength === 'strong' ? ' strong' : '') })).sort((a,b)=>a.data.id.localeCompare(b.data.id))
     ];
     const signature = JSON.stringify(elements), changedRecord = graphRecord !== record.id;
     if (!changedRecord && signature === graphSignature) return;
@@ -259,6 +281,7 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
           { selector: 'node.focus', style: { 'background-color': '#a1e2bf', width: 30, height: 30, 'border-width': 12, 'border-color': '#244336', color: '#eff5ef', 'font-weight': 600 } },
           { selector: 'edge', style: { width: 1.3, 'line-color': '#739782', 'curve-style': 'bezier', label: 'data(label)', 'font-family': 'system-ui, sans-serif', 'font-size': 10, color: '#9ab4a4', 'text-background-color': '#101513', 'text-background-opacity': 1, 'text-background-padding': 5, 'text-rotation': 'autorotate', 'target-arrow-shape': 'triangle', 'target-arrow-color': '#739782', 'arrow-scale': .65 } },
           { selector: 'edge.suggested', style: { 'line-style': 'dashed', 'line-color': '#96867a', 'target-arrow-shape': 'none', color: '#c3ad98' } },
+          { selector: 'edge.strong', style: { width: 2.8, 'line-color': '#b8e6c7', 'target-arrow-shape': 'none', color: '#b8e6c7' } },
           { selector: 'edge:selected', style: { width: 3, 'line-color': '#e1c799' } }
         ],
         layout: { name: 'preset', fit: false }
@@ -294,9 +317,9 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
       if (window.location.hash.startsWith('#research')) window.history.replaceState(null, '', researchHref(state));
     }
     const record = records.length ? index.records.get(state.note) : null;
-    $('research-query').value = state.query; $('research-month').value = state.month; $('research-entity').value = state.entity;
+    $('research-query').value = state.query; $('research-month').value = state.month; $('research-entity').value = state.tag ? 'tag:' + state.tag : state.entity;
     $('research-suggestions').checked = state.suggestions;
-    $('research-reset').disabled = !state.query && !state.month && !state.entity;
+    $('research-reset').disabled = !state.query && !state.month && !state.entity && !state.tag;
     root.querySelectorAll('[data-research-view]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.researchView === state.view)));
     updatePanels(); renderList(records);
     $('research-reader').hidden = !record || state.view !== 'read';
@@ -313,8 +336,8 @@ export function createResearch(root, { data, loadGraph = () => import('./vendor/
   listen($('research-query'), 'input', () => navigate({ query: $('research-query').value }, true));
   listen($('research-lock'), 'click', onLock);
   listen($('research-month'), 'change', () => navigate({ month: $('research-month').value }));
-  listen($('research-entity'), 'change', () => navigate({ entity: $('research-entity').value }));
-  listen($('research-reset'), 'click', () => navigate({ query: '', month: '', entity: '' }));
+  listen($('research-entity'), 'change', () => { const value = $('research-entity').value; navigate(value.startsWith('tag:') ? {tag:value.slice(4),entity:''} : {entity:value,tag:''}); });
+  listen($('research-reset'), 'click', () => navigate({ query: '', month: '', entity: '', tag: '' }));
   listen($('research-suggestions'), 'change', () => navigate({ suggestions: $('research-suggestions').checked }));
   for (const button of root.querySelectorAll('[data-research-view]')) listen(button, 'click', () => { mobile = 'record'; navigate({ view: button.dataset.researchView }); });
   for (const button of root.querySelectorAll('[data-research-panel]')) listen(button, 'click', () => { mobile = button.dataset.researchPanel; updatePanels(); });

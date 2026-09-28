@@ -1,5 +1,37 @@
 # Password-Protected Research
 
+## Explicit hashtags (2026-09-28)
+
+Write literal, space-separated tags in Notion prose, for example
+`#네오클라우드 #GPU`, `#NBIS`, or `#금리 #ROE #유동성`. A hash immediately
+followed by a word declares close topical relevance. Markdown heading markers
+(`# Heading`), fenced/inline code, URLs, attachment metadata and HTML attributes
+are excluded. Notion-escaped hashes are accepted. Case and formatting separators
+are normalized; sector matching uses whole tag aliases, not substring guesses
+(`#GPUfoo` does not directly classify a record as GPU).
+
+The sector atlas puts **직접 태그 · 긴밀한 연관** before title/path matches and
+ordinary body mentions. Tagged records count as coverage. Exact known company
+aliases share an entity; other tags create private, runtime-only topics. Reader
+chips and the **직접 태그** filter select only records explicitly bearing that tag.
+The usual topic/company filter still includes incidental mentions.
+
+One shared tag is sufficient for a strong record connection. A tagged record
+also connects to records whose titles identify that subject/company. Mere body
+mentions do not create strong links. Existing parent/source links retain their
+type and gain tag evidence; tag connections take precedence over suggestions.
+The graph uses a thicker mint line without a directional arrow, the related
+panel shows **긴밀한 연관**, and evidence includes the source tag line or target
+title. These links remain visible with suggestions disabled and express topical
+relevance, not supplier/customer relationships or agreement between conclusions.
+
+Tags remain page-level associations; the source line is retained as evidence,
+but no claim is made that a tag scopes all following paragraphs. Removing or
+changing a tag rebuilds derived topics, filters and links on the next sync. No
+Notion content or credentials are written to this repository. Tests in
+`tests/research-tags.mjs` cover parsing, false positives, aliases, filtering,
+strong links, provenance, removal, idempotence and sector/reader UI behavior.
+
 ## Stable graph viewport (2026-09-28)
 
 Previously every four-page Notion hydration batch destroyed and recreated the
