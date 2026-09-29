@@ -41,4 +41,4 @@
 @keyframes daily-level-up{0%{color:#fff;transform:translateY(4px)}50%{color:#ffe28e}100%{transform:translateY(0)}}
 .reduced-motion .daily-awarded [data-player-level]{animation:none}
 @media(prefers-reduced-motion:reduce){.daily-awarded [data-player-level]{animation:none}}
-@media(max-width:860px){.calendar-workspace{grid-template-columns:minmax(0,1fr);gap:28px}.daily-panel{position:static;order:-1;border-left:0;border-bottom:1px solid #49605b;padding:0 0 20px;max-height:60dvh}}
+@media(max-width:860px){.calendar-workspace{grid-template-columns:minmax(0,1fr);gap:28px}.daily-panel{position:static;border-left:0;border-top:1px solid #49605b;padding:20px 0 0;max-height:60dvh}#calendar-month{scroll-margin-top:16px}}

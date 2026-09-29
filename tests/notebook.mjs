@@ -4,13 +4,13 @@ const {Window}=await import(process.env.DOM_MODULE || 'happy-dom');
 const w=new Window({url:'https://seungmin.xyz/test.html#calendar',settings:{disableCSSFileLoading:true,disableJavaScriptFileLoading:true}});
 const $=id=>w.document.getElementById(id), pause=()=>new Promise(r=>setTimeout(r,5));
 const until=async fn=>{for(let n=0;n<100&&!fn();n++)await pause();assert.ok(fn());};
-let played=0,paused=0,rejected=false,timer,reduce=false;
+let played=0,paused=0,rejected=false,timer,reduce=false,scrolledTo=null;
 try {
   w.document.write(await readFile(new URL('../test.html',import.meta.url),'utf8'));
   w.lucide={createIcons(){}};
   $('notebook-audio').play=()=>{played++;return rejected?Promise.reject(Error('audio blocked')):Promise.resolve();};$('notebook-audio').pause=()=>paused++;
-  w.HTMLElement.prototype.scrollIntoView=()=>{};
-  w.matchMedia=()=>({matches:reduce});
+  w.HTMLElement.prototype.scrollIntoView=function(){scrolledTo=this;};
+  w.matchMedia=query=>({matches:query.includes('max-width') ? true : reduce});
   const originalTimeout=w.setTimeout.bind(w);
   w.setTimeout=(fn,delay)=>delay===460?(timer=fn,99):originalTimeout(fn,delay);
   const finish=()=>{timer?.();timer=null;};
@@ -22,6 +22,8 @@ try {
   tasks.innerHTML='<input id="draft" value="keep draft">';tasks.hidden=false;
   w.eval(await readFile(new URL('../notebook.js',import.meta.url),'utf8'));
   assert.equal($('schedule-notebook').hidden,true);
+  assert.equal($('google-visibility').open,false,'mobile entry keeps filter list collapsed');
+  $('google-visibility').open=true;
   const clickDate=day=>$('month-grid').querySelector(`[data-date="${day}"]`).click();
   const calendarVisible=()=>{assert.equal($('schedule-notebook').hidden,true);assert.equal($('calendar-workspace').hidden,false);};
   w.journalCalendar.selectDate('2026-09-30');
@@ -33,6 +35,7 @@ try {
   w.journalCalendar.render();calendarVisible();
   clickDate('2026-09-30');
   assert.equal($('schedule-notebook').hidden,false);assert.equal($('calendar-workspace').hidden,true);
+  assert.equal($('google-visibility').open,false,'notebook temporarily collapses expanded filters');
   assert.equal(agenda.parentElement,$('notebook-agenda-slot'));assert.equal(tasks.parentElement,$('notebook-tasks-slot'));
   assert.equal(played,0,'opening or loading is silent');
   $('notebook-next').click();assert.equal(w.journalCalendar.range().selected,'2026-10-01');assert.equal(w.journalCalendar.range().month,'2026-10');
@@ -55,9 +58,12 @@ try {
   w.journalCalendar.selectDate('2028-02-28');reduce=true;$('notebook-next').click();assert.equal(w.journalCalendar.range().selected,'2028-02-29');assert.equal($('notebook-book').dataset.turn,undefined);
   $('notebook-next').click();assert.equal(w.journalCalendar.range().selected,'2028-03-01');
   $('calendar-mode').click();assert.equal(agenda.closest('#calendar-workspace'),$('calendar-workspace'));assert.equal(tasks.parentElement,$('calendar-workspace'));assert.equal($('draft').value,'keep draft');
+  assert.equal(scrolledTo,$('calendar-month'),'calendar mode returns the actual month to the viewport');
+  assert.equal($('google-visibility').open,true,'return preserves the user-expanded filter state');
   clickDate('2028-03-01');calendarVisible();
   clickDate('2028-03-01');assert.equal($('schedule-notebook').hidden,false,'repeat selection opens the notebook');
   $('notebook-calendar').click();calendarVisible();
+  assert.equal(scrolledTo,$('calendar-month'),'notebook back button reveals the month, not the toolbar above it');
   clickDate('2028-03-01');calendarVisible();
   $('next').click();$('previous').click();clickDate('2028-03-01');calendarVisible();
   $('today').click();const today=w.journalCalendar.range().selected;clickDate(today);calendarVisible();

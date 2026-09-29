@@ -8,6 +8,8 @@
   const audio = $('notebook-audio');
   audio.volume = 0.4;
   let opened = false, soundEnabled = true, flipTimer = 0, touch = null, filtersOpen = false, gridSelection = null;
+  // Keep the month within reach on phones; users can still expand the filters.
+  if (window.matchMedia('(max-width: 860px)').matches) $('google-visibility').open = false;
   document.querySelector('.notebook-binding').replaceChildren(...Array.from({length:13}, () => document.createElement('span')));
   try { soundEnabled = localStorage.getItem(soundKey) !== 'off'; } catch {}
   const selection = () => window.journalCalendar.range().selected;
@@ -50,7 +52,10 @@
     sync();
     if (focus) {
       if (value) { $('notebook-date').focus({preventScroll:true}); notebook.scrollIntoView({block:'start',behavior:'instant'}); }
-      else $('month-grid').querySelector(`[data-date="${selection()}"]`)?.focus({preventScroll:true});
+      else {
+        $('month-grid').querySelector(`[data-date="${selection()}"]`)?.focus({preventScroll:true});
+        $('calendar-month').scrollIntoView({block:'start',behavior:'instant'});
+      }
     }
   }
   function turnTo(day) {
@@ -76,7 +81,7 @@
     }
   }
   $('calendar-mode').addEventListener('click', () => show(false, true));
-  $('notebook-calendar').addEventListener('click', () => { show(false, true); $('calendar').scrollIntoView({block:'start',behavior:'instant'}); });
+  $('notebook-calendar').addEventListener('click', () => show(false, true));
   $('notebook-mode').addEventListener('click', () => show(true, true));
   window.addEventListener('journal-date-select', event => {
     if (gridSelection === event.detail) show(true, true);
