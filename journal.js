@@ -155,6 +155,10 @@ function recordRow(record) {
 }
 function render() {
   $('month-title').textContent = `${month.getFullYear()}년 ${month.getMonth()+1}월`;
+  const holidays = window.calendarHolidays;
+  const coverage = $('calendar-holiday-coverage');
+  coverage.hidden = !!holidays?.supportsYear(month.getFullYear());
+  coverage.textContent = coverage.hidden ? '' : `${month.getFullYear()}년 공휴일 정보는 아직 없습니다. 주말만 표시합니다.`;
   const grid = $('month-grid'); grid.replaceChildren();
   const offset = month.getDay();
   const days = new Date(month.getFullYear(), month.getMonth()+1, 0).getDate();
@@ -164,13 +168,19 @@ function render() {
     const key = dateKey(new Date(month.getFullYear(),month.getMonth(),day));
     const count = allRecords().filter(r => r.kind === 'event' && r.date === key).length + (window.googleCalendar?.eventsForDate(key).length || 0);
     const button = make('button', undefined, 'day');
+    const holiday = holidays?.forDate(key) || '';
+    button.classList.toggle('is-sunday', i % 7 === 0);
+    button.classList.toggle('is-saturday', i % 7 === 6);
+    button.classList.toggle('is-holiday', !!holiday);
     button.classList.toggle('selected', key === selected);
     button.classList.toggle('today', key === dateKey(new Date()));
     button.setAttribute('aria-pressed', String(key === selected));
     const tasks = window.dailyHistory?.counts(key);
-    button.setAttribute('aria-label', `${key}, 일정 ${count}개${tasks?.total ? `, 할 일 ${tasks.completed}/${tasks.total}개 완료` : ''}`);
+    button.setAttribute('aria-label', `${key}, 일정 ${count}개${tasks?.total ? `, 할 일 ${tasks.completed}/${tasks.total}개 완료` : ''}${holiday ? `, ${holiday}` : ''}`);
     button.dataset.date = key;
-    button.append(make('span', String(day), 'day-number'), make('span', count ? `${count}건` : '', 'day-count'));
+    const holidayLabel = make('span', holiday.replace(/ \(.+\)$/, ''), 'day-holiday');
+    if (holiday) button.title = holiday;
+    button.append(make('span', String(day), 'day-number'), holidayLabel, make('span', count ? `${count}건` : '', 'day-count'));
     if (tasks?.total) {
       const marker = make('span', `${tasks.completed}/${tasks.total}`, 'day-tasks');
       marker.title = `할 일 ${tasks.completed}/${tasks.total}개 완료`;
@@ -184,6 +194,13 @@ function render() {
     grid.append(button);
   }
   $('selected-date').textContent = `${Number(selected.slice(5,7))}월 ${Number(selected.slice(8))}일`;
+  const selectedHoliday = holidays?.forDate(selected) || '';
+  const selectedWeekday = new Date(`${selected}T12:00:00`).getDay();
+  $('selected-date').classList.toggle('is-sunday', selectedWeekday === 0);
+  $('selected-date').classList.toggle('is-saturday', selectedWeekday === 6);
+  $('selected-date').classList.toggle('is-holiday', !!selectedHoliday);
+  $('selected-holiday').textContent = selectedHoliday;
+  $('selected-holiday').hidden = !selectedHoliday;
   const events = allRecords().filter(r => r.kind === 'event' && r.date === selected).sort((a,b) => (a.start || '').localeCompare(b.start || ''));
   const googleEvents = window.googleCalendar?.eventsForDate(selected) || [];
   const eventRows = [...events.map(record => ({start:record.start || '',row:recordRow(record)})),...googleEvents.map(record => ({start:record.start.date ? '' : new Date(record.start.dateTime).toTimeString(),row:window.googleCalendar.recordRow(record)}))].sort((a,b)=>a.start.localeCompare(b.start));

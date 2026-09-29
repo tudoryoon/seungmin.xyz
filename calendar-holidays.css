@@ -1,0 +1,15 @@
+#calendar{--calendar-red:#f2a29b;--calendar-blue:#94bfff}
+#calendar .weekdays>span:first-child,
+#calendar .day.is-sunday .day-number,
+#calendar .day.is-holiday .day-number,
+#calendar #selected-date.is-sunday,
+#calendar #selected-date.is-holiday{color:var(--calendar-red)}
+#calendar .weekdays>span:last-child,
+#calendar .day.is-saturday:not(.is-holiday) .day-number,
+#calendar #selected-date.is-saturday:not(.is-holiday){color:var(--calendar-blue)}
+#calendar .day{gap:4px}
+#calendar .day-holiday{display:block;max-width:100%;min-height:1.4em;font-size:11px;line-height:1.4;color:var(--calendar-red);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#calendar #selected-holiday{margin:-4px 0 18px;font-size:13px;line-height:1.6;color:var(--calendar-red);overflow-wrap:anywhere}
+.calendar-holiday-note{display:flex;flex-wrap:wrap;gap:4px 14px;margin:12px 0 0;font-size:11px;line-height:1.6;color:#a9bdc0}
+.calendar-holiday-note a{color:inherit;text-underline-offset:3px}
+#calendar-holiday-coverage{flex-basis:100%}

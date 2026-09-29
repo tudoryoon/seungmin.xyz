@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="google-calendar.css?v=20260924-2">
   <link rel="stylesheet" href="workout.css?v=20260924-2">
   <link rel="stylesheet" href="notebook.css?v=20260924-3">
+  <link rel="stylesheet" href="calendar-holidays.css?v=20260929-1">
   <link rel="stylesheet" href="pwa.css?v=1">
   <link rel="stylesheet" href="policy.css?v=20260924-5">
   <script src="pwa.js?v=1" defer></script>
@@ -39,8 +40,9 @@
         <div><div class="month-toolbar"><h2 id="month-title"></h2><div class="actions"><button id="previous" aria-label="이전 달" title="이전 달">←</button><button id="today">오늘</button><button id="next" aria-label="다음 달" title="다음 달">→</button></div></div>
           <div class="weekdays" aria-hidden="true"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
           <div id="month-grid" class="month-grid" aria-label="날짜 선택"></div>
+          <p class="calendar-holiday-note"><span>토요일 파랑 · 일요일/공휴일 빨강</span><a href="https://astro.kasi.re.kr/kor/life/post/calendarData" target="_blank" rel="noopener noreferrer" title="한국천문연구원 · 우주항공청 월력요항 및 정부 발표 기준, 2025~2027년 수록">대한민국 공휴일</a><span id="calendar-holiday-coverage" hidden></span></p>
         </div>
-        <aside class="day-agenda"><h2 id="selected-date"></h2><div id="event-list"></div></aside>
+        <aside class="day-agenda"><h2 id="selected-date"></h2><p id="selected-holiday" hidden></p><div id="event-list"></div></aside>
       </div>
       <aside id="daily-panel" class="daily-panel" aria-labelledby="daily-title" hidden></aside>
       </div>
@@ -155,7 +157,8 @@
   <script src="cloud.js?v=20260924-5" defer></script>
   <script src="vendor/lucide.js" defer></script>
   <script src="workout.js?v=20260924-2" defer></script>
-  <script src="journal.js?v=20260924-6" defer></script>
+  <script src="calendar-holidays.js?v=20260929-1" defer></script>
+  <script src="journal.js?v=20260929-1" defer></script>
   <script src="notebook.js?v=20260924-6" defer></script>
   <script type="module" src="google-calendar.js?v=20260924-4"></script>
   <script type="module" src="library.js?v=20260924-2"></script>
