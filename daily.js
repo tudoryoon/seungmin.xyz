@@ -1,6 +1,6 @@
 import { validProfile } from './profile.js?v=20260924-2';
 import { validAvatar } from './avatar.js?v=20260924-2';
-import { createDailyHistory } from './daily-history.js?v=20260924-2';
+import { createDailyHistory } from './daily-history.js?v=20260930-1';
 
 const client = window.realmClient;
 const panel = document.getElementById('daily-panel');
@@ -34,6 +34,7 @@ function errorText(error) {
   if (/DAY_CHANGED/.test(message)) return '날짜가 바뀌었습니다. 오늘 목록을 다시 불러와 주세요.';
   if (/PLAN_CHANGED|ALREADY_COMPLETED/.test(message)) return '다른 화면에서 목록이 변경되었습니다. 다시 불러와 주세요.';
   if (/INVALID_TASKS/.test(message)) return '할 일은 최대 20개, 각 160자 이내로 적어 주세요.';
+  if (/INVALID_NOTE/.test(message)) return '메모는 2,000자 이내로 적어 주세요. 비워 두어도 됩니다.';
   if (/TASKS_REMAIN/.test(message)) return '아직 완료하지 않은 할 일이 있습니다.';
   if (error?.code === 'PGRST202' || /does not exist/.test(message)) return '오늘 할 일 저장소가 아직 준비되지 않았습니다.';
   return '저장 상태를 확인하지 못했습니다. 연결을 확인하고 다시 불러와 주세요.';
@@ -41,11 +42,12 @@ function errorText(error) {
 function controls() {
   const locked = busy || loading;
   panel.setAttribute('aria-busy', String(locked));
-  $('daily-live').querySelectorAll('button,input').forEach(node => { node.disabled = locked; });
+  $('daily-live').querySelectorAll('button,input,textarea').forEach(node => { node.disabled = locked; });
   $('daily-add').disabled = locked || draft.length >= 20;
   $('daily-save').disabled = locked || blocked || !state;
   $('daily-edit').disabled = locked || blocked || !state;
   panel.querySelectorAll('[data-task-check]').forEach(node => { node.disabled = locked || blocked; });
+  panel.querySelectorAll('[data-task-note]').forEach(node => { node.disabled = locked || blocked; });
   $('daily-status').textContent = busy ? '저장 중…' : loading ? '불러오는 중…' : notice;
   $('daily-error').textContent = failure;
   $('daily-retry').hidden = !failure;
@@ -65,7 +67,18 @@ function render() {
     input.type = 'checkbox'; input.checked = task.completed; input.dataset.taskCheck = task.id;
     text.textContent = task.title; li.dataset.completed = String(task.completed);
     input.addEventListener('change', () => mutate('check', {p_task_id:task.id,p_completed:input.checked}, task.id));
-    label.append(input,text); li.append(label); return li;
+    label.append(input,text); li.append(label);
+    if (task.note) {
+      const note = document.createElement('p'); note.className = 'daily-task-note'; note.textContent = task.note; li.append(note);
+    }
+    const editNote = document.createElement('button'); editNote.type = 'button'; editNote.className = 'daily-note-button';
+    editNote.dataset.taskNote = task.id; editNote.textContent = task.note ? '메모 수정' : '+ 메모 추가';
+    editNote.setAttribute('aria-label', `${task.title} 메모 ${task.note ? '수정' : '추가'}`);
+    editNote.addEventListener('click', () => {
+      startEdit(); render();
+      [...$('daily-inputs').querySelectorAll('textarea')].find(node => node.dataset.noteId === task.id)?.focus();
+    });
+    li.append(editNote); return li;
   }));
   $('daily-inputs').replaceChildren(...draft.map((task,index) => {
     const row = document.createElement('div'), input = document.createElement('input'), remove = document.createElement('button');
@@ -79,7 +92,12 @@ function render() {
       dirty = true; render();
       ($('daily-inputs').querySelectorAll('input')[Math.min(index,draft.length-1)] || $('daily-add')).focus();
     });
-    row.append(input,remove); return row;
+    const noteLabel = document.createElement('label'), note = document.createElement('textarea');
+    noteLabel.className = 'daily-note-field'; noteLabel.append(document.createTextNode('메모 · 선택'));
+    note.rows = 2; note.maxLength = 2000; note.value = task.note || ''; note.dataset.noteId = task.id;
+    note.setAttribute('aria-label', `할 일 ${index+1} 메모 (선택)`); note.placeholder = '어떤 일을 했는지 짧게 남겨 보세요';
+    note.addEventListener('input', () => { task.note = note.value; dirty = true; });
+    noteLabel.append(note); row.append(input,remove,noteLabel); return row;
   }));
   if (state) level(state.level);
   controls(); icons();
@@ -87,7 +105,7 @@ function render() {
 }
 function startEdit() {
   editing = true; dirty = false;
-  draft = state.tasks.map(({id,title}) => ({id,title}));
+  draft = state.tasks.map(({id,title,note}) => ({id,title,note:note || ''}));
   if (!draft.length && state.revision === 0) draft.push({id:crypto.randomUUID(),title:''});
 }
 function accept(next) {
@@ -95,7 +113,8 @@ function accept(next) {
   if (!next || !Array.isArray(next.tasks) || !Number.isSafeInteger(next.level) || next.level < 1
     || !Number.isSafeInteger(next.revision) || typeof next.awarded !== 'boolean'
     || !/^\d{4}-\d{2}-\d{2}$/.test(next.day) || !Number.isFinite(Date.parse(next.server_now)) || !Number.isFinite(Date.parse(next.ends_at))
-    || next.tasks.some(task => typeof task.id !== 'string' || typeof task.title !== 'string' || typeof task.completed !== 'boolean')) throw new Error('INVALID_STATE');
+    || next.tasks.some(task => typeof task.id !== 'string' || typeof task.title !== 'string' || typeof task.completed !== 'boolean'
+      || (task.note != null && typeof task.note !== 'string'))) throw new Error('INVALID_STATE');
   const increased = state && next.level > state.level;
   const previousLevel = state?.level;
   state = next; dirty = false; blocked = false; failure = '';
@@ -159,8 +178,9 @@ $('daily-add').addEventListener('click',() => { if (draft.length >= 20) return; 
 $('daily-edit').addEventListener('click',() => { startEdit(); render(); ($('daily-inputs').querySelector('input') || $('daily-add')).focus(); });
 $('daily-form').addEventListener('submit',event => {
   event.preventDefault();
-  const tasks = draft.map(task => ({id:task.id,title:task.title.trim()})).filter(task => task.title);
+  const tasks = draft.map(task => ({id:task.id,title:task.title.trim(),note:(task.note || '').trim()})).filter(task => task.title);
   if (tasks.length > 20 || tasks.some(task => task.title.length > 160)) { failure = errorText({message:'INVALID_TASKS'}); controls(); return; }
+  if (tasks.some(task => task.note.length > 2000)) { failure = errorText({message:'INVALID_NOTE'}); controls(); return; }
   mutate('save',{p_tasks:tasks});
 });
 $('daily-retry').addEventListener('click',() => { if (dirty && !confirm('작성 중인 변경 내용을 버리고 다시 불러올까요?')) return; refresh(true); });

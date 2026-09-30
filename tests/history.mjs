@@ -108,7 +108,7 @@ try {
   w.eval((await readFile(new URL('../daily-history.js',import.meta.url),'utf8')).replace('export function createDailyHistory','window.createDailyHistory = function'));
   let selected='2026-09-14',month='2026-09',user={id:owner},active=true,defer=false,late,fail=false;
   let state={day:'2026-09-14',tasks:[{id:'today',title:'Today',completed:false}]};
-  let data=[{id:'past',day:'2026-09-13',title:'<b>기록 그대로</b>',completed_at:'2026-09-13T12:00:00Z',position:0}];
+  let data=[{id:'past',day:'2026-09-13',title:'<b>기록 그대로</b>',note:'<b>메모도 그대로</b>\n다음에 이어 읽기',completed_at:'2026-09-13T12:00:00Z',position:0}];
   const client={from(name){assert.equal(name,'daily_tasks');return {select(){return this},eq(key,id){assert.equal(id,user.id);return this},gte(){return this},lt(){return this},order(){return this},limit(count){assert.equal(count,620);return this},then(resolve){if(defer)late=resolve;else resolve({data:structuredClone(data),error:fail?{message:'offline'}:null});}};}};
   w.journalCalendar={range:()=>({selected,month}),render(){w.dispatchEvent(new w.Event('journal-calendar-range'));}};
   const history=w.createDailyHistory({panel:$('daily-panel'),client,getUser:()=>user,getState:()=>state,isActive:()=>active});
@@ -118,6 +118,7 @@ try {
   assert.equal($('daily-live').hidden,true);assert.equal($('daily-history').hidden,false);
   assert.equal($('daily-history-list').querySelector('span').textContent,'<b>기록 그대로</b>');
   assert.equal($('daily-history-list').querySelector('b'),null);
+  assert.equal($('daily-history-list').querySelector('.daily-task-note').textContent,data[0].note,'date history includes plain-text notes');
   assert.equal($('daily-history-list').querySelector('input').checked,true);
   assert.equal($('daily-history-list').querySelector('input').disabled,true);
   assert.equal($('draft').value,'작성 중');

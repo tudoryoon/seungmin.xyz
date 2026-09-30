@@ -12,7 +12,7 @@ export function createDailyHistory({panel, client, getUser, getState, isActive})
   const tasksForDate = day => {
     const current = getState();
     if (current?.day === day) return current.tasks;
-    return rows.filter(row => row.day === day).map(row => ({id:row.id,title:row.title,completed:row.completed_at !== null}));
+    return rows.filter(row => row.day === day).map(row => ({id:row.id,title:row.title,note:row.note || '',completed:row.completed_at !== null}));
   };
   function render() {
     const selected = selection()?.selected, current = getState();
@@ -29,7 +29,11 @@ export function createDailyHistory({panel, client, getUser, getState, isActive})
       const item = document.createElement('li'), label = document.createElement('label'), checkbox = document.createElement('input'), title = document.createElement('span');
       checkbox.type = 'checkbox'; checkbox.checked = task.completed; checkbox.disabled = true;
       title.textContent = task.title; item.dataset.completed = String(task.completed);
-      label.append(checkbox,title); item.append(label); return item;
+      label.append(checkbox,title); item.append(label);
+      if (task.note) {
+        const note = document.createElement('p'); note.className = 'daily-task-note'; note.textContent = task.note; item.append(note);
+      }
+      return item;
     }));
     window.lucide?.createIcons();
   }
@@ -43,7 +47,7 @@ export function createDailyHistory({panel, client, getUser, getState, isActive})
     try {
       const [year,month] = range.month.split('-').map(Number);
       const end = new Date(Date.UTC(year,month,1)).toISOString().slice(0,10);
-      const {data,error} = await client.from('daily_tasks').select('id,day,title,completed_at,position')
+      const {data,error} = await client.from('daily_tasks').select('id,day,title,note,completed_at,position')
         .eq('user_id',user.id).gte('day',`${range.month}-01`).lt('day',end).order('day').order('position').limit(620);
       if (token !== epoch || getUser()?.id !== user.id) return;
       if (error) throw error;

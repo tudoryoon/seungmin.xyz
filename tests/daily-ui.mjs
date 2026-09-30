@@ -20,7 +20,7 @@ async function setup({page='test.html',view='calendar',saved=seed(),initial=owne
     if(name==='daily_plan_state')return {data:clone(saved)};
     if(args.p_day!==saved.day)return {error:{message:'DAY_CHANGED'}};
     if(args.p_revision!==saved.revision)return {error:{message:'PLAN_CHANGED'}};
-    if(args.p_action==='save')saved.tasks=args.p_tasks.map(t=>({...t,completed:false}));
+    if(args.p_action==='save')saved.tasks=args.p_tasks.map(t=>({...t,completed:saved.tasks.some(old=>old.id===t.id&&old.title===t.title&&old.completed)}));
     if(args.p_action==='check')saved.tasks.find(t=>t.id===args.p_task_id).completed=args.p_completed;
     saved.revision++;return {data:clone(saved)};
   }};
@@ -47,6 +47,7 @@ try {
   assert.ok([...$('daily-list').querySelectorAll('input')].every(n=>!n.disabled),'completed checks remain reversible');
   $('daily-list').lastElementChild.querySelector('input').click();await until(()=>saved.revision===4&&!$('daily-edit').disabled);
   assert.equal(saved.tasks[1].completed,false);assert.equal($('daily-status').textContent,'');
+  assert.equal(saved.tasks[0].note,'','blank optional notes do not block completion');
   $('daily-edit').click();assert.equal($('daily-form').hidden,false);$('daily-cancel').click();assert.equal($('daily-panel').hidden,false);
   w.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape'}));assert.equal($('daily-panel').hidden,false,'Escape cannot dismiss the persistent panel');
   app.setView('library');assert.equal($('daily-panel').hidden,true);
@@ -58,6 +59,38 @@ try {
   assert.equal($('daily-panel').hidden,false);assert.equal(w.document.querySelector('[data-player-level]').textContent,'LV. 2');
   assert.equal($('daily-status').textContent,'LV. 2 · 레벨 +1','actual level gains still announce after midnight');
   app.account(null);await until(()=>$('daily-panel').hidden);assert.equal($('daily-list').children.length,0);
+} finally {await app.w.happyDOM.close();}
+app=await setup({saved:{...seed(),revision:1,tasks:[{id:'a',title:'자료 읽기',completed:true,note:''},{id:'b',title:'운동',completed:false}]}});try {
+  const {w,$,saved}=app;await until(()=>!$('daily-edit').disabled);
+  $('daily-list').querySelector('[data-task-note="a"]').click();
+  let note=$('daily-inputs').querySelector('textarea');
+  assert.equal(w.document.activeElement,note,'task note button focuses its optional note field');
+  assert.equal(note.required,false);
+  note.value='  <b>2장까지</b>\n핵심 내용 정리  ';note.dispatchEvent(new w.Event('input'));
+  $('daily-form').dispatchEvent(new w.Event('submit',{cancelable:true}));await until(()=>!$('daily-edit').disabled&&!$('daily-list').hidden);
+  assert.equal(saved.tasks[0].note,'<b>2장까지</b>\n핵심 내용 정리');
+  assert.equal(saved.tasks[0].completed,true,'notes-only edits preserve a completed task');
+  assert.equal($('daily-list').querySelector('.daily-task-note').textContent,saved.tasks[0].note);
+  assert.equal($('daily-list').querySelector('b'),null,'notes are plain text, not HTML');
+  $('refresh-records').click();await until(()=>!$('daily-edit').disabled);
+  assert.equal($('daily-list').querySelector('.daily-task-note').textContent,saved.tasks[0].note,'notes survive refresh');
+  $('daily-list').querySelector('[data-task-check="b"]').click();await until(()=>saved.tasks[1].completed&&!$('daily-edit').disabled);
+  assert.equal($('daily-progress').textContent,'2 / 2','legacy tasks without a note can still be completed');
+  $('daily-list').querySelector('[data-task-note="a"]').click();note=$('daily-inputs').querySelector('textarea');
+  note.value='가'.repeat(2001);note.dispatchEvent(new w.Event('input'));
+  const before=app.rpcs();$('daily-form').dispatchEvent(new w.Event('submit',{cancelable:true}));
+  assert.match($('daily-error').textContent,/2,000/);assert.equal(app.rpcs(),before);
+  note.value='저장 실패해도 남을 메모';note.dispatchEvent(new w.Event('input'));app.setFail(true);
+  $('daily-form').dispatchEvent(new w.Event('submit',{cancelable:true}));await until(()=>!$('daily-retry').disabled&&!$('daily-retry').hidden);
+  assert.equal($('daily-inputs').querySelector('textarea').value,'저장 실패해도 남을 메모');
+  app.setFail(false);$('daily-retry').click();await until(()=>!$('daily-edit').disabled);
+  $('daily-list').querySelector('[data-task-note="a"]').click();note=$('daily-inputs').querySelector('textarea');
+  note.value='   ';note.dispatchEvent(new w.Event('input'));
+  $('daily-form').dispatchEvent(new w.Event('submit',{cancelable:true}));await until(()=>!$('daily-edit').disabled&&!$('daily-list').hidden);
+  assert.equal(saved.tasks[0].note,'');assert.equal(saved.tasks[0].completed,true);
+  assert.equal($('daily-list').querySelector('.daily-task-note'),null,'cleared notes leave no empty annotation');
+  app.account(null);await until(()=>$('daily-panel').hidden);
+  assert.equal($('daily-inputs').querySelector('textarea'),null,'sign-out clears note drafts');
 } finally {await app.w.happyDOM.close();}
 app=await setup({saved:{...seed(),tasks:[{id:'complete',title:'Done',completed:true}]}});try {
   await until(()=>!app.$('daily-panel').hidden&&!app.$('daily-edit').disabled);
