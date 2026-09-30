@@ -32,7 +32,7 @@ try {
     assert.equal(layout.crowns.length,4);
     for(const [x,y,rx,ry]of layout.crowns)assert.ok(x>0&&x<layout.size[0]&&y>0&&y<layout.size[1]&&rx>0&&ry>0);
   }
-  const tick=()=>{time+=34;const callbacks=[...frames.values()];frames.clear();callbacks.forEach(callback=>callback(time));};
+  const tick=(delta=34)=>{time+=delta;const callbacks=[...frames.values()];frames.clear();callbacks.forEach(callback=>callback(time));};
   const sync=()=>window.dispatchEvent(new window.Event('realm-view'));
   const stopped=()=>{assert.equal(frames.size,0);assert.equal(canvas.hidden,true);};
   const running=()=>{assert.equal(frames.size,1);tick();assert.equal(canvas.hidden,false);assert.equal(canvas.dataset.windState,'running');};
@@ -51,6 +51,14 @@ try {
   canvas.dispatchEvent(new window.Event('webglcontextrestored'));running();
   throwOnRender=true;tick();stopped();assert.equal(canvas.dataset.windState,'unavailable');sync();stopped();
   wind.dispose();assert.equal(rendererDisposals,1);window.dispatchEvent(new window.Event('resize'));stopped();
+  throwOnRender=false;
+  const busyWind=createMapWind(stage,canvas,image);running();
+  tick(200);running(); // One slow frame (such as shader compilation) is tolerated.
+  for(let i=0;i<8;i++)tick(100);
+  stopped();assert.equal(canvas.dataset.windState,'performance');
+  sync();stopped();assert.equal(canvas.dataset.windState,'performance');
+  assert.equal(image.hidden,false,'the sharp original map remains available');
+  busyWind.dispose();
   console.log('PASS: blossom layout, animation, motion preference, stage/visibility/page lifecycle, responsive image loading, GPU fallback and cleanup.');
 }finally {
   await window.happyDOM.close();

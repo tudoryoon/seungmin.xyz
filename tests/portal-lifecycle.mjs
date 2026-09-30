@@ -29,6 +29,14 @@ for(const width of [390,1440]) {
     assert.equal(canvas.dataset.renderState,'ready');assert.equal(w.document.body.dataset.entryRenderer,'particles');
     portal.setEntryProgress(.45);portal.setMotion(false);assert.equal(progress,.45);
     portal.setMotion(true);
+    portal.setStage('map');const beforeMap=draws;
+    assert.equal(instance.loop,null,'map must stop the covered space renderer');
+    assert.equal(canvas.dataset.renderState,'paused');
+    ready();w.dispatchEvent(new w.Event('resize'));w.dispatchEvent(new w.Event('pageshow'));
+    portal.setMotion(false);portal.setMotion(true);
+    assert.equal(draws,beforeMap,'resize, resume and motion toggles must not render behind the map');
+    assert.equal(instance.loop,null);
+    portal.setStage('entry');assert.ok(instance.loop);assert.ok(draws>beforeMap);
     const lost=new w.Event('webglcontextlost',{cancelable:true});canvas.dispatchEvent(lost);
     assert.equal(lost.defaultPrevented,true);assert.equal(canvas.hidden,true);assert.equal(instance.loop,null);
     assert.equal(w.document.body.dataset.entryRenderer,'fallback');

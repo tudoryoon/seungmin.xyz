@@ -10,7 +10,8 @@ export function createMapWind(stage, canvas, image) {
   const camera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
   const scene=new THREE.Scene();
   let renderer=null, texture=null, source='', frame=0, lastTime=0, elapsed=0;
-  let failed=false, lost=false, disposed=false;
+  let failed=false, lost=false, disposed=false, slow=false;
+  let previousFrame=0, slowFrames=0, renderWidth=0, renderHeight=0, renderRatio=0;
   const material=new THREE.ShaderMaterial({
     depthTest:false,depthWrite:false,
     uniforms:{uMap:{value:null},uSize:{value:new THREE.Vector2()},uTime:{value:0},uCrowns:{value:Array.from({length:4},()=>new THREE.Vector4())}},
@@ -59,15 +60,19 @@ export function createMapWind(stage, canvas, image) {
   });
   const geometry=new THREE.PlaneGeometry(2,2);
   scene.add(new THREE.Mesh(geometry,material));
-  const enabled=()=>!disposed&&!failed&&!lost&&!document.hidden&&!stage.hidden&&document.body.dataset.stage==='map'&&!document.body.classList.contains('reduced-motion');
+  const enabled=()=>!disposed&&!failed&&!lost&&!slow&&!document.hidden&&!stage.hidden&&document.body.dataset.stage==='map'&&!document.body.classList.contains('reduced-motion');
   function stop(state='paused') {
-    cancelAnimationFrame(frame);frame=0;lastTime=0;
+    cancelAnimationFrame(frame);frame=0;lastTime=0;previousFrame=0;slowFrames=0;
     canvas.hidden=true;canvas.dataset.windState=state;
   }
   function fallback() {failed=true;stop('unavailable');}
   function draw(time) {
     frame=0;
     if(!enabled()) {stop();return;}
+    // Decorative motion must yield to movement on a busy or low-power device.
+    slowFrames=previousFrame&&time-previousFrame>80?slowFrames+1:0;
+    previousFrame=time;
+    if(slowFrames>=8){slow=true;stop('performance');return;}
     if(!lastTime||time-lastTime>=1000/30) {
       elapsed+=lastTime?Math.min((time-lastTime)/1000,.1):0;
       lastTime=time;material.uniforms.uTime.value=elapsed;
@@ -78,7 +83,7 @@ export function createMapWind(stage, canvas, image) {
     frame=requestAnimationFrame(draw);
   }
   function sync() {
-    if(!enabled()) {stop(failed?'unavailable':'paused');return;}
+    if(!enabled()) {stop(failed?'unavailable':slow?'performance':'paused');return;}
     const nextSource=image.currentSrc||image.src;
     const layout=portrait.matches?'tall':'wide';
     if(!image.complete||!image.naturalWidth||!nextSource.includes('dungeon-'+layout)) {stop('loading');return;}
@@ -99,8 +104,11 @@ export function createMapWind(stage, canvas, image) {
     }
     const width=stage.clientWidth,height=stage.clientHeight;
     if(!width||!height)return;
-    renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5,Math.sqrt(2200000/(width*height))));
-    renderer.setSize(width,height,false);
+    const ratio=Math.min(devicePixelRatio||1,1.5,Math.sqrt(2200000/(width*height)));
+    if(width!==renderWidth||height!==renderHeight||ratio!==renderRatio){
+      renderer.setPixelRatio(ratio);renderer.setSize(width,height,false);
+      renderWidth=width;renderHeight=height;renderRatio=ratio;
+    }
     if(!frame)frame=requestAnimationFrame(draw);
   }
   const observer=new MutationObserver(sync);

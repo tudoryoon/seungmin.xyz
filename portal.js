@@ -163,7 +163,7 @@ export function createPortal(canvas, motion) {
     camera.updateProjectionMatrix();
   }
   function render(time=0){
-    if(canvas.hidden || contextLost || failed || suspended || document.hidden)return;
+    if(stage==='map' || canvas.hidden || contextLost || failed || suspended || document.hidden)return;
     if(time && lastTime && time-lastTime<(stage==='entry' && innerWidth>=760?14:30)) return;
     const dt=lastTime&&time?Math.min((time-lastTime)/1000,.06):0;
     lastTime=time;
@@ -202,7 +202,8 @@ export function createPortal(canvas, motion) {
   }
   function loop(){
     lastTime=0;
-    renderer.setAnimationLoop(active&&!document.hidden&&!canvas.hidden&&!contextLost&&!failed&&!suspended?render:null);
+    renderer.setAnimationLoop(stage!=='map'&&active&&!document.hidden&&!canvas.hidden&&!contextLost&&!failed&&!suspended?render:null);
+    if(stage==='map')canvas.dataset.renderState='paused';
     render();
   }
   function resize(){

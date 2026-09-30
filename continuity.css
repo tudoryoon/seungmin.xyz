@@ -50,7 +50,7 @@ body:not([data-stage=entry]) .landscape { opacity: 0; transform: scale(3); }
 body:not([data-stage=entry]) .world-shade { background: linear-gradient(90deg, #03081210, #050a1530 60%, #03081210); }
 body.entering .landscape { transform: scale(5); opacity: 0; }
 body.entering .world canvas { opacity: 1; }
-body[data-stage=map] .world { visibility: visible; }
+body[data-stage=map] .world { visibility: hidden; }
 .entry-stage { display:block;min-height:0;height:620svh;padding:0; }
 .entry-copy { position:sticky;top:0;height:100svh;padding:0; }
 .entry-cue { position:absolute;bottom:max(22px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);opacity:calc(1 - var(--entry-progress,0)); }

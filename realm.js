@@ -1,6 +1,6 @@
 import { parseAvatar, paintAvatar, validAvatar, avatarTraits, avatarTitle, DEFAULT_PROMPT } from './avatar.js?v=20260924-2';
 import { validProfile } from './profile.js?v=20260924-2';
-import { createDungeon } from './dungeon.js?v=20260924-2';
+import { createDungeon } from './dungeon.js?v=20260930-1';
 import { resolveRealmStage } from './realm-route.js?v=20260927-1';
 import { createScrollEntry, entryScene } from './scroll-entry.js?v=20260924-2';
 
@@ -59,7 +59,7 @@ $('motion').addEventListener('change', event => {
 });
 reducedQuery.addEventListener('change', () => { if (motionPreference === null) setMotion(!reducedQuery.matches); });
 // Rendering is optional: a failed GPU or module must never block account access.
-import('./portal.js?v=20260924-7').then(({ createPortal }) => {
+import('./portal.js?v=20260930-1').then(({ createPortal }) => {
   portal = createPortal($('portal'), motion);
   portal.setStage(document.body.classList.contains('entry-flow')?'entry':stage);
   portal.setEntryProgress(entrance.progress);

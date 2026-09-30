@@ -52,13 +52,18 @@ export function createDungeon(stage, isActive) {
     actor.dataset.walking=String(Math.hypot(position.x-before.x,position.y-before.y)>.0001);
     if(keys.size)raf=requestAnimationFrame(tick);else stopKeys();
   }
+  function startKey(key) {
+    keys.add(key);
+    // Apply the first step before keyup/pointerup can cancel a pending frame.
+    if(!raf)tick(performance.now());
+  }
   window.addEventListener('keydown',event=>{
     if(!isActive()||navigating||event.altKey||event.ctrlKey||event.metaKey||event.isComposing)return;
     if(event.target?.closest?.('input,textarea,select,[contenteditable=true],dialog'))return;
     if(arrows.includes(event.key)) {
       event.preventDefault();
       stage.querySelector('#map-title').focus({preventScroll:true});
-      keys.add(event.key);if(!raf)raf=requestAnimationFrame(tick);
+      startKey(event.key);
     } else if(event.key==='Enter'&&nearby&&!event.repeat&&!event.target?.closest?.('a,button')) {
       event.preventDefault();enter();
     }
@@ -75,7 +80,7 @@ export function createDungeon(stage, isActive) {
   stage.querySelectorAll('[data-move]').forEach(button=>{
     button.addEventListener('pointerdown',event=>{
       if(!isActive()||navigating)return;event.preventDefault();
-      button.setPointerCapture(event.pointerId);keys.add(button.dataset.move);if(!raf)raf=requestAnimationFrame(tick);
+      button.setPointerCapture(event.pointerId);startKey(button.dataset.move);
     });
     for(const name of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(name,()=>{keys.delete(button.dataset.move);if(!keys.size)stopKeys();});
   });
