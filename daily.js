@@ -8,7 +8,14 @@ panel.innerHTML = `
   <header class="daily-heading"><div><p id="daily-date"></p><h2 id="daily-title" tabindex="-1">오늘 할 일</h2></div></header>
   <div class="daily-summary"><span id="daily-progress">0 / 0</span><span data-player-level>LV. …</span></div>
   <progress id="daily-meter" max="1" value="0" aria-label="오늘 완료한 할 일"></progress>
-  <ul id="daily-list" class="daily-list"></ul>
+  <div id="daily-groups">
+    <h3 id="daily-remaining-title" class="daily-group-title">남은 할 일</h3>
+    <ul id="daily-list" class="daily-list" aria-labelledby="daily-remaining-title"></ul>
+    <p id="daily-empty" class="daily-empty" hidden>오늘 할 일을 모두 마쳤어요.</p>
+    <details id="daily-completed" open hidden><summary id="daily-completed-title">완료한 일 · 0개</summary>
+      <ul id="daily-completed-list" class="daily-list" aria-labelledby="daily-completed-title"></ul>
+    </details>
+  </div>
   <form id="daily-form"><div id="daily-inputs"></div>
     <div class="daily-edit-tools"><button type="button" id="daily-add" class="daily-icon" title="할 일 추가" aria-label="할 일 추가"><i data-lucide="plus"></i></button><span id="daily-limit"></span></div>
     <div class="daily-actions"><button type="button" id="daily-cancel">취소</button><button type="submit" id="daily-save" class="daily-primary">저장</button></div>
@@ -59,14 +66,23 @@ function render() {
   $('daily-meter').max = Math.max(1,tasks.length); $('daily-meter').value = count;
   $('daily-form').hidden = !editing || !state;
   $('daily-list').hidden = editing;
+  $('daily-groups').hidden = editing;
+  $('daily-remaining-title').textContent = `남은 할 일 · ${tasks.length-count}개`;
+  $('daily-empty').hidden = !tasks.length || count !== tasks.length;
+  $('daily-completed').hidden = !count;
+  $('daily-completed-title').textContent = `완료한 일 · ${count}개`;
   $('daily-view-actions').hidden = editing || !state;
   $('daily-cancel').hidden = !state?.tasks.length;
   $('daily-limit').textContent = `${draft.length} / 20`;
-  $('daily-list').replaceChildren(...tasks.map(task => {
+  const remaining = [], completed = [];
+  tasks.forEach(task => {
     const li = document.createElement('li'), label = document.createElement('label'), input = document.createElement('input'), text = document.createElement('span');
     input.type = 'checkbox'; input.checked = task.completed; input.dataset.taskCheck = task.id;
     text.textContent = task.title; li.dataset.completed = String(task.completed);
-    input.addEventListener('change', () => mutate('check', {p_task_id:task.id,p_completed:input.checked}, task.id));
+    input.addEventListener('change', () => {
+      li.dataset.completed = String(input.checked);
+      mutate('check', {p_task_id:task.id,p_completed:input.checked}, task.id);
+    });
     label.append(input,text); li.append(label);
     if (task.note) {
       const note = document.createElement('p'); note.className = 'daily-task-note'; note.textContent = task.note; li.append(note);
@@ -78,8 +94,10 @@ function render() {
       startEdit(); render();
       [...$('daily-inputs').querySelectorAll('textarea')].find(node => node.dataset.noteId === task.id)?.focus();
     });
-    li.append(editNote); return li;
-  }));
+    li.append(editNote); (task.completed ? completed : remaining).push(li);
+  });
+  $('daily-list').replaceChildren(...remaining);
+  $('daily-completed-list').replaceChildren(...completed);
   $('daily-inputs').replaceChildren(...draft.map((task,index) => {
     const row = document.createElement('div'), input = document.createElement('input'), remove = document.createElement('button');
     row.className = 'daily-input-row'; input.type = 'text'; input.maxLength = 160; input.value = task.title;
@@ -152,13 +170,26 @@ async function refresh(force = false) {
 }
 async function mutate(action, values = {}, focusId) {
   if (!eligible() || !state || busy || loading || blocked) return;
-  const token = epoch; busy = true; failure = ''; notice = ''; controls();
+  const token = epoch, started = performance.now(); busy = true; failure = ''; notice = ''; controls();
+  let scrollPositions = [], windowPosition = null, nextFocus = null;
   logoutSnapshot = [$('logout'),$('sign-out')].filter(Boolean).map(node => [node,node.disabled]);
   logoutSnapshot.forEach(([node]) => { node.disabled = true; });
   try {
     const {data,error} = await client.rpc('daily_plan_update', {p_day:state.day,p_revision:state.revision,p_action:action,...values});
     if (token !== epoch) return;
     if (error) throw error;
+    if (action === 'check') {
+      // Keep the checked row in place briefly, with controls locked against stray taps.
+      await new Promise(resolve => setTimeout(resolve, Math.max(0,350-(performance.now()-started))));
+      if (token !== epoch) return;
+      for (let node = panel; node; node = node.parentElement) scrollPositions.push([node,node.scrollLeft,node.scrollTop]);
+      windowPosition = [window.scrollX,window.scrollY];
+      if (values.p_completed) {
+        const index = state.tasks.findIndex(task => task.id === focusId);
+        const ordered = [...state.tasks.slice(index+1),...state.tasks.slice(0,index)];
+        nextFocus = ordered.find(task => !task.completed)?.id || 'completed-summary';
+      }
+    }
     accept(data);
   } catch (error) {
     if (token !== epoch) return;
@@ -169,7 +200,13 @@ async function mutate(action, values = {}, focusId) {
     if (token === epoch) {
       unlockLogout();
       busy = false; controls();
-      if (eligible() && focusId) panel.querySelector(`[data-task-check="${focusId}"]`)?.focus();
+      if (eligible() && focusId) {
+        const target = nextFocus === 'completed-summary' ? $('daily-completed-title')
+          : panel.querySelector(`[data-task-check="${nextFocus || focusId}"]`);
+        target?.focus({preventScroll:true});
+        for (const [node,left,top] of scrollPositions) { node.scrollLeft = left; node.scrollTop = top; }
+        if (windowPosition) window.scrollTo({left:windowPosition[0],top:windowPosition[1],behavior:'instant'});
+      }
     }
   }
 }
@@ -199,6 +236,7 @@ function account(next) {
     unlockLogout();
     epoch++; clearTimeout(timer); state = null; busy = false; loading = false; editing = false; dirty = false;
     draft = []; notice = ''; failure = ''; blocked = false; deadline = 0;
+    $('daily-completed').open = true;
     active = false; panel.hidden = true; level(next ? '…' : 1); render();
     historyView.reset();
   }

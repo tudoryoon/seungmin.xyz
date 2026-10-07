@@ -24,6 +24,11 @@
 #daily-meter{display:block;appearance:none;width:100%;height:5px;border:0;background:#2b3a32;border-radius:0;margin:0 0 16px;accent-color:#91cfa3}
 #daily-meter::-webkit-progress-bar{background:#2b3a32}#daily-meter::-webkit-progress-value{background:#91cfa3}#daily-meter::-moz-progress-bar{background:#91cfa3}
 .daily-list{list-style:none;margin:0;padding:0}
+#daily-groups{overflow-anchor:none}
+.daily-group-title,.daily-panel #daily-completed summary{font-size:13px;font-weight:600;color:inherit;line-height:1.6;margin:0;padding:10px 0}
+.daily-panel #daily-completed{margin-top:18px;border-top:1px solid #49605b}
+.daily-panel #daily-completed summary{cursor:pointer;min-height:42px}
+.daily-empty{font-size:13px;line-height:1.6;color:inherit;opacity:.7;margin:8px 0 16px}
 .daily-list li{border-bottom:1px solid #304338}
 .daily-list label{display:flex;flex-direction:row;align-items:flex-start;gap:12px;padding:15px 0;line-height:1.6;cursor:pointer;margin:0;font-size:15px;color:#e0ece6;font-weight:400}
 .daily-list input[type=checkbox]{appearance:auto;width:21px;height:21px;min-width:21px;min-height:21px;margin:2px 0 0;accent-color:#8bd4a7;flex:none;padding:0}
